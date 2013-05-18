@@ -1,10 +1,5 @@
 import os
-import markdown2
-import functools
-import json
-import collections
-from operator import methodcaller
-import datetime
+import markdown2, yaml
 
 textExtensions = {'.md', '.html', '.blog', '.json', '.less', '.coffee', '.js'}
 
@@ -58,8 +53,12 @@ class Item:
 
 	def GetPath (self):
 		return self._path
+	
+class Reader:
+	def GetItems (self):
+		return []
 
-class FilesystemReader:
+class FilesystemReader(Reader):
 	def __init__ (self, directory):
 		self._directory = directory
 
@@ -90,7 +89,6 @@ class FilesystemReader:
 					yield self._GetBinaryItem (relativePath, absolutePath)
 
 	def _GetTextItem (self, relativePath, absolutePath):
-		import yaml
 		name, extension = os.path.splitext(os.path.basename (absolutePath))
 
 		content = open(absolutePath, 'r', encoding='utf-8').read ()
@@ -143,7 +141,7 @@ class LessFilter(Filter):
 		if item.IsText () and item.GetAttribute ('extension') in {'.less'}:
 			process = subprocess.Popen ('lessc --yui-compress -', stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE, shell=True)
-			out, error = process.communicate (item.GetContent ().encode ('utf-8'))
+			out, _ = process.communicate (item.GetContent ().encode ('utf-8'))
 			item.SetContent (out.decode ('utf-8'))
 			item.SetAttribute ('extension', '.css')
 
@@ -158,7 +156,7 @@ class CoffeeFilter(Filter):
 		if item.IsText () and item.GetAttribute ('extension') in {'.coffee'}:
 			process = subprocess.Popen ('coffee -s -p', stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE, shell=True)
-			out, error = process.communicate (item.GetContent ().encode ('utf-8'))
+			out, _ = process.communicate (item.GetContent ().encode ('utf-8'))
 			item.SetContent (out.decode ('utf-8'))
 			item.SetAttribute ('extension', '.js')
 
@@ -172,7 +170,7 @@ class UglifyjsFilter (Filter):
 		if item.IsText () and item.GetAttribute ('extension') in {'.js'}:
 			process = subprocess.Popen ('uglifyjs - --comments all', stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True)
-			out, error = process.communicate (item.GetContent ().encode ('utf-8'))
+			out, _ = process.communicate (item.GetContent ().encode ('utf-8'))
 			item.SetContent (out.decode ('utf-8'))
 
 class Site:
@@ -320,7 +318,6 @@ class FilesystemWriter (Writer):
 	def _MakeDirectory (self, path):
 		'''Create all directories for a specific path.'''
 		directory = os.path.dirname (path)
-		filename = os.path.basename (path)
 
 		# docs says os.makedirs doesn't like ..
 		outputDir = os.path.abspath (os.path.join(self._outputdir, directory))

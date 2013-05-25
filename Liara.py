@@ -1,8 +1,6 @@
 import os
 import markdown2, yaml
 
-textExtensions = {'.md', '.html', '.blog', '.json', '.less', '.coffee', '.js'}
-
 class ItemAlreadyExistsException(Exception):
 	def __init__(self, path):
 		Exception.__init__ (self)
@@ -20,6 +18,9 @@ class Item:
 		self._path = path
 		self._content = {'default' : content}
 		self._metadata = metadata
+
+	def GetMetadata (self):
+		return self._metadata
 
 	def GetAttribute (self, name, default=None):
 		"""Get a metadata attribute."""
@@ -53,7 +54,7 @@ class Item:
 
 	def GetPath (self):
 		return self._path
-	
+
 class Reader:
 	def GetItems (self):
 		return []
@@ -61,6 +62,10 @@ class Reader:
 class FilesystemReader(Reader):
 	def __init__ (self, directory):
 		self._directory = directory
+		self.textExtensions = {'.md', '.html', '.blog', '.json', '.less', '.coffee', '.js'}
+
+	def RegisterTextExtension (self, ext):
+		self.textExtensions.insert (ext)
 
 	def GetItems (self):
 		for root, _, files in os.walk(self._directory):
@@ -83,7 +88,7 @@ class FilesystemReader(Reader):
 
 				relativePath = relativePath.replace ('\\', '/')
 
-				if ext in textExtensions:
+				if ext in self.textExtensions:
 					yield self._GetTextItem (relativePath, absolutePath)
 				else:
 					yield self._GetBinaryItem (relativePath, absolutePath)

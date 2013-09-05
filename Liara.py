@@ -30,12 +30,12 @@ class Item:
 		"""Set a metadata attribute."""
 		self._metadata [name] = value
 
-	def GetContent (self, kind='default'):
+	def GetContent (self, kind='default', default=None):
 		"""Get the content.
 
 		If this file is binary, this will be the absolute path to the source
 		file."""
-		return self._content [kind]
+		return self._content.get (kind, default)
 
 	def SetContent (self, content, contentType = None, kind='default'):
 		"""Set the content."""

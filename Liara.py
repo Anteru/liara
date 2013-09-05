@@ -19,6 +19,9 @@ class Item:
 		self._content = {'default' : content}
 		self._metadata = metadata
 
+	def __str__ (self):
+		return 'Item: {}'.format (self._path)
+
 	def GetMetadata (self):
 		return self._metadata
 
@@ -316,8 +319,8 @@ def CreateBreadcrumbs (site, item):
 	return result
 
 class FilesystemWriter (Writer):
-	def __init__ (self, output):
-		self._outputdir = output
+	def __init__ (self, outputDirectory):
+		self._outputdir = outputDirectory
 		self._cache = {}
 
 	def _MakeDirectory (self, path):

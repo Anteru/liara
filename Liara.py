@@ -84,7 +84,7 @@ class FilesystemReader(Reader):
 				if relativePath == '.':
 					relativePath = '/' + name
 				else:
-					if not name.startswith ('index'):
+					if name != 'index':
 						relativePath = '/' + os.path.join (relativePath, name)
 					else:
 						relativePath = '/' + relativePath

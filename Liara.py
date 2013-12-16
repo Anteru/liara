@@ -144,10 +144,14 @@ class LessFilter(Filter):
 	This filter only works on text files with the .less extension. It replaces
 	the content with CSS and changes the extension to .css. It assumes that
 	`lessc` is available.'''
+	def __init__(self, includePath = '.'):
+		self._includePath = includePath
+
 	def Visit (self, item):
 		import subprocess
 		if item.IsText () and item.GetAttribute ('extension') in {'.less'}:
-			process = subprocess.Popen ('lessc --yui-compress -', stdin=subprocess.PIPE,
+			process = subprocess.Popen ('lessc --yui-compress --include-path={} -'.format (self._includePath),
+				stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE, shell=True)
 			out, _ = process.communicate (item.GetContent ().encode ('utf-8'))
 			item.SetContent (out.decode ('utf-8'))
@@ -162,7 +166,7 @@ class CoffeeFilter(Filter):
 	def Visit (self, item):
 		import subprocess
 		if item.IsText () and item.GetAttribute ('extension') in {'.coffee'}:
-			process = subprocess.Popen ('coffee -s -p', stdin=subprocess.PIPE,
+			process = subprocess.Popen ('coffee -s -p -c', stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE, shell=True)
 			out, _ = process.communicate (item.GetContent ().encode ('utf-8'))
 			item.SetContent (out.decode ('utf-8'))

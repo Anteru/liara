@@ -150,7 +150,7 @@ class LessFilter(Filter):
 	def Visit (self, item):
 		import subprocess
 		if item.IsText () and item.GetAttribute ('extension') in {'.less'}:
-			process = subprocess.Popen ('lessc --yui-compress --include-path={} -'.format (self._includePath),
+			process = subprocess.Popen ('lessc --include-path={} -'.format (self._includePath),
 				stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE, shell=True)
 			out, _ = process.communicate (item.GetContent ().encode ('utf-8'))

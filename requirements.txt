@@ -1,0 +1,6 @@
+Jinja2==2.10
+Mako==1.0.7
+Markdown==3.0.1
+PyYAML==3.13
+Click==7.0
+flake8=3.6.0

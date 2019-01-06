@@ -12,6 +12,7 @@ class NodeKind(Enum):
     Index = auto()
     Document = auto()
     Data = auto()
+    Static = auto()
 
 
 class Node:
@@ -145,14 +146,22 @@ class DocumentNode(Node):
     def validate_links(self, site: 'Site'):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(self.content, 'lxml')
+
+        def validate_link(link):
+            if not link.startswith('/'):
+                return
+
+            link = pathlib.PurePosixPath(link)
+            if link not in site.urls:
+                print (f'"{link}" referenced in "{self.path}" does not exist')
+
         for link in soup.find_all('a'):
             target = link.attrs.get('href', None)
-            if not target.startswith('/'):
-                continue
+            validate_link(target)
 
-            target = pathlib.PurePosixPath(target)
-            if target not in site.urls:
-                print (f'"{target}" referenced in "{self.path}" does not exist')
+        for image in soup.find_all('img'):
+            target = image.attrs.get('src', None)
+            validate_link(target)
 
     def process_content(self):
         import markdown
@@ -185,8 +194,15 @@ class ResourceNode(Node):
         if metadata_path:
             self.metadata = yaml.load(open(metadata_path, 'r'))
 
-    def publish(self, output_path) -> None:
-        pass
+
+class StaticNode(Node):
+    def __init__(self, src, path, metadata_path=None):
+        super().__init__()
+        self.kind = NodeKind.Static
+        self.src = src
+        self.path = path
+        if metadata_path:
+            self.metadata = yaml.load(open(metadata_path, 'r'))
 
 
 class Page:
@@ -213,6 +229,7 @@ class Site:
     indices: List[IndexNode] = []
     documents: List[DocumentNode] = []
     resources: List[ResourceNode] = []
+    static: List[StaticNode] = []
 
     __nodes: Dict[pathlib.PurePosixPath, Node] = {}
 
@@ -230,6 +247,10 @@ class Site:
 
     def add_resource(self, node: ResourceNode) -> None:
         self.resources.append(node)
+        self.__register_node(node)
+
+    def add_static(self, node: StaticNode) -> None:
+        self.static.append(node)
         self.__register_node(node)
 
     def __register_node(self, node: Node) -> None:
@@ -269,12 +290,10 @@ class Liara:
         else:
             raise Exception(f'Unknown template backend: "{backend}"')
 
-    def __discover_content(self, directory) -> Site:
-        root = pathlib.Path(directory)
-
+    def discover_content(self) -> Site:
         # Create the path from the full path as discovered during walk
         # This turns something like 'directory/foo/bar' into '/foo/bar'
-        def create_path(path):
+        def create_relative_path(path, root):
             path = pathlib.Path(path)
             # Extra check, as with_name would fail on an empty path
             if path == root:
@@ -285,8 +304,8 @@ class Liara:
                 / pathlib.PurePosixPath(path.with_name(path.stem))
             return path
 
-        roots = {}
-        for(dirpath, _, filenames) in os.walk(directory):
+        content_root = pathlib.Path(self.__configuration['content_directory'])
+        for(dirpath, _, filenames) in os.walk(content_root):
             # Need to run two passes here: First, we check if an _index file is
             # present in this folder, in which case it's the root of this
             # directory
@@ -294,43 +313,26 @@ class Liara:
             for filename in filenames:
                 if filename.startswith('_index'):
                     src = pathlib.Path(os.path.join(dirpath, filename))
-                    node = DocumentNode(src, create_path(dirpath))
-                    roots[dirpath] = node
+                    node = DocumentNode(src, create_relative_path(
+                        dirpath, content_root))
                     self.__site.add_document(node)
-
-                    # For index nodes, we manually walk up to the next parent
-                    # This is different from the logic used in the second loop,
-                    # as for that loop, the parent is either the index node for
-                    # the current folder, or a manually created root
-                    parent_path = str(pathlib.Path(dirpath).parent)
-                    if parent_path in roots:
-                        roots[parent_path].add_child(node)
                     break
             else:
-                node = IndexNode(create_path(dirpath))
-                roots[dirpath] = node
+                node = IndexNode(create_relative_path(dirpath, content_root))
                 self.__site.add_index(node)
-
-                # Same logic as above
-                parent_path = str(pathlib.Path(dirpath).parent)
-                if parent_path in roots:
-                    roots[parent_path].add_child(node)
 
             for filename in filenames:
                 if filename.startswith('_index'):
                     continue
 
                 src = pathlib.Path(os.path.join(dirpath, filename))
-                path = create_path(src)
+                path = create_relative_path(src, content_root)
 
                 if src.suffix in {'.md'}:
                     node = DocumentNode(src, path)
-                    if dirpath in roots:
-                        roots[dirpath].add_child(node)
                     self.__site.add_document(node)
                 elif src.suffix in {'.yaml'}:
                     node = DataNode(src, path)
-                    self.__site.add_data(node)
                 else:
                     metadata_path = src.with_suffix('.meta')
                     path = path.with_suffix(''.join(src.suffixes()))
@@ -340,11 +342,21 @@ class Liara:
                         node = ResourceNode(src, path)
                     self.__site.add_resource(node)
 
-        return self.__site
+        static_root = pathlib.Path(self.__configuration['static_directory'])
+        for dirpath, _, filenames in os.walk(static_root):
+            for filename in filenames:
+                src = pathlib.Path(os.path.join(dirpath, filename))
+                path = create_relative_path(src, static_root)
+                path = path.with_suffix(''.join(src.suffixes))
 
-    def discover_content(self) -> Site:
-        return self.__discover_content(
-            self.__configuration['content_directory'])
+                metadata_path = src.with_suffix('.meta')
+                if metadata_path.exists():
+                    node = StaticNode(src, path, metadata_path)
+                else:
+                    node = StaticNode(src, path)
+                self.__site.add_static(node)
+
+        return self.__site
 
     @property
     def site(self) -> Site:
@@ -352,8 +364,7 @@ class Liara:
 
     def build(self):
         from .template import SiteTemplateProxy
-        content = self.__discover_content(
-            self.__configuration['content_directory'])
+        content = self.discover_content()
 
         for document in content.documents:
             document.validate_metadata()
@@ -377,15 +388,10 @@ class Liara:
                 node=node))
 
         # Symlink static data
-        for(dirpath, dirnames, filenames) in os.walk(
-                self.__configuration['static_directory']):
-            for filename in filenames:
-                source_path = pathlib.Path(dirpath) / filename
-                output_path = pathlib.Path('output')
-                output_path /= source_path.relative_to('static')
+        for node in content.static:
+            file_path = pathlib.Path(str(output_path) + str(node.path))
+            os.makedirs(file_path.parent, exist_ok=True)
 
-                os.makedirs(output_path.parent, exist_ok=True)
-
-                with suppress(FileExistsError):
-                    # Symlink requires an absolute path
-                    os.symlink(os.path.abspath(source_path), output_path)
+            with suppress(FileExistsError):
+                # Symlink requires an absolute path
+                os.symlink(os.path.abspath(node.src), file_path)

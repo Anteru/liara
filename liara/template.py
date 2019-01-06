@@ -1,4 +1,5 @@
 from typing import Dict
+from . import Site
 
 class Template:
     def render(self, **kwargs):
@@ -62,3 +63,16 @@ class Jinja2TemplateRepository(TemplateRepository):
     def find_template(self, url) -> Template:
         template = self._match_template(url)
         return Jinja2Template(self.__env.get_template(template))
+
+class SiteTemplateProxy:
+    __site: Site
+
+    def __init__(self, site: Site):
+        self.__site = site
+        self.__data = {}
+        for data in self.__site.data:
+            self.__data.update (data.metadata)
+
+    @property
+    def data(self):
+        return self.__data

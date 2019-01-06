@@ -1,29 +1,42 @@
 import click
-from . import BuildContext, Node, NodeKind
+from . import Liara, Node, NodeKind
 
+pass_liara = click.make_pass_decorator(Liara)
 
 @click.group()
-def cli():
-    pass
+@click.option('--config', default='config.yaml', metavar='PATH')
+@click.version_option('0.1')
+@click.pass_context
+def cli(ctx, config):
+    ctx.obj = Liara(config)
 
 
 @cli.command()
-@click.argument('config', type=click.File(), default='config.yaml')
-def build(config):
+@pass_liara
+def build(liara):
     """Build a site."""
-    bc = BuildContext(config)
-    bc.build()
+    liara.build()
 
 
 @cli.command()
-@click.argument('config', type=click.File(), default='config.yaml')
-def list_content(config):
+@pass_liara
+def validate_links(liara):
+    site = liara.discover_content()
+    for document in site.documents:
+        document.process_content()
+        document.validate_links(site)
+
+
+@cli.command()
+@pass_liara
+def list_content(liara):
     """List all content."""
     import treelib
-    bc = BuildContext(config)
-    content = bc.discover_content()
+    content = liara.discover_content()
 
-    sorted_nodes = list(sorted(content.nodes,key=lambda x: x.path))
+    # We sort by path name, which makes it trivial to sort it later into a tree
+    # as children always come after their parent
+    sorted_nodes = sorted(content.nodes,key=lambda x: x.path)
     tree = treelib.Tree()
     if not sorted_nodes:
         return

@@ -61,16 +61,16 @@ class Sorter:
 
 
 class TitleSorter(Sorter):
-    def get_key(self, item):
+    def get_key(self, item: 'Page'):
         return item.meta['title']
 
 
 class TagSorter(Sorter):
-    def __init__(self, tag):
+    def __init__(self, tag: str):
         self.__tag = tag
 
-    def get_key(self, item):
-        return getattr(item.meta, self.__tag)
+    def get_key(self, item: 'Page'):
+        return item.meta.get[self.__tag]
 
 
 class Query(Iterable[Node]):
@@ -89,12 +89,12 @@ class Query(Iterable[Node]):
         self.__sorters.append(TitleSorter())
         return self
 
-    def sorted_by_tag(self, tag) -> 'Query':
+    def sorted_by_tag(self, tag: str) -> 'Query':
         self.__sorters.append(TagSorter(tag))
         return self
 
     def __iter__(self) -> Iterator[Node]:
-        nodes = self.__nodes.copy()
+        nodes = self.__nodes
         for f in self.__filters:
             nodes = filter(lambda x: f.match(x), nodes)
         result = map(Page, nodes)
@@ -142,6 +142,18 @@ class DocumentNode(Node):
         if 'title' not in self.metadata:
             raise Exception(f"'title' missing for Document: '{self.src}'")
 
+    def validate_links(self, site: 'Site'):
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(self.content, 'lxml')
+        for link in soup.find_all('a'):
+            target = link.attrs.get('href', None)
+            if not target.startswith('/'):
+                continue
+
+            target = pathlib.PurePosixPath(target)
+            if target not in site.urls:
+                print (f'"{target}" referenced in "{self.path}" does not exist')
+
     def process_content(self):
         import markdown
         self.content = markdown.markdown(self.__raw_content)
@@ -177,28 +189,6 @@ class ResourceNode(Node):
         pass
 
 
-class Content:
-    data: List[DataNode] = []
-    indices: List[IndexNode] = []
-    documents: List[DocumentNode] = []
-    resources: List[ResourceNode] = []
-
-    def add_data(self, node: DataNode) -> None:
-        self.data.append(node)
-
-    def add_index(self, node: IndexNode) -> None:
-        self.indices.append(node)
-
-    def add_document(self, node: DocumentNode) -> None:
-        self.documents.append(node)
-
-    def add_resource(self, node: ResourceNode) -> None:
-        self.resources.append(node)
-
-    @property
-    def nodes(self):
-        return self.data + self.indices + self.documents + self.resources
-
 class Page:
     def __init__(self, node):
         self.__node = node
@@ -219,17 +209,43 @@ class Page:
 
 
 class Site:
-    __data: Dict[str, Any] = {}
+    data: List[DataNode] = []
+    indices: List[IndexNode] = []
+    documents: List[DocumentNode] = []
+    resources: List[ResourceNode] = []
 
-    def add_data(self, data) -> None:
-        self.__data.update(data)
+    __nodes: Dict[pathlib.PurePosixPath, Node] = {}
+
+    def add_data(self, node: DataNode) -> None:
+        self.data.append(node)
+        self.__register_node(node)
+
+    def add_index(self, node: IndexNode) -> None:
+        self.indices.append(node)
+        self.__register_node(node)
+
+    def add_document(self, node: DocumentNode) -> None:
+        self.documents.append(node)
+        self.__register_node(node)
+
+    def add_resource(self, node: ResourceNode) -> None:
+        self.resources.append(node)
+        self.__register_node(node)
+
+    def __register_node(self, node: Node) -> None:
+        self.__nodes[node.path] = node
 
     @property
-    def data(self):
-        return self.__data
+    def nodes(self) -> Iterable[Node]:
+        return self.__nodes.values()
 
+    @property
+    def urls(self) -> Iterable[pathlib.PurePosixPath]:
+        return self.__nodes.keys()
 
-class BuildContext:
+class Liara:
+    __site: Site = Site()
+
     def __init__(self, configuration):
         import yaml
         if isinstance(configuration, str):
@@ -253,9 +269,8 @@ class BuildContext:
         else:
             raise Exception(f'Unknown template backend: "{backend}"')
 
-    def __discover_content(self, directory) -> Content:
+    def __discover_content(self, directory) -> Site:
         root = pathlib.Path(directory)
-        result = Content()
 
         # Create the path from the full path as discovered during walk
         # This turns something like 'directory/foo/bar' into '/foo/bar'
@@ -281,7 +296,7 @@ class BuildContext:
                     src = pathlib.Path(os.path.join(dirpath, filename))
                     node = DocumentNode(src, create_path(dirpath))
                     roots[dirpath] = node
-                    result.add_document(node)
+                    self.__site.add_document(node)
 
                     # For index nodes, we manually walk up to the next parent
                     # This is different from the logic used in the second loop,
@@ -294,7 +309,7 @@ class BuildContext:
             else:
                 node = IndexNode(create_path(dirpath))
                 roots[dirpath] = node
-                result.add_index(node)
+                self.__site.add_index(node)
 
                 # Same logic as above
                 parent_path = str(pathlib.Path(dirpath).parent)
@@ -312,10 +327,10 @@ class BuildContext:
                     node = DocumentNode(src, path)
                     if dirpath in roots:
                         roots[dirpath].add_child(node)
-                    result.add_document(node)
+                    self.__site.add_document(node)
                 elif src.suffix in {'.yaml'}:
                     node = DataNode(src, path)
-                    result.add_data(node)
+                    self.__site.add_data(node)
                 else:
                     metadata_path = src.with_suffix('.meta')
                     path = path.with_suffix(''.join(src.suffixes()))
@@ -323,15 +338,20 @@ class BuildContext:
                         node = ResourceNode(src, path, metadata_path)
                     else:
                         node = ResourceNode(src, path)
-                    result.add_resource(node)
+                    self.__site.add_resource(node)
 
-        return result
+        return self.__site
 
-    def discover_content(self) -> Content:
+    def discover_content(self) -> Site:
         return self.__discover_content(
             self.__configuration['content_directory'])
 
+    @property
+    def site(self) -> Site:
+        return self.__site
+
     def build(self):
+        from .template import SiteTemplateProxy
         content = self.__discover_content(
             self.__configuration['content_directory'])
 
@@ -341,9 +361,7 @@ class BuildContext:
         for document in content.documents:
             document.process_content()
 
-        site = Site()
-        for data in content.data:
-            site.add_data(data.metadata)
+        site = self.__site
 
         output_path = pathlib.Path(self.__configuration['output_directory'])
         for node in itertools.chain(content.documents, content.indices):
@@ -354,7 +372,9 @@ class BuildContext:
 
             template = self.__template_backend.find_template(node.path)
             file_path.open('w').write(template.render(
-                site=site, page=page, node=node))
+                site=SiteTemplateProxy(site),
+                page=page,
+                node=node))
 
         # Symlink static data
         for(dirpath, dirnames, filenames) in os.walk(

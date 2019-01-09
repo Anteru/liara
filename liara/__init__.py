@@ -12,7 +12,12 @@ class NodeKind(Enum):
     Index = auto()
     Document = auto()
     Data = auto()
+    # Static nodes will not get any processing applied. Metadata can be
+    # generated (for instance, image size)
     Static = auto()
+    # Internal nodes are just used during traversal, but otherwise never
+    # generate output
+    Internal = auto()
 
 
 class Node:
@@ -153,7 +158,7 @@ class DocumentNode(Node):
 
             link = pathlib.PurePosixPath(link)
             if link not in site.urls:
-                print (f'"{link}" referenced in "{self.path}" does not exist')
+                print(f'"{link}" referenced in "{self.path}" does not exist')
 
         for link in soup.find_all('a'):
             target = link.attrs.get('href', None)
@@ -203,6 +208,14 @@ class StaticNode(Node):
         self.path = path
         if metadata_path:
             self.metadata = yaml.load(open(metadata_path, 'r'))
+
+    def update_metadata(self) -> None:
+        from PIL import Image
+        if self.src.suffix in {'.jpg', '.png'}:
+            image = Image.open(self.src)
+            self.metadata.update({
+                'image_size': image.size
+            })
 
 
 class Page:
@@ -263,6 +276,7 @@ class Site:
     @property
     def urls(self) -> Iterable[pathlib.PurePosixPath]:
         return self.__nodes.keys()
+
 
 class Liara:
     __site: Site = Site()
@@ -365,6 +379,9 @@ class Liara:
     def build(self):
         from .template import SiteTemplateProxy
         content = self.discover_content()
+
+        for static in content.static:
+            static.update_metadata();
 
         for document in content.documents:
             document.validate_metadata()

@@ -200,6 +200,39 @@ class ResourceNode(Node):
             self.metadata = yaml.load(open(metadata_path, 'r'))
 
 
+class SassResourceNode(ResourceNode):
+    def __init__(self, src, path, metadata_path=None):
+        super().__init__(src, path, metadata_path)
+        if src.suffix not in {'.scss', '.sass'}:
+            raise Exception("SassResource can be only created for a .scss or "
+                            " .sass file")
+
+        self.path = self.path.with_suffix('.css')
+
+    def process_content(self):
+        import sass
+        self.content = sass.compile(filename=str(self.src))
+
+
+class ResourceNodeFactory:
+    __known_types: Dict[str, ResourceNode] = {}
+
+    def __init__(self):
+        self.register_type(['.sass', '.scss'], SassResourceNode)
+
+    def register_type(self, suffixes, node_type) -> None:
+        if isinstance(suffixes, str):
+            suffixes = []
+
+        for suffix in suffixes:
+            self.__known_types[suffix] = node_type
+
+    def create_node(self, suffix, src, path, metadata_path=None) \
+            -> ResourceNode:
+        class_ = self.__known_types[suffix]
+        return class_(src, path, metadata_path)
+
+
 class StaticNode(Node):
     def __init__(self, src, path, metadata_path=None):
         super().__init__()
@@ -280,6 +313,7 @@ class Site:
 
 class Liara:
     __site: Site = Site()
+    __resource_node_factory: ResourceNodeFactory = ResourceNodeFactory()
 
     def __init__(self, configuration):
         import yaml
@@ -370,6 +404,22 @@ class Liara:
                     node = StaticNode(src, path)
                 self.__site.add_static(node)
 
+        resource_root = pathlib.Path(
+            self.__configuration['resource_directory'])
+        rnf = self.__resource_node_factory
+        for dirpath, _, filenames in os.walk(resource_root):
+            for filename in filenames:
+                src = pathlib.Path(os.path.join(dirpath, filename))
+                path = create_relative_path(src, resource_root)
+
+                metadata_path = src.with_suffix('.meta')
+                if metadata_path.exists():
+                    node = rnf.create_node(src.suffix, src, path,
+                                           metadata_path)
+                else:
+                    node = rnf.create_node(src.suffix, src, path)
+                self.__site.add_resource(node)
+
         return self.__site
 
     @property
@@ -381,13 +431,16 @@ class Liara:
         content = self.discover_content()
 
         for static in content.static:
-            static.update_metadata();
+            static.update_metadata()
 
         for document in content.documents:
             document.validate_metadata()
 
         for document in content.documents:
             document.process_content()
+
+        for resource in content.resources:
+            resource.process_content()
 
         site = self.__site
 
@@ -403,6 +456,12 @@ class Liara:
                 site=SiteTemplateProxy(site),
                 page=page,
                 node=node))
+
+        # Write out resource data
+        for node in content.resources:
+            file_path = pathlib.Path(str(output_path) + str(node.path))
+            os.makedirs(file_path.parent, exist_ok=True)
+            file_path.open('w').write(node.content)
 
         # Symlink static data
         for node in content.static:

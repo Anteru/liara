@@ -1,6 +1,10 @@
+beautifulsoup4==4.7.0
+Click==7.0
 Jinja2==2.10
+libsass==0.17.0
+lxml==4.3.0
 Mako==1.0.7
 Markdown==3.0.1
+Pillow==5.4.1
 PyYAML==3.13
-Click==7.0
-flake8=3.6.0
+treelib==1.5.3

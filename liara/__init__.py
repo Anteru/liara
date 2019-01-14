@@ -383,7 +383,7 @@ class Liara:
                     node = DataNode(src, path)
                 else:
                     metadata_path = src.with_suffix('.meta')
-                    path = path.with_suffix(''.join(src.suffixes()))
+                    path = path.with_suffix(''.join(src.suffixes))
                     if metadata_path.exists():
                         node = ResourceNode(src, path, metadata_path)
                     else:

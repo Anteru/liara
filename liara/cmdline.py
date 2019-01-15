@@ -1,4 +1,5 @@
 import click
+import cProfile
 from . import Liara, Node, NodeKind
 
 pass_liara = click.make_pass_decorator(Liara)
@@ -12,10 +13,17 @@ def cli(ctx, config):
 
 
 @cli.command()
+@click.option('--profile', is_flag=True, default=False)
 @pass_liara
-def build(liara):
+def build(liara, profile):
     """Build a site."""
+    if profile:
+        pr = cProfile.Profile()
+        pr.enable()
     liara.build()
+    if profile:
+        pr.disable()
+        pr.dump_stats('build.prof')
 
 
 @cli.command()
@@ -36,7 +44,7 @@ def list_content(liara):
 
     # We sort by path name, which makes it trivial to sort it later into a tree
     # as children always come after their parent
-    sorted_nodes = sorted(content.nodes,key=lambda x: x.path)
+    sorted_nodes = sorted(content.nodes, key=lambda x: x.path)
     if not sorted_nodes:
         return
 
@@ -62,11 +70,11 @@ def list_content(liara):
             if len(p) <= 1:
                 continue
             if p not in known_paths:
-                tree.create_node (f"{parent[i]}", p, parent=tuple(p[:i]),
-                    data=path)
+                tree.create_node(f"{parent[i]}", p, parent=tuple(p[:i]),
+                                 data=path)
                 known_paths.add(p)
 
-        tree.create_node (
+        tree.create_node(
             f"{node.path.parts[-1]} ({node.kind.name})",
             tuple(node.path.parts), parent, data=node.path)
         known_paths.add(tuple(node.path.parts))

@@ -1,10 +1,29 @@
 import os
-import yaml
 import pathlib
-from typing import Dict, List, Optional, Any, Iterable, Iterator
+from typing import Dict, List, Optional, Any, Iterable, Iterator, Type
 from enum import Enum, auto
 from contextlib import suppress
 import itertools
+import multiprocessing
+
+
+def load_yaml(s):
+    import yaml
+    try:
+        from yaml import CLoader as Loader
+    except ImportError:
+        from yaml import Loader
+    return yaml.load(s, Loader=Loader)
+
+
+def dump_yaml(s, o):
+    import yaml
+    try:
+        from yaml import CDumper as Dumper
+    except ImportError:
+        from yaml import Dumper
+
+    return yaml.dump(s, o, Dumper=Dumper)
 
 
 class NodeKind(Enum):
@@ -25,7 +44,7 @@ class Node:
     # Source file path
     src: pathlib.Path
     # Relative path
-    path: pathlib.Path
+    path: pathlib.PurePosixPath
 
     metadata: Dict[str, Any] = {}
     children: List['Node'] = []
@@ -109,7 +128,7 @@ class Query(Iterable[Node]):
                 return tuple([s.get_key(item) for s in self.__sorters])
             result = sorted(result, key=get_key)
 
-        return iter(result)
+        return result
 
 
 def ExtractMetadataAndContent(path):
@@ -133,7 +152,7 @@ def ExtractMetadataAndContent(path):
         elif state == 2:
             content += line
 
-    return yaml.load(metadata), content
+    return load_yaml(metadata), content
 
 
 class DocumentNode(Node):
@@ -179,7 +198,7 @@ class DataNode(Node):
         self.kind = NodeKind.Data
         self.src = src
         self.path = path
-        self.metadata = yaml.load(self.src.open('r'))
+        self.metadata = load_yaml(self.src.open('r'))
 
 
 class IndexNode(Node):
@@ -197,7 +216,7 @@ class ResourceNode(Node):
         self.src = src
         self.path = path
         if metadata_path:
-            self.metadata = yaml.load(open(metadata_path, 'r'))
+            self.metadata = load_yaml(open(metadata_path, 'r'))
 
 
 class SassResourceNode(ResourceNode):
@@ -215,7 +234,7 @@ class SassResourceNode(ResourceNode):
 
 
 class ResourceNodeFactory:
-    __known_types: Dict[str, ResourceNode] = {}
+    __known_types: Dict[str, Type] = {}
 
     def __init__(self):
         self.register_type(['.sass', '.scss'], SassResourceNode)
@@ -240,7 +259,7 @@ class StaticNode(Node):
         self.src = src
         self.path = path
         if metadata_path:
-            self.metadata = yaml.load(open(metadata_path, 'r'))
+            self.metadata = load_yaml(open(metadata_path, 'r'))
 
     def update_metadata(self) -> None:
         from PIL import Image
@@ -311,6 +330,11 @@ class Site:
         return self.__nodes.keys()
 
 
+def process_content(obj):
+    obj.process_content()
+    return obj
+
+
 class Liara:
     __site: Site = Site()
     __resource_node_factory: ResourceNodeFactory = ResourceNodeFactory()
@@ -318,15 +342,15 @@ class Liara:
     def __init__(self, configuration):
         import yaml
         if isinstance(configuration, str):
-            self.__configuration = yaml.load(open(configuration))
+            self.__configuration = load_yaml(open(configuration))
         else:
-            self.__configuration = yaml.load(configuration)
+            self.__configuration = load_yaml(configuration)
         self.__setup_template_backend(self.__configuration['templates'])
 
     def __setup_template_backend(self, configuration):
         from .template import Jinja2TemplateRepository, MakoTemplateRepository
 
-        routes = yaml.load(open(configuration['routes']))
+        routes = load_yaml(open(configuration['routes']))
 
         backend = configuration['backend']
         if backend == 'jinja2':
@@ -353,11 +377,13 @@ class Liara:
             return path
 
         content_root = pathlib.Path(self.__configuration['content_directory'])
+
         for(dirpath, _, filenames) in os.walk(content_root):
             # Need to run two passes here: First, we check if an _index file is
             # present in this folder, in which case it's the root of this
             # directory
             # Otherwise, we create a new index node
+            node: Node
             for filename in filenames:
                 if filename.startswith('_index'):
                     src = pathlib.Path(os.path.join(dirpath, filename))
@@ -385,10 +411,10 @@ class Liara:
                     metadata_path = src.with_suffix('.meta')
                     path = path.with_suffix(''.join(src.suffixes))
                     if metadata_path.exists():
-                        node = ResourceNode(src, path, metadata_path)
+                        node = StaticNode(src, path, metadata_path)
                     else:
-                        node = ResourceNode(src, path)
-                    self.__site.add_resource(node)
+                        node = StaticNode(src, path)
+                    self.__site.add_static(node)
 
         static_root = pathlib.Path(self.__configuration['static_directory'])
         for dirpath, _, filenames in os.walk(static_root):
@@ -436,8 +462,8 @@ class Liara:
         for document in content.documents:
             document.validate_metadata()
 
-        for document in content.documents:
-            document.process_content()
+        with multiprocessing.Pool() as pool:
+            content.documents = pool.map(process_content, content.documents)
 
         for resource in content.resources:
             resource.process_content()

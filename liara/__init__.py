@@ -16,14 +16,14 @@ def load_yaml(s):
     return yaml.load(s, Loader=Loader)
 
 
-def dump_yaml(s, o):
+def dump_yaml(data, stream=None):
     import yaml
     try:
         from yaml import CDumper as Dumper
     except ImportError:
         from yaml import Dumper
 
-    return yaml.dump(s, o, Dumper=Dumper)
+    return yaml.dump(data, stream, Dumper=Dumper)
 
 
 class NodeKind(Enum):
@@ -209,6 +209,14 @@ class IndexNode(Node):
         self.path = path
 
 
+class InternalNode(Node):
+    def __init__(self, path):
+        super().__init__()
+        self.kind = NodeKind.Internal
+        self.src = None
+        self.path = path
+
+
 class ResourceNode(Node):
     def __init__(self, src, path, metadata_path=None):
         super().__init__()
@@ -295,6 +303,7 @@ class Site:
     documents: List[DocumentNode] = []
     resources: List[ResourceNode] = []
     static: List[StaticNode] = []
+    internal: List[InternalNode] = []
 
     __nodes: Dict[pathlib.PurePosixPath, Node] = {}
 
@@ -318,6 +327,10 @@ class Site:
         self.static.append(node)
         self.__register_node(node)
 
+    def add_internal(self, node: InternalNode) -> None:
+        self.internal.append(node)
+        self.__register_node(node)
+
     def __register_node(self, node: Node) -> None:
         self.__nodes[node.path] = node
 
@@ -335,16 +348,32 @@ def process_content(obj):
     return obj
 
 
+def create_default_configuration() -> Dict[str, Any]:
+    return {
+        'content_directory': 'content',
+        'resource_directory': 'resources',
+        'static_directory': 'static',
+        'output_directory': 'output',
+        'build': {
+            'clean_output': True
+        },
+        'templates': {
+            'backend': 'jinja2',
+            'path': 'templates'
+        }
+    }
+
+
 class Liara:
     __site: Site = Site()
     __resource_node_factory: ResourceNodeFactory = ResourceNodeFactory()
 
     def __init__(self, configuration):
-        import yaml
+        self.__configuration = create_default_configuration()
         if isinstance(configuration, str):
-            self.__configuration = load_yaml(open(configuration))
+            self.__configuration.update(load_yaml(open(configuration)))
         else:
-            self.__configuration = load_yaml(configuration)
+            self.__configuration.update(load_yaml(configuration))
         self.__setup_template_backend(self.__configuration['templates'])
 
     def __setup_template_backend(self, configuration):
@@ -363,17 +392,19 @@ class Liara:
             raise Exception(f'Unknown template backend: "{backend}"')
 
     def discover_content(self) -> Site:
+        PurePosixPath = pathlib.PurePosixPath
+        root_path = PurePosixPath('/')
+
         # Create the path from the full path as discovered during walk
         # This turns something like 'directory/foo/bar' into '/foo/bar'
         def create_relative_path(path, root):
             path = pathlib.Path(path)
             # Extra check, as with_name would fail on an empty path
             if path == root:
-                return pathlib.PurePosixPath('/')
+                return root_path
 
             path = path.relative_to(root)
-            path = pathlib.PurePosixPath('/') \
-                / pathlib.PurePosixPath(path.with_name(path.stem))
+            path = root_path / PurePosixPath(path.with_name(path.stem))
             return path
 
         content_root = pathlib.Path(self.__configuration['content_directory'])
@@ -392,8 +423,15 @@ class Liara:
                     self.__site.add_document(node)
                     break
             else:
-                node = IndexNode(create_relative_path(dirpath, content_root))
-                self.__site.add_index(node)
+                # If this folder is not empty, we add an index
+                if len(filenames) > 1:
+                    node = IndexNode(create_relative_path(dirpath,
+                                     content_root))
+                    self.__site.add_index(node)
+                else:
+                    node = InternalNode(create_relative_path(
+                        dirpath, content_root))
+                    self.__site.add_internal(node)
 
             for filename in filenames:
                 if filename.startswith('_index'):
@@ -454,46 +492,45 @@ class Liara:
 
     def build(self):
         from .template import SiteTemplateProxy
-        content = self.discover_content()
-
-        for static in content.static:
-            static.update_metadata()
-
-        for document in content.documents:
-            document.validate_metadata()
-
         with multiprocessing.Pool() as pool:
+            content = self.discover_content()
+
+            for document in content.documents:
+                document.validate_metadata()
+
             content.documents = pool.map(process_content, content.documents)
 
-        for resource in content.resources:
-            resource.process_content()
+            for resource in content.resources:
+                resource.process_content()
 
-        site = self.__site
+            site = self.__site
 
-        output_path = pathlib.Path(self.__configuration['output_directory'])
-        for node in itertools.chain(content.documents, content.indices):
-            page = Page(node)
-            file_path = pathlib.Path(str(output_path) + str(node.path))
-            file_path.mkdir(parents=True, exist_ok=True)
-            file_path = file_path / 'index.html'
+            output_path = pathlib.Path(
+                self.__configuration['output_directory'])
 
-            template = self.__template_backend.find_template(node.path)
-            file_path.open('w').write(template.render(
-                site=SiteTemplateProxy(site),
-                page=page,
-                node=node))
+            for node in itertools.chain(content.documents, content.indices):
+                page = Page(node)
+                file_path = pathlib.Path(str(output_path) + str(node.path))
+                file_path.mkdir(parents=True, exist_ok=True)
+                file_path = file_path / 'index.html'
 
-        # Write out resource data
-        for node in content.resources:
-            file_path = pathlib.Path(str(output_path) + str(node.path))
-            os.makedirs(file_path.parent, exist_ok=True)
-            file_path.open('w').write(node.content)
+                template = self.__template_backend.find_template(node.path)
+                file_path.open('w').write(template.render(
+                    site=SiteTemplateProxy(site),
+                    page=page,
+                    node=node))
 
-        # Symlink static data
-        for node in content.static:
-            file_path = pathlib.Path(str(output_path) + str(node.path))
-            os.makedirs(file_path.parent, exist_ok=True)
+            # Write out resource data
+            for node in content.resources:
+                file_path = pathlib.Path(str(output_path) + str(node.path))
+                os.makedirs(file_path.parent, exist_ok=True)
+                file_path.open('w').write(node.content)
 
-            with suppress(FileExistsError):
-                # Symlink requires an absolute path
-                os.symlink(os.path.abspath(node.src), file_path)
+            # Symlink static data
+            for node in content.static:
+                file_path = pathlib.Path(str(output_path) + str(node.path))
+                os.makedirs(file_path.parent, exist_ok=True)
+
+                with suppress(FileExistsError):
+                    # Symlink requires an absolute path
+                    os.symlink(os.path.abspath(node.src), file_path)

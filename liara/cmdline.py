@@ -1,6 +1,6 @@
 import click
 import cProfile
-from . import Liara, Node, NodeKind
+from . import Liara, Node, NodeKind, create_default_configuration, dump_yaml
 
 pass_liara = click.make_pass_decorator(Liara)
 
@@ -33,6 +33,12 @@ def validate_links(liara):
     for document in site.documents:
         document.process_content()
         document.validate_links(site)
+
+
+@cli.command()
+@click.argument('output', type=click.File('w'))
+def create_config(output):
+    dump_yaml(create_default_configuration(), output)
 
 
 @cli.command()

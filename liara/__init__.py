@@ -34,9 +34,6 @@ class NodeKind(Enum):
     # Static nodes will not get any processing applied. Metadata can be
     # generated (for instance, image size)
     Static = auto()
-    # Internal nodes are just used during traversal, but otherwise never
-    # generate output
-    Internal = auto()
 
 
 class Node:
@@ -128,7 +125,7 @@ class Query(Iterable[Node]):
                 return tuple([s.get_key(item) for s in self.__sorters])
             result = sorted(result, key=get_key)
 
-        return result
+        return iter(result)
 
 
 def ExtractMetadataAndContent(path):
@@ -205,14 +202,6 @@ class IndexNode(Node):
     def __init__(self, path):
         super().__init__()
         self.kind = NodeKind.Index
-        self.src = None
-        self.path = path
-
-
-class InternalNode(Node):
-    def __init__(self, path):
-        super().__init__()
-        self.kind = NodeKind.Internal
         self.src = None
         self.path = path
 
@@ -303,8 +292,6 @@ class Site:
     documents: List[DocumentNode] = []
     resources: List[ResourceNode] = []
     static: List[StaticNode] = []
-    internal: List[InternalNode] = []
-
     __nodes: Dict[pathlib.PurePosixPath, Node] = {}
 
     def add_data(self, node: DataNode) -> None:
@@ -327,10 +314,6 @@ class Site:
         self.static.append(node)
         self.__register_node(node)
 
-    def add_internal(self, node: InternalNode) -> None:
-        self.internal.append(node)
-        self.__register_node(node)
-
     def __register_node(self, node: Node) -> None:
         self.__nodes[node.path] = node
 
@@ -341,6 +324,17 @@ class Site:
     @property
     def urls(self) -> Iterable[pathlib.PurePosixPath]:
         return self.__nodes.keys()
+
+    def create_links(self):
+        '''This creates links between parents/children.
+
+        We have to do this in a separate step, as we merge static/resource
+        nodes from themes etc.'''
+        for key, node in self.__nodes.items():
+            parent_path = key.parent
+            parent_node = self.__nodes.get(parent_path)
+            if parent_node:
+                parent_node.add_child(node)
 
 
 def process_content(obj):
@@ -360,8 +354,26 @@ def create_default_configuration() -> Dict[str, Any]:
         'templates': {
             'backend': 'jinja2',
             'path': 'templates'
+        },
+        'routes': {
+            'static': 'static_routes.yaml'
         }
     }
+
+
+__ROOT_PATH = pathlib.PurePosixPath('/')
+
+
+# Create the path from the full path as discovered during walk
+# This turns something like 'directory/foo/bar' into '/foo/bar'
+def _create_relative_path(path: pathlib.Path, root: pathlib.Path) \
+        -> pathlib.PurePosixPath:
+    # Extra check, as with_name would fail on an empty path
+    if path == root:
+        return __ROOT_PATH
+
+    path = path.relative_to(root)
+    return __ROOT_PATH / pathlib.PurePosixPath(path.with_name(path.stem))
 
 
 class Liara:
@@ -391,25 +403,10 @@ class Liara:
         else:
             raise Exception(f'Unknown template backend: "{backend}"')
 
-    def discover_content(self) -> Site:
-        PurePosixPath = pathlib.PurePosixPath
-        root_path = PurePosixPath('/')
-
-        # Create the path from the full path as discovered during walk
-        # This turns something like 'directory/foo/bar' into '/foo/bar'
-        def create_relative_path(path, root):
-            path = pathlib.Path(path)
-            # Extra check, as with_name would fail on an empty path
-            if path == root:
-                return root_path
-
-            path = path.relative_to(root)
-            path = root_path / PurePosixPath(path.with_name(path.stem))
-            return path
-
-        content_root = pathlib.Path(self.__configuration['content_directory'])
-
-        for(dirpath, _, filenames) in os.walk(content_root):
+    def __discover_content(self, site: Site, content_root: pathlib.Path) \
+            -> None:
+        for (dirpath, _, filenames) in os.walk(content_root):
+            directory = pathlib.Path(dirpath)
             # Need to run two passes here: First, we check if an _index file is
             # present in this folder, in which case it's the root of this
             # directory
@@ -418,33 +415,28 @@ class Liara:
             for filename in filenames:
                 if filename.startswith('_index'):
                     src = pathlib.Path(os.path.join(dirpath, filename))
-                    node = DocumentNode(src, create_relative_path(
-                        dirpath, content_root))
-                    self.__site.add_document(node)
+                    node = DocumentNode(src, _create_relative_path(
+                        directory, content_root))
+                    site.add_document(node)
                     break
             else:
-                # If this folder is not empty, we add an index
-                if len(filenames) > 1:
-                    node = IndexNode(create_relative_path(dirpath,
-                                     content_root))
-                    self.__site.add_index(node)
-                else:
-                    node = InternalNode(create_relative_path(
-                        dirpath, content_root))
-                    self.__site.add_internal(node)
+                node = IndexNode(_create_relative_path(directory,
+                                                        content_root))
+                site.add_index(node)
 
             for filename in filenames:
                 if filename.startswith('_index'):
                     continue
 
-                src = pathlib.Path(os.path.join(dirpath, filename))
-                path = create_relative_path(src, content_root)
+                src = pathlib.Path(os.path.join(directory, filename))
+                path = _create_relative_path(src, content_root)
 
                 if src.suffix in {'.md'}:
                     node = DocumentNode(src, path)
-                    self.__site.add_document(node)
+                    site.add_document(node)
                 elif src.suffix in {'.yaml'}:
                     node = DataNode(src, path)
+                    site.add_data(node)
                 else:
                     metadata_path = src.with_suffix('.meta')
                     path = path.with_suffix(''.join(src.suffixes))
@@ -452,13 +444,15 @@ class Liara:
                         node = StaticNode(src, path, metadata_path)
                     else:
                         node = StaticNode(src, path)
-                    self.__site.add_static(node)
+                    site.add_static(node)
 
-        static_root = pathlib.Path(self.__configuration['static_directory'])
+    def __discover_static(self, site: Site, static_root: pathlib.Path) -> None:
         for dirpath, _, filenames in os.walk(static_root):
+            directory = pathlib.Path(dirpath)
+
             for filename in filenames:
-                src = pathlib.Path(os.path.join(dirpath, filename))
-                path = create_relative_path(src, static_root)
+                src = directory / filename
+                path = _create_relative_path(src, static_root)
                 path = path.with_suffix(''.join(src.suffixes))
 
                 metadata_path = src.with_suffix('.meta')
@@ -466,23 +460,36 @@ class Liara:
                     node = StaticNode(src, path, metadata_path)
                 else:
                     node = StaticNode(src, path)
-                self.__site.add_static(node)
+                site.add_static(node)
 
-        resource_root = pathlib.Path(
-            self.__configuration['resource_directory'])
-        rnf = self.__resource_node_factory
+    def __discover_resources(self, site: Site,
+                             resource_factory: ResourceNodeFactory,
+                             resource_root: pathlib.Path) -> None:
         for dirpath, _, filenames in os.walk(resource_root):
             for filename in filenames:
                 src = pathlib.Path(os.path.join(dirpath, filename))
-                path = create_relative_path(src, resource_root)
+                path = _create_relative_path(src, resource_root)
 
                 metadata_path = src.with_suffix('.meta')
                 if metadata_path.exists():
-                    node = rnf.create_node(src.suffix, src, path,
-                                           metadata_path)
+                    node = resource_factory.create_node(src.suffix, src, path,
+                                                        metadata_path)
                 else:
-                    node = rnf.create_node(src.suffix, src, path)
-                self.__site.add_resource(node)
+                    node = resource_factory.create_node(src.suffix, src, path)
+                site.add_resource(node)
+
+    def discover_content(self) -> Site:
+        configuration = self.__configuration
+
+        content_root = pathlib.Path(configuration['content_directory'])
+        self.__discover_content(self.__site, content_root)
+
+        static_root = pathlib.Path(configuration['static_directory'])
+        self.__discover_static(self.__site, static_root)
+
+        resource_root = pathlib.Path(configuration['resource_directory'])
+        self.__discover_resources(self.__site, self.__resource_node_factory,
+                                  resource_root)
 
         return self.__site
 
@@ -492,23 +499,29 @@ class Liara:
 
     def build(self):
         from .template import SiteTemplateProxy
+        import shutil
+
+        if self.__configuration['build']['clean_output']:
+            shutil.rmtree(self.__configuration['output_directory'])
+
         with multiprocessing.Pool() as pool:
-            content = self.discover_content()
-
-            for document in content.documents:
-                document.validate_metadata()
-
-            content.documents = pool.map(process_content, content.documents)
-
-            for resource in content.resources:
-                resource.process_content()
+            self.discover_content()
 
             site = self.__site
+            site.create_links()
+
+            for document in site.documents:
+                document.validate_metadata()
+
+            site.documents = pool.map(process_content, site.documents)
+
+            for resource in site.resources:
+                resource.process_content()
 
             output_path = pathlib.Path(
                 self.__configuration['output_directory'])
 
-            for node in itertools.chain(content.documents, content.indices):
+            for node in itertools.chain(site.documents, site.indices):
                 page = Page(node)
                 file_path = pathlib.Path(str(output_path) + str(node.path))
                 file_path.mkdir(parents=True, exist_ok=True)
@@ -521,13 +534,13 @@ class Liara:
                     node=node))
 
             # Write out resource data
-            for node in content.resources:
+            for node in site.resources:
                 file_path = pathlib.Path(str(output_path) + str(node.path))
                 os.makedirs(file_path.parent, exist_ok=True)
                 file_path.open('w').write(node.content)
 
             # Symlink static data
-            for node in content.static:
+            for node in site.static:
                 file_path = pathlib.Path(str(output_path) + str(node.path))
                 os.makedirs(file_path.parent, exist_ok=True)
 

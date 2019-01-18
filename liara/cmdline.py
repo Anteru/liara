@@ -38,12 +38,29 @@ def validate_links(liara):
 @cli.command()
 @pass_liara
 def list_tags(liara):
+    from collections import Counter
     site = liara.discover_content()
-    tags = set()
+    tags = []
+    for document in site.documents:
+        tags += document.metadata.get('tags', [])
+
+    counted_tags = sorted(Counter(tags).items(), key=lambda x: x[1],
+                          reverse=True)
+    for k, v in counted_tags:
+        print(k, v)
+
+
+@cli.command()
+@click.argument('tag', nargs=-1)
+@pass_liara
+def find_by_tag(liara, tag):
+    site = liara.discover_content()
+    tags = set(tag)
     for document in site.documents:
         for tag in document.metadata.get('tags', []):
-            tags.add(tag)
-    print(tags)
+            if tag in tags:
+                print(document.src, tag)
+                break
 
 
 @cli.command()

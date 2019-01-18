@@ -36,6 +36,17 @@ def validate_links(liara):
 
 
 @cli.command()
+@pass_liara
+def list_tags(liara):
+    site = liara.discover_content()
+    tags = set()
+    for document in site.documents:
+        for tag in document.metadata.get('tags', []):
+            tags.add(tag)
+    print(tags)
+
+
+@cli.command()
 @click.argument('output', type=click.File('w'))
 def create_config(output):
     dump_yaml(create_default_configuration(), output)

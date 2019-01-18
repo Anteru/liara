@@ -128,18 +128,20 @@ class Query(Iterable[Node]):
         return iter(result)
 
 
-def ExtractMetadataAndContent(path):
+def extract_metadata_content(path: pathlib.Path):
     # We start by expecting a '---', once we find that, we keep reading
     # until we discover another '---'.
     # The states are:
     # 0: Expecting '---'
     # 1: Assembling metadata, expecting '---'
     # 2: Content
+    # TODO Use a stream here instead of readlines() to improve reading
+    # performance
     state = 0
     metadata = ''
     content = ''
 
-    for line in open(path, 'r').readlines():
+    for line in path.open().readlines():
         if state == 0 and line == '---\n':
             state = 1
         elif state == 1 and line == '---\n':
@@ -158,7 +160,7 @@ class DocumentNode(Node):
         self.kind = NodeKind.Document
         self.src = src
         self.path = path
-        self.metadata, self.__raw_content = ExtractMetadataAndContent(self.src)
+        self.metadata, self.__raw_content = extract_metadata_content(self.src)
 
     def validate_metadata(self):
         if 'title' not in self.metadata:

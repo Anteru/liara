@@ -274,7 +274,7 @@ class SassResourceNode(ResourceNode):
 
     def process_content(self):
         import sass
-        self.content = sass.compile(filename=str(self.src))
+        self.content = sass.compile(filename=str(self.src)).encode('utf-8')
 
 
 class ResourceNodeFactory:
@@ -602,7 +602,7 @@ class Liara:
                 file_path = file_path / 'index.html'
 
                 template = self.__template_backend.find_template(node.path)
-                file_path.open('w').write(template.render(
+                file_path.write_text(template.render(
                     site=SiteTemplateProxy(site),
                     page=page,
                     node=node))
@@ -611,7 +611,7 @@ class Liara:
             for node in site.resources:
                 file_path = pathlib.Path(str(output_path) + str(node.path))
                 os.makedirs(file_path.parent, exist_ok=True)
-                file_path.open('w').write(node.content)
+                file_path.write_bytes(node.content)
 
             # Symlink static data
             for node in site.static:

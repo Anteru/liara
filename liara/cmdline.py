@@ -1,8 +1,9 @@
 import click
 import cProfile
-from . import Liara, Node, NodeKind, create_default_configuration, dump_yaml
+from . import Liara, create_default_configuration, dump_yaml
 
 pass_liara = click.make_pass_decorator(Liara)
+
 
 @click.group()
 @click.option('--config', default='config.yaml', metavar='PATH')

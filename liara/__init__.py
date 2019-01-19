@@ -34,6 +34,8 @@ class NodeKind(Enum):
     # Static nodes will not get any processing applied. Metadata can be
     # generated (for instance, image size)
     Static = auto()
+    # Nodes can be automatically generated, for instance for redirections
+    Generated = auto()
 
 
 class Node:
@@ -208,6 +210,49 @@ class IndexNode(Node):
         self.path = path
 
 
+class GeneratedNode(Node):
+    def __init__(self, path, metadata={}):
+        super().__init__()
+        self.kind = NodeKind.Generated
+        self.src = None
+        self.path = path
+        self.metadata = metadata
+
+    def generate(self, output_path: pathlib.Path):
+        pass
+
+
+_REDIRECTION_TEMPLATE = """<!DOCTYPE HTML>
+<html lang="en-US">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="refresh" content="0; url={{NEW_URL}}">
+        <script type="text/javascript">
+            window.location.href = "{{NEW_URL}}"
+        </script>
+        <title>Page Redirection</title>
+    </head>
+    <body>
+        <h1>Page has been moved</h1>
+        <p>If you are not redirected automatically, follow this
+        <a href='{{NEW_URL}}'>link.</a>.</p>
+    </body>
+</html>"""
+
+
+class RedirectionNode(GeneratedNode):
+    def __init__(self, path, dst):
+        super().__init__(path)
+        self.dst = dst
+
+    def generate(self, output_path: pathlib.Path):
+        os.makedirs(output_path, exist_ok=True)
+        output_path = output_path / 'index.html'
+        text = _REDIRECTION_TEMPLATE.replace('{{NEW_URL}}',
+                                             self.dst.as_posix())
+        output_path.write_text(text)
+
+
 class ResourceNode(Node):
     def __init__(self, src, path, metadata_path=None):
         super().__init__()
@@ -294,6 +339,7 @@ class Site:
     documents: List[DocumentNode] = []
     resources: List[ResourceNode] = []
     static: List[StaticNode] = []
+    generated: List[GeneratedNode] = []
     __nodes: Dict[pathlib.PurePosixPath, Node] = {}
 
     def add_data(self, node: DataNode) -> None:
@@ -316,7 +362,13 @@ class Site:
         self.static.append(node)
         self.__register_node(node)
 
+    def add_generated(self, node: GeneratedNode) -> None:
+        self.generated.append(node)
+        self.__register_node(node)
+
     def __register_node(self, node: Node) -> None:
+        if node.path in self.__nodes:
+            raise Exception(f'"{node.path}" already exists, cannot overwrite.')
         self.__nodes[node.path] = node
 
     @property
@@ -358,8 +410,10 @@ def create_default_configuration() -> Dict[str, Any]:
             'path': 'templates'
         },
         'routes': {
-            'static': 'static_routes.yaml'
-        }
+            'static': 'static_routes.yaml',
+            'generated': 'generated_routes.yaml'
+        },
+        'base_url': 'http://localhost:8000'
     }
 
 
@@ -381,6 +435,7 @@ def _create_relative_path(path: pathlib.Path, root: pathlib.Path) \
 class Liara:
     __site: Site = Site()
     __resource_node_factory: ResourceNodeFactory = ResourceNodeFactory()
+    __redirections: List[RedirectionNode] = []
 
     def __init__(self, configuration):
         self.__configuration = create_default_configuration()
@@ -405,6 +460,18 @@ class Liara:
         else:
             raise Exception(f'Unknown template backend: "{backend}"')
 
+    def __discover_redirections(self, site: Site, static_routes: pathlib.Path):
+        if not static_routes.exists():
+            return
+
+        routes = load_yaml(static_routes.open())
+        for route in routes:
+            node = RedirectionNode(
+                    pathlib.PurePosixPath(route['src']),
+                    pathlib.PurePosixPath(route['dst']))
+            self.__redirections.append(node)
+            site.add_generated(node)
+
     def __discover_content(self, site: Site, content_root: pathlib.Path) \
             -> None:
         for (dirpath, _, filenames) in os.walk(content_root):
@@ -423,7 +490,7 @@ class Liara:
                     break
             else:
                 node = IndexNode(_create_relative_path(directory,
-                                                        content_root))
+                                                       content_root))
                 site.add_index(node)
 
             for filename in filenames:
@@ -493,6 +560,9 @@ class Liara:
         self.__discover_resources(self.__site, self.__resource_node_factory,
                                   resource_root)
 
+        static_routes = pathlib.Path(configuration['routes']['static'])
+        self.__discover_redirections(self.__site, static_routes)
+
         return self.__site
 
     @property
@@ -504,7 +574,9 @@ class Liara:
         import shutil
 
         if self.__configuration['build']['clean_output']:
-            shutil.rmtree(self.__configuration['output_directory'])
+            output_directory = self.__configuration['output_directory']
+            if os.path.exists(output_directory):
+                shutil.rmtree(output_directory)
 
         with multiprocessing.Pool() as pool:
             self.discover_content()
@@ -549,3 +621,13 @@ class Liara:
                 with suppress(FileExistsError):
                     # Symlink requires an absolute path
                     os.symlink(os.path.abspath(node.src), file_path)
+
+            for node in site.generated:
+                file_path = pathlib.Path(str(output_path) + str(node.path))
+                node.generate(file_path)
+
+            for node in self.__redirections:
+                with (output_path / '.htaccess').open('w') as output:
+                    for node in self.__redirections:
+                        output.write(f'RedirectPermanent {str(node.path)} '
+                                     f'{str(node.dst)}\n')

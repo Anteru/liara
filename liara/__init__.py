@@ -5,6 +5,18 @@ from enum import Enum, auto
 from contextlib import suppress
 import itertools
 import multiprocessing
+from contextlib import ContextDecorator
+
+
+class SingleProcessPool(ContextDecorator):
+    def map(self, f, iterable):
+        return map(f, iterable)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
 
 
 def load_yaml(s):
@@ -143,7 +155,7 @@ def extract_metadata_content(path: pathlib.Path):
     metadata = ''
     content = ''
 
-    for line in path.open().readlines():
+    for line in path.open(encoding='utf-8').readlines():
         if state == 0 and line == '---\n':
             state = 1
         elif state == 1 and line == '---\n':
@@ -403,7 +415,8 @@ def create_default_configuration() -> Dict[str, Any]:
         'static_directory': 'static',
         'output_directory': 'output',
         'build': {
-            'clean_output': True
+            'clean_output': True,
+            'multiprocess': False
         },
         'templates': {
             'backend': 'jinja2',
@@ -569,6 +582,12 @@ class Liara:
     def site(self) -> Site:
         return self.__site
 
+    def __create_pool(self):
+        if self.__configuration['build']['multiprocess']:
+            return multiprocessing.Pool()
+        else:
+            return SingleProcessPool()
+
     def build(self):
         from .template import SiteTemplateProxy
         import shutil
@@ -578,7 +597,7 @@ class Liara:
             if os.path.exists(output_directory):
                 shutil.rmtree(output_directory)
 
-        with multiprocessing.Pool() as pool:
+        with self.__create_pool() as pool:
             self.discover_content()
 
             site = self.__site
@@ -605,7 +624,7 @@ class Liara:
                 file_path.write_text(template.render(
                     site=SiteTemplateProxy(site),
                     page=page,
-                    node=node))
+                    node=node), encoding='utf-8')
 
             # Write out resource data
             for node in site.resources:
@@ -620,7 +639,14 @@ class Liara:
 
                 with suppress(FileExistsError):
                     # Symlink requires an absolute path
-                    os.symlink(os.path.abspath(node.src), file_path)
+                    source_path = os.path.abspath(node.src)
+                    try:
+                        os.symlink(source_path, file_path)
+                    # If we can't symlink for some reason (for instance, 
+                    # Windows does not support symlinks by default, we try to
+                    # copy instead.
+                    except OSError:
+                        shutil.copyfile(source_path, file_path)
 
             for node in site.generated:
                 file_path = pathlib.Path(str(output_path) + str(node.path))

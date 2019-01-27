@@ -1,6 +1,6 @@
 import os
 import pathlib
-from typing import Dict, List, Optional, Any, Iterable, Iterator, Type
+from typing import Dict, List, Optional, Any, Iterable, Iterator, Type, Union
 from enum import Enum, auto
 from contextlib import suppress
 import itertools
@@ -171,6 +171,23 @@ def extract_metadata_content(path: pathlib.Path):
     return load_yaml(metadata), content
 
 
+def _publish_with_template(output_path: pathlib.Path,
+                           node: Union['DocumentNode', 'IndexNode'],
+                           site: 'Site',
+                           template_repository: 'template.TemplateRepository'):
+    from .template import SiteTemplateProxy
+    page = Page(node)
+    file_path = pathlib.Path(str(output_path) + str(node.path))
+    file_path.mkdir(parents=True, exist_ok=True)
+    file_path = file_path / 'index.html'
+
+    template = template_repository.find_template(node.path)
+    file_path.write_text(template.render(
+        site=SiteTemplateProxy(site),
+        page=page,
+        node=node), encoding='utf-8')
+
+
 class DocumentNode(Node):
     def __init__(self, src, path):
         super().__init__()
@@ -224,6 +241,11 @@ class DocumentNode(Node):
                                          extensions=extensions,
                                          extension_configs=extension_configs)
 
+    def publish(self, output_path: pathlib.Path,
+                site: 'Site',
+                template_repository: 'template.TemplateRepository') -> None:
+        _publish_with_template(output_path, self, site, template_repository)
+
 
 class DataNode(Node):
     def __init__(self, src, path):
@@ -241,6 +263,11 @@ class IndexNode(Node):
         self.src = None
         self.path = path
 
+    def publish(self, output_path: pathlib.Path,
+                site: 'Site',
+                template_repository: 'template.TemplateRepository') -> None:
+        _publish_with_template(output_path, self, site, template_repository)
+
 
 class GeneratedNode(Node):
     def __init__(self, path, metadata={}):
@@ -250,7 +277,7 @@ class GeneratedNode(Node):
         self.path = path
         self.metadata = metadata
 
-    def generate(self, output_path: pathlib.Path):
+    def publish(self, output_path: pathlib.Path):
         pass
 
 
@@ -291,8 +318,21 @@ class ResourceNode(Node):
         self.kind = NodeKind.Resource
         self.src = src
         self.path = path
+        self.content = None
         if metadata_path:
             self.metadata = load_yaml(open(metadata_path, 'r'))
+
+    def process(self) -> None:
+        """Process the content.
+
+        After this function call, self.content is populated."""
+        pass
+
+    def publish(self, output_path: pathlib.Path) -> None:
+        self.process()
+        file_path = pathlib.Path(str(output_path) + str(self.path))
+        os.makedirs(file_path.parent, exist_ok=True)
+        file_path.write_bytes(self.content)
 
 
 class SassResourceNode(ResourceNode):
@@ -304,9 +344,10 @@ class SassResourceNode(ResourceNode):
 
         self.path = self.path.with_suffix('.css')
 
-    def process_content(self):
+    def process(self):
         import sass
-        self.content = sass.compile(filename=str(self.src)).encode('utf-8')
+        if self.content is None:
+            self.content = sass.compile(filename=str(self.src)).encode('utf-8')
 
 
 class ResourceNodeFactory:
@@ -344,6 +385,22 @@ class StaticNode(Node):
             self.metadata.update({
                 'image_size': image.size
             })
+
+    def publish(self, output_path: pathlib.Path) -> None:
+        import shutil
+        file_path = pathlib.Path(str(output_path) + str(self.path))
+        os.makedirs(file_path.parent, exist_ok=True)
+
+        with suppress(FileExistsError):
+            # Symlink requires an absolute path
+            source_path = os.path.abspath(self.src)
+            try:
+                os.symlink(source_path, file_path)
+            # If we can't symlink for some reason (for instance,
+            # Windows does not support symlinks by default, we try to
+            # copy instead.
+            except OSError:
+                shutil.copyfile(source_path, file_path)
 
 
 class Page:
@@ -487,10 +544,10 @@ class Liara:
         paths = configuration['paths']
 
         if backend == 'jinja2':
-            self.__template_backend = Jinja2TemplateRepository(
+            self.__template_repository = Jinja2TemplateRepository(
                 paths, template_path)
         elif backend == 'mako':
-            self.__template_backend = MakoTemplateRepository(
+            self.__template_repository = MakoTemplateRepository(
                 paths, template_path)
         else:
             raise Exception(f'Unknown template backend: "{backend}"')
@@ -628,14 +685,15 @@ class Liara:
         else:
             return SingleProcessPool()
 
-    def build(self):
-        from .template import SiteTemplateProxy
+    def __clean_output(self):        
         import shutil
+        output_directory = self.__configuration['output_directory']
+        if os.path.exists(output_directory):
+            shutil.rmtree(output_directory)
 
+    def build(self):
         if self.__configuration['build']['clean_output']:
-            output_directory = self.__configuration['output_directory']
-            if os.path.exists(output_directory):
-                shutil.rmtree(output_directory)
+            self.__clean_output()
 
         with self.__create_pool() as pool:
             self.discover_content()
@@ -648,49 +706,22 @@ class Liara:
 
             site.documents = pool.map(process_content, site.documents)
 
-            for resource in site.resources:
-                resource.process_content()
-
             output_path = pathlib.Path(
                 self.__configuration['output_directory'])
 
             for node in itertools.chain(site.documents, site.indices):
-                page = Page(node)
-                file_path = pathlib.Path(str(output_path) + str(node.path))
-                file_path.mkdir(parents=True, exist_ok=True)
-                file_path = file_path / 'index.html'
-
-                template = self.__template_backend.find_template(node.path)
-                file_path.write_text(template.render(
-                    site=SiteTemplateProxy(site),
-                    page=page,
-                    node=node), encoding='utf-8')
+                node.publish(output_path, site, self.__template_repository)
 
             # Write out resource data
             for node in site.resources:
-                file_path = pathlib.Path(str(output_path) + str(node.path))
-                os.makedirs(file_path.parent, exist_ok=True)
-                file_path.write_bytes(node.content)
+                node.publish(output_path)
 
             # Symlink static data
             for node in site.static:
-                file_path = pathlib.Path(str(output_path) + str(node.path))
-                os.makedirs(file_path.parent, exist_ok=True)
-
-                with suppress(FileExistsError):
-                    # Symlink requires an absolute path
-                    source_path = os.path.abspath(node.src)
-                    try:
-                        os.symlink(source_path, file_path)
-                    # If we can't symlink for some reason (for instance,
-                    # Windows does not support symlinks by default, we try to
-                    # copy instead.
-                    except OSError:
-                        shutil.copyfile(source_path, file_path)
+                node.publish(output_path)
 
             for node in site.generated:
-                file_path = pathlib.Path(str(output_path) + str(node.path))
-                node.generate(file_path)
+                node.publish(output_path)
 
             for node in self.__redirections:
                 with (output_path / '.htaccess').open('w') as output:

@@ -205,7 +205,24 @@ class DocumentNode(Node):
 
     def process_content(self):
         import markdown
-        self.content = markdown.markdown(self.__raw_content)
+        import pymdownx.arithmatex as arithmatex
+        from .md import HeadingLevelFixupExtension
+
+        extensions = [
+            arithmatex.ArithmatexExtension(),
+            HeadingLevelFixupExtension(),
+            'fenced_code',
+            'codehilite',
+            'smarty'
+        ]
+        extension_configs = {
+            'codehilite': {
+                'css_class': 'code'
+            }
+        }
+        self.content = markdown.markdown(self.__raw_content,
+                                         extensions=extensions,
+                                         extension_configs=extension_configs)
 
 
 class DataNode(Node):
@@ -487,7 +504,10 @@ class Liara:
                                       template_path / resource_directory)
 
         if 'static_directory' in configuration:
-            self.__discover_static(self.__site, template_path)
+            static_directory = pathlib.Path(
+                configuration['static_directory'])
+            self.__discover_static(self.__site,
+                                   template_path / static_directory)
 
     def __discover_redirections(self, site: Site, static_routes: pathlib.Path):
         if not static_routes.exists():
@@ -551,7 +571,11 @@ class Liara:
             for filename in filenames:
                 src = directory / filename
                 path = _create_relative_path(src, static_root)
-                path = path.with_suffix(''.join(src.suffixes))
+                # We need to re-append the source suffix
+                # We can't use .with_suffix, as this will break on paths like
+                # a.b.c, where with_suffix('foo') will produce a.b.foo instead
+                # of a.b.c.foo
+                path = path.parent / (path.name + src.suffix)
 
                 metadata_path = src.with_suffix('.meta')
                 if metadata_path.exists():
@@ -658,7 +682,7 @@ class Liara:
                     source_path = os.path.abspath(node.src)
                     try:
                         os.symlink(source_path, file_path)
-                    # If we can't symlink for some reason (for instance, 
+                    # If we can't symlink for some reason (for instance,
                     # Windows does not support symlinks by default, we try to
                     # copy instead.
                     except OSError:

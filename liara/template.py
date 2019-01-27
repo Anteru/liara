@@ -1,5 +1,6 @@
 from typing import Dict
 from . import Site
+import pathlib
 
 class Template:
     def render(self, **kwargs):
@@ -35,10 +36,10 @@ class MakoTemplate(Template):
 
 
 class MakoTemplateRepository(TemplateRepository):
-    def __init__(self, routes, path):
+    def __init__(self, routes: Dict[str, str], path: pathlib.Path):
         super().__init__(routes)
         from mako.lookup import TemplateLookup
-        self.__lookup = TemplateLookup(directories=[path])
+        self.__lookup = TemplateLookup(directories=[str(path)])
 
     def find_template(self, url) -> Template:
         template = self._match_template(url)
@@ -54,15 +55,16 @@ class Jinja2Template(Template):
 
 
 class Jinja2TemplateRepository(TemplateRepository):
-    def __init__(self, routes, path):
+    def __init__(self, routes: Dict[str, str], path: pathlib.Path):
         super().__init__(routes)
         from jinja2 import FileSystemLoader, Environment
 
-        self.__env = Environment(loader=FileSystemLoader(path))
+        self.__env = Environment(loader=FileSystemLoader(str(path)))
 
     def find_template(self, url) -> Template:
         template = self._match_template(url)
         return Jinja2Template(self.__env.get_template(template))
+
 
 class SiteTemplateProxy:
     __site: Site

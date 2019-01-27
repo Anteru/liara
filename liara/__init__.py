@@ -19,6 +19,9 @@ class SingleProcessPool(ContextDecorator):
         return False
 
 
+__version__ = '0.2.0'
+
+
 def load_yaml(s):
     import yaml
     try:
@@ -418,10 +421,7 @@ def create_default_configuration() -> Dict[str, Any]:
             'clean_output': True,
             'multiprocess': False
         },
-        'templates': {
-            'backend': 'jinja2',
-            'path': 'templates'
-        },
+        'template': 'templates/default.yaml',
         'routes': {
             'static': 'static_routes.yaml',
             'generated': 'generated_routes.yaml'
@@ -456,22 +456,38 @@ class Liara:
             self.__configuration.update(load_yaml(open(configuration)))
         else:
             self.__configuration.update(load_yaml(configuration))
-        self.__setup_template_backend(self.__configuration['templates'])
 
-    def __setup_template_backend(self, configuration):
+        template_configuration = pathlib.Path(self.__configuration['template'])
+        self.__setup_template_backend(template_configuration)
+
+    def __setup_template_backend(self, configuration_file: pathlib.Path):
         from .template import Jinja2TemplateRepository, MakoTemplateRepository
 
-        routes = load_yaml(open(configuration['routes']))
+        template_path = configuration_file.parent
+        configuration = load_yaml(open(configuration_file))
 
         backend = configuration['backend']
+        paths = configuration['paths']
+
         if backend == 'jinja2':
             self.__template_backend = Jinja2TemplateRepository(
-                routes, configuration['path'])
+                paths, template_path)
         elif backend == 'mako':
             self.__template_backend = MakoTemplateRepository(
-                routes, configuration['path'])
+                paths, template_path)
         else:
             raise Exception(f'Unknown template backend: "{backend}"')
+
+        if 'resource_directory' in configuration:
+            resource_directory = pathlib.Path(
+                configuration['resource_directory'])
+
+            self.__discover_resources(self.__site,
+                                      self.__resource_node_factory,
+                                      template_path / resource_directory)
+
+        if 'static_directory' in configuration:
+            self.__discover_static(self.__site, template_path)
 
     def __discover_redirections(self, site: Site, static_routes: pathlib.Path):
         if not static_routes.exists():

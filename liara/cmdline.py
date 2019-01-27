@@ -1,13 +1,13 @@
 import click
 import cProfile
-from . import Liara, create_default_configuration, dump_yaml
+from . import Liara, create_default_configuration, dump_yaml, __version__
 
 pass_liara = click.make_pass_decorator(Liara)
 
 
 @click.group()
 @click.option('--config', default='config.yaml', metavar='PATH')
-@click.version_option('0.1')
+@click.version_option(__version__)
 @click.pass_context
 def cli(ctx, config):
     ctx.obj = Liara(config)
@@ -15,8 +15,9 @@ def cli(ctx, config):
 
 @cli.command()
 @click.option('--profile', is_flag=True, default=False)
+@click.option('--profile-file', default='build.prof')
 @pass_liara
-def build(liara, profile):
+def build(liara, profile, profile_file):
     """Build a site."""
     if profile:
         pr = cProfile.Profile()
@@ -24,12 +25,13 @@ def build(liara, profile):
     liara.build()
     if profile:
         pr.disable()
-        pr.dump_stats('build.prof')
+        pr.dump_stats(profile_file)
 
 
 @cli.command()
 @pass_liara
 def validate_links(liara):
+    """Validate links."""
     site = liara.discover_content()
     for document in site.documents:
         document.process_content()
@@ -39,6 +41,10 @@ def validate_links(liara):
 @cli.command()
 @pass_liara
 def list_tags(liara):
+    """List all tags.
+
+    This uses a metadata field named 'tags' and returns the union of all tags,
+    as well as the count how often each tag is used."""
     from collections import Counter
     site = liara.discover_content()
     tags = []
@@ -55,6 +61,10 @@ def list_tags(liara):
 @click.argument('tag', nargs=-1)
 @pass_liara
 def find_by_tag(liara, tag):
+    """Find pages by tag.
+
+    This searches the metadata for a 'tags' field, which is assumed to be
+    a list of tags."""
     site = liara.discover_content()
     tags = set(tag)
     for document in site.documents:
@@ -67,6 +77,7 @@ def find_by_tag(liara, tag):
 @cli.command()
 @click.argument('output', type=click.File('w'))
 def create_config(output):
+    """Create a default configuration."""
     dump_yaml(create_default_configuration(), output)
 
 

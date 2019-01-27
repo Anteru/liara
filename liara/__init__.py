@@ -436,7 +436,7 @@ def create_default_configuration() -> Dict[str, Any]:
         'output_directory': 'output',
         'build': {
             'clean_output': True,
-            'multiprocess': False
+            'multiprocess': True
         },
         'template': 'templates/default.yaml',
         'routes': {

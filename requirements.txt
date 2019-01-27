@@ -10,3 +10,5 @@ PyYAML==3.13
 treelib==1.5.3
 flake8
 flake8-mypy
+pymdown-extensions
+Pygments

@@ -3,9 +3,8 @@ import pathlib
 from typing import Dict, List, Optional, Any, Iterable, Iterator, Type, Union
 from enum import Enum, auto
 from contextlib import suppress
-import itertools
-import multiprocessing
 from contextlib import ContextDecorator
+import multiprocessing
 
 
 class SingleProcessPool(ContextDecorator):
@@ -220,7 +219,7 @@ class DocumentNode(Node):
             target = image.attrs.get('src', None)
             validate_link(target)
 
-    def process_content(self):
+    def process(self):
         import markdown
         import pymdownx.arithmatex as arithmatex
         from .md import HeadingLevelFixupExtension
@@ -481,8 +480,12 @@ class Site:
 
 
 def process_content(obj):
-    obj.process_content()
+    obj.process()
     return obj
+
+
+def publish(t):
+    t[0].publish(t[1])
 
 
 def create_default_configuration() -> Dict[str, Any]:
@@ -685,13 +688,14 @@ class Liara:
         else:
             return SingleProcessPool()
 
-    def __clean_output(self):        
+    def __clean_output(self):
         import shutil
         output_directory = self.__configuration['output_directory']
         if os.path.exists(output_directory):
             shutil.rmtree(output_directory)
 
     def build(self):
+        import itertools
         if self.__configuration['build']['clean_output']:
             self.__clean_output()
 
@@ -704,27 +708,26 @@ class Liara:
             for document in site.documents:
                 document.validate_metadata()
 
-            site.documents = pool.map(process_content, site.documents)
+            for document in site.documents:
+                document.process()
 
             output_path = pathlib.Path(
                 self.__configuration['output_directory'])
 
-            for node in itertools.chain(site.documents, site.indices):
+            for node in site.documents:
                 node.publish(output_path, site, self.__template_repository)
 
-            # Write out resource data
-            for node in site.resources:
-                node.publish(output_path)
+            for node in site.indices:
+                node.publish(output_path, site, self.__template_repository)
 
-            # Symlink static data
-            for node in site.static:
-                node.publish(output_path)
+            pool.imap_unordered(publish, zip(site.resources,
+                                             itertools.repeat(output_path)))
+            pool.imap_unordered(publish, zip(site.static,
+                                             itertools.repeat(output_path)))
+            pool.imap_unordered(publish, zip(site.generated,
+                                             itertools.repeat(output_path)))
 
-            for node in site.generated:
-                node.publish(output_path)
-
-            for node in self.__redirections:
-                with (output_path / '.htaccess').open('w') as output:
-                    for node in self.__redirections:
-                        output.write(f'RedirectPermanent {str(node.path)} '
-                                     f'{str(node.dst)}\n')
+            with (output_path / '.htaccess').open('w') as output:
+                for node in self.__redirections:
+                    output.write(f'RedirectPermanent {str(node.path)} '
+                                 f'{str(node.dst)}\n')

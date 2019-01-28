@@ -82,8 +82,10 @@ def create_config(output):
 
 
 @cli.command()
+@click.option('--format', '-f', type=click.Choice(['tree', 'list']),
+              default='list')
 @pass_liara
-def list_content(liara):
+def list_content(liara, format):
     """List all content."""
     import treelib
     content = liara.discover_content()
@@ -94,34 +96,45 @@ def list_content(liara):
     if not sorted_nodes:
         return
 
-    tree = treelib.Tree()
-    tree.create_node('Site', ('/',))
-    if sorted_nodes[0].path.parts == ('/',):
-        tree.create_node('_index', parent=('/',), data=sorted_nodes[0].path)
+    if format == 'tree':
+        tree = treelib.Tree()
+        tree.create_node('Site', ('/',))
+        if sorted_nodes[0].path.parts == ('/',):
+            tree.create_node('_index', parent=('/',),
+                             data=sorted_nodes[0].path)
 
-    known_paths = {('/',)}
+        known_paths = {('/',)}
 
-    for node in sorted_nodes:
-        path = node.path
-        if len(path.parts) == 1:
-            continue
-        parent = tuple(path.parts[:-1])
-
-        # The following bit creates intermediate nodes for path segments
-        # which are not part of the site tree. For instance, if there's a
-        # static file /images/image.jpg, there won't be a /images node. In this
-        # case, we create one to allow printing a full tree
-        for i in range(len(parent)):
-            p = tuple(parent[:i+1])
-            if len(p) <= 1:
+        for node in sorted_nodes:
+            path = node.path
+            if len(path.parts) == 1:
                 continue
-            if p not in known_paths:
-                tree.create_node(f"{parent[i]}", p, parent=tuple(p[:i]),
-                                 data=path)
-                known_paths.add(p)
+            parent = tuple(path.parts[:-1])
 
-        tree.create_node(
-            f"{node.path.parts[-1]} ({node.kind.name})",
-            tuple(node.path.parts), parent, data=node.path)
-        known_paths.add(tuple(node.path.parts))
-    tree.show(key=lambda n: str(n.data).casefold())
+            # The following bit creates intermediate nodes for path segments
+            # which are not part of the site tree. For instance, if there's a
+            # static file /images/image.jpg, there won't be a /images node. In
+            # this case, we create one to allow printing a full tree
+            for i in range(len(parent)):
+                p = tuple(parent[:i+1])
+                if len(p) <= 1:
+                    continue
+                if p not in known_paths:
+                    tree.create_node(f"{parent[i]}", p, parent=tuple(p[:i]),
+                                     data=path)
+                    known_paths.add(p)
+
+            tree.create_node(
+                f"{node.path.parts[-1]} ({node.kind.name})",
+                tuple(node.path.parts), parent, data=node.path)
+            known_paths.add(tuple(node.path.parts))
+        tree.show(key=lambda n: str(n.data).casefold())
+    elif format == 'list':
+        for node in sorted_nodes:
+            print(str(node.path))
+
+
+@cli.command()
+@pass_liara
+def serve(liara):
+    liara.serve()

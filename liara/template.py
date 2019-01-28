@@ -2,6 +2,7 @@ from typing import Dict
 from . import Site
 import pathlib
 
+
 class Template:
     def render(self, **kwargs):
         pass
@@ -10,8 +11,11 @@ class Template:
 class TemplateRepository:
     __definition = Dict[str, str]
 
-    def __init__(self, routes: Dict[str, str]):
-        self.__routes = routes
+    def __init__(self, paths: Dict[str, str]):
+        self.__paths = paths
+
+    def update_paths(self, paths: Dict[str, str]):
+        self.__paths = paths
 
     def find_template(self, url: str) -> Template:
         pass
@@ -19,7 +23,7 @@ class TemplateRepository:
     def _match_template(self, url: str) -> str:
         import fnmatch
         matches = []
-        for pattern, template in self.__routes.items():
+        for pattern, template in self.__paths.items():
             if fnmatch.fnmatch(url, pattern):
                 matches.append((len(pattern), template))
 
@@ -36,8 +40,8 @@ class MakoTemplate(Template):
 
 
 class MakoTemplateRepository(TemplateRepository):
-    def __init__(self, routes: Dict[str, str], path: pathlib.Path):
-        super().__init__(routes)
+    def __init__(self, paths: Dict[str, str], path: pathlib.Path):
+        super().__init__(paths)
         from mako.lookup import TemplateLookup
         self.__lookup = TemplateLookup(directories=[str(path)])
 
@@ -55,8 +59,8 @@ class Jinja2Template(Template):
 
 
 class Jinja2TemplateRepository(TemplateRepository):
-    def __init__(self, routes: Dict[str, str], path: pathlib.Path):
-        super().__init__(routes)
+    def __init__(self, paths: Dict[str, str], path: pathlib.Path):
+        super().__init__(paths)
         from jinja2 import FileSystemLoader, Environment
 
         self.__env = Environment(loader=FileSystemLoader(str(path)))
@@ -73,7 +77,7 @@ class SiteTemplateProxy:
         self.__site = site
         self.__data = {}
         for data in self.__site.data:
-            self.__data.update (data.metadata)
+            self.__data.update(data.metadata)
 
     @property
     def data(self):

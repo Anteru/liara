@@ -5,6 +5,7 @@ from enum import Enum, auto
 from contextlib import suppress
 from contextlib import ContextDecorator
 import multiprocessing
+import itertools
 
 
 class SingleProcessPool(ContextDecorator):
@@ -59,16 +60,21 @@ class Node:
     # Relative path
     path: pathlib.PurePosixPath
 
-    metadata: Dict[str, Any] = {}
-    children: List['Node'] = []
-    parent: Optional['Node'] = None
+    metadata: Dict[str, Any]
+    children: List['Node']
+    parent: Optional['Node']
+
+    def __init__(self):
+        self.children = []
+        self.metadata = {}
+        self.parent = None
 
     def add_child(self, child: 'Node') -> None:
         self.children.append(child)
         child.parent = self
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({repr(self.src)})'
+        return f'{self.__class__.__name__}({self.path})'
 
     def select_children(self) -> 'Query':
         return Query(self.children)
@@ -173,7 +179,7 @@ def extract_metadata_content(path: pathlib.Path):
 def _publish_with_template(output_path: pathlib.Path,
                            node: Union['DocumentNode', 'IndexNode'],
                            site: 'Site',
-                           template_repository: 'template.TemplateRepository'):
+                           template_repository) -> pathlib.Path:
     from .template import SiteTemplateProxy
     page = Page(node)
     file_path = pathlib.Path(str(output_path) + str(node.path))
@@ -185,6 +191,8 @@ def _publish_with_template(output_path: pathlib.Path,
         site=SiteTemplateProxy(site),
         page=page,
         node=node), encoding='utf-8')
+
+    return file_path
 
 
 class DocumentNode(Node):
@@ -219,6 +227,9 @@ class DocumentNode(Node):
             target = image.attrs.get('src', None)
             validate_link(target)
 
+    def reload(self):
+        self.metadata, self.__raw_content = extract_metadata_content(self.src)
+
     def process(self):
         import markdown
         import pymdownx.arithmatex as arithmatex
@@ -242,8 +253,9 @@ class DocumentNode(Node):
 
     def publish(self, output_path: pathlib.Path,
                 site: 'Site',
-                template_repository: 'template.TemplateRepository') -> None:
-        _publish_with_template(output_path, self, site, template_repository)
+                template_repository) -> pathlib.Path:
+        return _publish_with_template(output_path, self, site,
+                                      template_repository)
 
 
 class DataNode(Node):
@@ -264,8 +276,9 @@ class IndexNode(Node):
 
     def publish(self, output_path: pathlib.Path,
                 site: 'Site',
-                template_repository: 'template.TemplateRepository') -> None:
-        _publish_with_template(output_path, self, site, template_repository)
+                template_repository) -> None:
+        return _publish_with_template(output_path, self, site,
+                                      template_repository)
 
 
 class GeneratedNode(Node):
@@ -327,11 +340,15 @@ class ResourceNode(Node):
         After this function call, self.content is populated."""
         pass
 
-    def publish(self, output_path: pathlib.Path) -> None:
+    def reload(self) -> None:
+        pass
+
+    def publish(self, output_path: pathlib.Path) -> pathlib.Path:
         self.process()
         file_path = pathlib.Path(str(output_path) + str(self.path))
         os.makedirs(file_path.parent, exist_ok=True)
         file_path.write_bytes(self.content)
+        return file_path
 
 
 class SassResourceNode(ResourceNode):
@@ -342,6 +359,9 @@ class SassResourceNode(ResourceNode):
                             " .sass file")
 
         self.path = self.path.with_suffix('.css')
+
+    def reload(self) -> None:
+        self.content = None
 
     def process(self):
         import sass
@@ -385,7 +405,7 @@ class StaticNode(Node):
                 'image_size': image.size
             })
 
-    def publish(self, output_path: pathlib.Path) -> None:
+    def publish(self, output_path: pathlib.Path) -> pathlib.Path:
         import shutil
         file_path = pathlib.Path(str(output_path) + str(self.path))
         os.makedirs(file_path.parent, exist_ok=True)
@@ -400,6 +420,8 @@ class StaticNode(Node):
             # copy instead.
             except OSError:
                 shutil.copyfile(source_path, file_path)
+
+        return file_path
 
 
 class Page:
@@ -478,6 +500,9 @@ class Site:
             if parent_node:
                 parent_node.add_child(node)
 
+    def get_node(self, path: pathlib.PurePosixPath) -> Optional[Node]:
+        return self.__nodes.get(path)
+
 
 def process_content(obj):
     obj.process()
@@ -536,6 +561,11 @@ class Liara:
 
         template_configuration = pathlib.Path(self.__configuration['template'])
         self.__setup_template_backend(template_configuration)
+
+    def _reload_template_paths(self):
+        template_configuration = pathlib.Path(self.__configuration['template'])
+        configuration = load_yaml(template_configuration.open())
+        self.__template_repository.update_paths(configuration['paths'])
 
     def __setup_template_backend(self, configuration_file: pathlib.Path):
         from .template import Jinja2TemplateRepository, MakoTemplateRepository
@@ -695,7 +725,6 @@ class Liara:
             shutil.rmtree(output_directory)
 
     def build(self):
-        import itertools
         if self.__configuration['build']['clean_output']:
             self.__clean_output()
 
@@ -731,3 +760,66 @@ class Liara:
                 for node in self.__redirections:
                     output.write(f'RedirectPermanent {str(node.path)} '
                                  f'{str(node.dst)}\n')
+
+    def _build_single_node(self, path: pathlib.PurePosixPath):
+        from collections import namedtuple
+        result = namedtuple('BuildResult', ['path', 'cache'])
+        node = self.__site.get_node(path)
+        output_path = pathlib.Path(
+            self.__configuration['output_directory'])
+
+        if node is None:
+            print(f'Node not found for path: "{path}"')
+
+        # We always regenerate the content
+        if node.kind in {NodeKind.Document, NodeKind.Resource}:
+            node.reload()
+            node.process()
+            cache = False
+        else:
+            cache = True
+
+        if node.kind == NodeKind.Document:
+            self._reload_template_paths()
+            return result(node.publish(output_path, self.__site,
+                                       self.__template_repository),
+                          cache)
+        else:
+            return result(node.publish(output_path), cache)
+
+    def serve(self):
+        import http.server
+        if self.__configuration['build']['clean_output']:
+            self.__clean_output()
+
+        self.discover_content()
+
+        site = self.__site
+        site.create_links()
+
+        for document in site.documents:
+            document.validate_metadata()
+
+        class RequestHandler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                path = pathlib.PurePosixPath(self.path)
+                if path not in self.server.cache:
+                    node_path, cache = \
+                        self.server.liara._build_single_node(path)
+                    print(node_path, cache)
+                    if cache:
+                        self.server.cache[path] = node_path
+                else:
+                    node_path = self.server.cache[path]
+
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(node_path.open('rb').read())
+
+        server_address = ('', 8080)
+        httpd = http.server.HTTPServer(server_address,
+                                       RequestHandler)
+        httpd.liara = self
+        httpd.cache = {}
+        print('Listening: http://127.0.0.1:8080')
+        httpd.serve_forever()

@@ -1,5 +1,5 @@
 from typing import Dict
-from . import Site
+from . import Site, Query
 import pathlib
 
 
@@ -82,3 +82,11 @@ class SiteTemplateProxy:
     @property
     def data(self):
         return self.__data
+
+    def select(self, query):
+        import fnmatch
+        nodes = []
+        for node in self.__site.nodes:
+            if fnmatch.fnmatch(node.path, query):
+                nodes.append(node)
+        return Query(nodes)

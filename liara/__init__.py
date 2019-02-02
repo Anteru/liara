@@ -99,14 +99,37 @@ class TagFilter(SelectionFilter):
         return False
 
 
+class MetadataFilter(SelectionFilter):
+    def __init__(self, name):
+        self.__name = name
+
+    def match(self, node: Node) -> bool:
+        return self.__name in node.metadata
+
+
 class Sorter:
+    def __init__(self):
+        self._reverse = False
+
     def get_key(self, item):
         pass
+
+    @property
+    def reverse(self):
+        return self._reverse
 
 
 class TitleSorter(Sorter):
     def get_key(self, item: 'Page'):
-        return item.meta['title']
+        return item.meta.get('title')
+
+
+class DateSorter(Sorter):
+    def __init__(self, reverse):
+        self._reverse = reverse
+
+    def get_key(self, item: 'Page'):
+        return item.meta.get('date')
 
 
 class TagSorter(Sorter):
@@ -114,16 +137,28 @@ class TagSorter(Sorter):
         self.__tag = tag
 
     def get_key(self, item: 'Page'):
-        return item.meta.get[self.__tag]
+        return item.meta.get(self.__tag)
 
 
 class Query(Iterable[Node]):
-    __filters: List[SelectionFilter] = []
-    __nodes: List[Node] = []
-    __sorters: List[Sorter] = []
+    __filters: List[SelectionFilter]
+    __nodes: List[Node]
+    __sorters: List[Sorter]
+    __limit: int
 
     def __init__(self, nodes):
         self.__nodes = nodes
+        self.__limit = -1
+        self.__filters = []
+        self.__sorters = []
+
+    def limit(self, limit) -> 'Query':
+        self.__limit = limit
+        return self
+
+    def with_metadata(self, name) -> 'Query':
+        self.__filters.append(MetadataFilter(name))
+        return self
 
     def with_tag(self, name, value=None) -> 'Query':
         self.__filters.append(TagFilter(name, value))
@@ -133,19 +168,26 @@ class Query(Iterable[Node]):
         self.__sorters.append(TitleSorter())
         return self
 
+    def sorted_by_date(self, reverse=False) -> 'Query':
+        self.__sorters.append(DateSorter(reverse))
+        return self
+
     def sorted_by_tag(self, tag: str) -> 'Query':
         self.__sorters.append(TagSorter(tag))
         return self
 
-    def __iter__(self) -> Iterator[Node]:
+    def __iter__(self) -> Iterator['Page']:
         nodes = self.__nodes
         for f in self.__filters:
             nodes = filter(lambda x: f.match(x), nodes)
         result = map(Page, nodes)
         if self.__sorters:
-            def get_key(item):
-                return tuple([s.get_key(item) for s in self.__sorters])
-            result = sorted(result, key=get_key)
+            for s in self.__sorters:
+                result = sorted(result, key=s.get_key, reverse=s.reverse)
+
+        if self.__limit > 0:
+            tmp = result[:self.__limit]
+            return iter(tmp)
 
         return iter(result)
 
@@ -806,7 +848,7 @@ class Liara:
                 if path not in self.server.cache:
                     node_path, cache = \
                         self.server.liara._build_single_node(path)
-                    print(node_path, cache)
+
                     if cache:
                         self.server.cache[path] = node_path
                 else:

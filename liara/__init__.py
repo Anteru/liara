@@ -752,7 +752,7 @@ class Liara:
         This does not build the whole page up-front, but rather serves each
         node individually just-in-time, making it very fast to start."""
         import http.server
-        if self.__configuration['build']['clean_output']:
+        if self.__configuration['build.clean_output']:
             self.__clean_output()
 
         self.discover_content()

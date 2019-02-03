@@ -118,3 +118,13 @@ class Query(Iterable[Node]):
         else:
             for e in result:
                 yield Page(e)
+
+    def __len__(self) -> int:
+        i = 0
+        it = iter(self)
+        try:
+            while True:
+                next(it)
+                i += 1
+        except StopIteration:
+            return i

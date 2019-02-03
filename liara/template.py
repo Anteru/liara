@@ -25,6 +25,11 @@ class TemplateRepository:
         import fnmatch
         matches = []
         for pattern, template in self.__paths.items():
+            # Exact matches always win
+            if pattern == str(url):
+                return template
+            # If not exact, we'll look for the longest matching pattern,
+            # assuming it is the most specific
             if fnmatch.fnmatch(url, pattern):
                 matches.append((len(pattern), template))
 

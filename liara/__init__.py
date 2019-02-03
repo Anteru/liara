@@ -1,16 +1,19 @@
 import os
 import pathlib
-from typing import Dict, List, Optional, Any, Iterable, Iterator, Type, Union
+from typing import Dict, List, Optional, Any, Iterable, Type, Union
 from enum import Enum, auto
-from contextlib import suppress
-from contextlib import ContextDecorator
+from contextlib import suppress, ContextDecorator
 import multiprocessing
 import itertools
+import collections
 
 
 class SingleProcessPool(ContextDecorator):
     def map(self, f, iterable):
-        return map(f, iterable)
+        return list(map(f, iterable))
+
+    def imap_unordered(self, f, iterable):
+        return list(map(f, iterable))
 
     def __enter__(self):
         return self
@@ -76,120 +79,9 @@ class Node:
     def __repr__(self):
         return f'{self.__class__.__name__}({self.path})'
 
-    def select_children(self) -> 'Query':
+    def select_children(self):
+        from .query import Query
         return Query(self.children)
-
-
-class SelectionFilter:
-    def match(self, node: Node) -> bool:
-        pass
-
-
-class TagFilter(SelectionFilter):
-    def __init__(self, name, value=None):
-        self.__name = name
-        self.__value = value
-
-    def match(self, node: Node) -> bool:
-        if self.__name in node.metadata:
-            if self.__value is not None:
-                return node.metadata[self.__name] == self.__value
-            else:
-                return True
-        return False
-
-
-class MetadataFilter(SelectionFilter):
-    def __init__(self, name):
-        self.__name = name
-
-    def match(self, node: Node) -> bool:
-        return self.__name in node.metadata
-
-
-class Sorter:
-    def __init__(self):
-        self._reverse = False
-
-    def get_key(self, item):
-        pass
-
-    @property
-    def reverse(self):
-        return self._reverse
-
-
-class TitleSorter(Sorter):
-    def get_key(self, item: 'Page'):
-        return item.meta.get('title')
-
-
-class DateSorter(Sorter):
-    def __init__(self, reverse):
-        self._reverse = reverse
-
-    def get_key(self, item: 'Page'):
-        return item.meta.get('date')
-
-
-class TagSorter(Sorter):
-    def __init__(self, tag: str):
-        self.__tag = tag
-
-    def get_key(self, item: 'Page'):
-        return item.meta.get(self.__tag)
-
-
-class Query(Iterable[Node]):
-    __filters: List[SelectionFilter]
-    __nodes: List[Node]
-    __sorters: List[Sorter]
-    __limit: int
-
-    def __init__(self, nodes):
-        self.__nodes = nodes
-        self.__limit = -1
-        self.__filters = []
-        self.__sorters = []
-
-    def limit(self, limit) -> 'Query':
-        self.__limit = limit
-        return self
-
-    def with_metadata(self, name) -> 'Query':
-        self.__filters.append(MetadataFilter(name))
-        return self
-
-    def with_tag(self, name, value=None) -> 'Query':
-        self.__filters.append(TagFilter(name, value))
-        return self
-
-    def sorted_by_title(self) -> 'Query':
-        self.__sorters.append(TitleSorter())
-        return self
-
-    def sorted_by_date(self, reverse=False) -> 'Query':
-        self.__sorters.append(DateSorter(reverse))
-        return self
-
-    def sorted_by_tag(self, tag: str) -> 'Query':
-        self.__sorters.append(TagSorter(tag))
-        return self
-
-    def __iter__(self) -> Iterator['Page']:
-        nodes = self.__nodes
-        for f in self.__filters:
-            nodes = filter(lambda x: f.match(x), nodes)
-        result = map(Page, nodes)
-        if self.__sorters:
-            for s in self.__sorters:
-                result = sorted(result, key=s.get_key, reverse=s.reverse)
-
-        if self.__limit > 0:
-            tmp = result[:self.__limit]
-            return iter(tmp)
-
-        return iter(result)
 
 
 def extract_metadata_content(path: pathlib.Path):
@@ -318,7 +210,7 @@ class IndexNode(Node):
 
     def publish(self, output_path: pathlib.Path,
                 site: 'Site',
-                template_repository) -> None:
+                template_repository) -> pathlib.Path:
         return _publish_with_template(output_path, self, site,
                                       template_repository)
 
@@ -419,7 +311,7 @@ class ResourceNodeFactory:
 
     def register_type(self, suffixes, node_type) -> None:
         if isinstance(suffixes, str):
-            suffixes = []
+            suffixes = [suffixes]
 
         for suffix in suffixes:
             self.__known_types[suffix] = node_type
@@ -551,8 +443,8 @@ def process_content(obj):
     return obj
 
 
-def publish(t):
-    t[0].publish(t[1])
+def publish(node, path):
+    node.publish(path)
 
 
 def create_default_configuration() -> Dict[str, Any]:
@@ -572,6 +464,18 @@ def create_default_configuration() -> Dict[str, Any]:
         },
         'base_url': 'http://localhost:8000'
     }
+
+
+def flatten_dictionary(d, sep='.', parent_key=None):
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, collections.Mapping):
+            items.extend(flatten_dictionary(v, sep=sep,
+                                            parent_key=new_key).items())
+        else:
+            items.append((new_key, v,))
+    return dict(items)
 
 
 __ROOT_PATH = pathlib.PurePosixPath('/')
@@ -595,11 +499,14 @@ class Liara:
     __redirections: List[RedirectionNode] = []
 
     def __init__(self, configuration):
-        self.__configuration = create_default_configuration()
+        default_configuration = create_default_configuration()
         if isinstance(configuration, str):
-            self.__configuration.update(load_yaml(open(configuration)))
+            project_configuration = load_yaml(open(configuration))
         else:
-            self.__configuration.update(load_yaml(configuration))
+            project_configuration = load_yaml(configuration)
+        self.__configuration = collections.ChainMap(
+            flatten_dictionary(project_configuration),
+            flatten_dictionary(default_configuration))
 
         template_configuration = pathlib.Path(self.__configuration['template'])
         self.__setup_template_backend(template_configuration)
@@ -745,7 +652,7 @@ class Liara:
         self.__discover_resources(self.__site, self.__resource_node_factory,
                                   resource_root)
 
-        static_routes = pathlib.Path(configuration['routes']['static'])
+        static_routes = pathlib.Path(configuration['routes.static'])
         self.__discover_redirections(self.__site, static_routes)
 
         return self.__site
@@ -755,7 +662,7 @@ class Liara:
         return self.__site
 
     def __create_pool(self):
-        if self.__configuration['build']['multiprocess']:
+        if self.__configuration['build.multiprocess']:
             return multiprocessing.Pool()
         else:
             return SingleProcessPool()
@@ -767,7 +674,7 @@ class Liara:
             shutil.rmtree(output_directory)
 
     def build(self):
-        if self.__configuration['build']['clean_output']:
+        if self.__configuration['build.clean_output']:
             self.__clean_output()
 
         with self.__create_pool() as pool:
@@ -791,12 +698,15 @@ class Liara:
             for node in site.indices:
                 node.publish(output_path, site, self.__template_repository)
 
-            pool.imap_unordered(publish, zip(site.resources,
-                                             itertools.repeat(output_path)))
-            pool.imap_unordered(publish, zip(site.static,
-                                             itertools.repeat(output_path)))
-            pool.imap_unordered(publish, zip(site.generated,
-                                             itertools.repeat(output_path)))
+            print(f'Publishing {len(site.resources)} resource(s)')
+            pool.starmap(publish, zip(site.resources,
+                                      itertools.repeat(output_path)))
+            print(f'Publishing {len(site.static)} static file(s)')
+            pool.starmap(publish, zip(site.static,
+                                      itertools.repeat(output_path)))
+            print(f'Publishing {len(site.generated)} generated file(s)')
+            pool.starmap(publish, zip(site.generated,
+                                      itertools.repeat(output_path)))
 
             with (output_path / '.htaccess').open('w') as output:
                 for node in self.__redirections:
@@ -804,6 +714,13 @@ class Liara:
                                  f'{str(node.dst)}\n')
 
     def _build_single_node(self, path: pathlib.PurePosixPath):
+        """Build a single node.
+
+        This is used for just-in-time page generation. Based on a request, a
+        single node is built. Special rules apply to make sure this is
+        useful for actual work -- for instance, document/resource nodes
+        are always rebuilt from scratch, and for documents, we also reload
+        all templates."""
         from collections import namedtuple
         result = namedtuple('BuildResult', ['path', 'cache'])
         node = self.__site.get_node(path)
@@ -830,6 +747,10 @@ class Liara:
             return result(node.publish(output_path), cache)
 
     def serve(self):
+        """Serve the page.
+
+        This does not build the whole page up-front, but rather serves each
+        node individually just-in-time, making it very fast to start."""
         import http.server
         if self.__configuration['build']['clean_output']:
             self.__clean_output()

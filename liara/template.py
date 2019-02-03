@@ -1,5 +1,6 @@
 from typing import Dict
-from . import Site, Query
+from . import Site
+from .query import Query
 import pathlib
 
 

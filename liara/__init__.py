@@ -1,11 +1,23 @@
 import os
 import pathlib
-from typing import Dict, List, Optional, Any, Iterable, Type, Union
+from typing import (
+        Dict,
+        List,
+        Optional,
+        Any,
+        Iterable,
+        Type,
+        Union,
+        Generic,
+        TypeVar
+    )
 from enum import Enum, auto
 from contextlib import suppress, ContextDecorator
 import multiprocessing
 import itertools
 import collections
+
+T = TypeVar('T')
 
 
 class SingleProcessPool(ContextDecorator):
@@ -100,7 +112,7 @@ def extract_metadata_content(path: pathlib.Path):
     for line in path.open(encoding='utf-8').readlines():
         if state == 0 and line == '---\n':
             state = 1
-        elif state == 1 and line == '---\n':
+        elif state == 1 and line == '---\n' or line == '---':
             state = 2
         elif state == 1 and line != '---\n':
             metadata += line
@@ -130,12 +142,18 @@ def _publish_with_template(output_path: pathlib.Path,
 
 
 class DocumentNode(Node):
-    def __init__(self, src, path):
+    def __init__(self, src, path, metadata_path=None):
         super().__init__()
         self.kind = NodeKind.Document
         self.src = src
         self.path = path
-        self.metadata, self.__raw_content = extract_metadata_content(self.src)
+        if metadata_path:
+            self.metadata = load_yaml(self.src.open('r'))
+            self._raw_content = src.read_text('utf-8')
+        else:
+            self.metadata, self._raw_content = \
+                extract_metadata_content(self.src)
+        self.content = None
 
     def validate_metadata(self):
         if 'title' not in self.metadata:
@@ -162,8 +180,21 @@ class DocumentNode(Node):
             validate_link(target)
 
     def reload(self):
-        self.metadata, self.__raw_content = extract_metadata_content(self.src)
+        self.metadata, self._raw_content = extract_metadata_content(self.src)
 
+    def publish(self, output_path: pathlib.Path,
+                site: 'Site',
+                template_repository) -> pathlib.Path:
+        return _publish_with_template(output_path, self, site,
+                                      template_repository)
+
+
+class HtmlDocumentNode(DocumentNode):
+    def process(self):
+        self.content = self._raw_content
+
+
+class MarkdownDocumentNode(DocumentNode):
     def process(self):
         import markdown
         import pymdownx.arithmatex as arithmatex
@@ -181,15 +212,9 @@ class DocumentNode(Node):
                 'css_class': 'code'
             }
         }
-        self.content = markdown.markdown(self.__raw_content,
+        self.content = markdown.markdown(self._raw_content,
                                          extensions=extensions,
                                          extension_configs=extension_configs)
-
-    def publish(self, output_path: pathlib.Path,
-                site: 'Site',
-                template_repository) -> pathlib.Path:
-        return _publish_with_template(output_path, self, site,
-                                      template_repository)
 
 
 class DataNode(Node):
@@ -303,11 +328,15 @@ class SassResourceNode(ResourceNode):
             self.content = sass.compile(filename=str(self.src)).encode('utf-8')
 
 
-class ResourceNodeFactory:
-    __known_types: Dict[str, Type] = {}
+class NodeFactory(Generic[T]):
+    __known_types: Dict[str, Type]
 
     def __init__(self):
-        self.register_type(['.sass', '.scss'], SassResourceNode)
+        self.__known_types = {}
+
+    @property
+    def known_types(self):
+        return self.__known_types.keys()
 
     def register_type(self, suffixes, node_type) -> None:
         if isinstance(suffixes, str):
@@ -316,10 +345,22 @@ class ResourceNodeFactory:
         for suffix in suffixes:
             self.__known_types[suffix] = node_type
 
-    def create_node(self, suffix, src, path, metadata_path=None) \
-            -> ResourceNode:
+    def create_node(self, suffix, src, path, metadata_path=None) -> T:
         class_ = self.__known_types[suffix]
         return class_(src, path, metadata_path)
+
+
+class ResourceNodeFactory(NodeFactory[ResourceNode]):
+    def __init__(self):
+        super().__init__()
+        self.register_type(['.sass', '.scss'], SassResourceNode)
+
+
+class DocumentNodeFactory(NodeFactory[DocumentNode]):
+    def __init__(self):
+        super().__init__()
+        self.register_type(['.md'], MarkdownDocumentNode)
+        self.register_type(['.html'], HtmlDocumentNode)
 
 
 class StaticNode(Node):
@@ -495,10 +536,15 @@ def _create_relative_path(path: pathlib.Path, root: pathlib.Path) \
 
 class Liara:
     __site: Site = Site()
-    __resource_node_factory: ResourceNodeFactory = ResourceNodeFactory()
-    __redirections: List[RedirectionNode] = []
+    __resource_node_factory: ResourceNodeFactory
+    __document_node_factory: DocumentNodeFactory
+    __redirections: List[RedirectionNode]
 
     def __init__(self, configuration):
+        self.__redirections = []
+        self.__resource_node_factory = ResourceNodeFactory()
+        self.__document_node_factory = DocumentNodeFactory()
+
         default_configuration = create_default_configuration()
         if isinstance(configuration, str):
             project_configuration = load_yaml(open(configuration))
@@ -562,6 +608,8 @@ class Liara:
 
     def __discover_content(self, site: Site, content_root: pathlib.Path) \
             -> None:
+        document_factory = self.__document_node_factory
+
         for (dirpath, _, filenames) in os.walk(content_root):
             directory = pathlib.Path(dirpath)
             # Need to run two passes here: First, we check if an _index file is
@@ -572,8 +620,10 @@ class Liara:
             for filename in filenames:
                 if filename.startswith('_index'):
                     src = pathlib.Path(os.path.join(dirpath, filename))
-                    node = DocumentNode(src, _create_relative_path(
-                        directory, content_root))
+                    relative_path = _create_relative_path(directory,
+                                                          content_root)
+                    node = document_factory.create_node(src.suffix,
+                                                        src, relative_path)
                     site.add_document(node)
                     break
             else:
@@ -588,8 +638,8 @@ class Liara:
                 src = pathlib.Path(os.path.join(directory, filename))
                 path = _create_relative_path(src, content_root)
 
-                if src.suffix in {'.md'}:
-                    node = DocumentNode(src, path)
+                if src.suffix in document_factory.known_types:
+                    node = document_factory.create_node(src.suffix, src, path)
                     site.add_document(node)
                 elif src.suffix in {'.yaml'}:
                     node = DataNode(src, path)
@@ -729,6 +779,7 @@ class Liara:
 
         if node is None:
             print(f'Node not found for path: "{path}"')
+            return
 
         # We always regenerate the content
         if node.kind in {NodeKind.Document, NodeKind.Resource}:

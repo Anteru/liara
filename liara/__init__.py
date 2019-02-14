@@ -9,13 +9,15 @@ from typing import (
         Type,
         Union,
         Generic,
-        TypeVar
+        TypeVar,
+        Tuple
     )
 from enum import Enum, auto
 from contextlib import suppress, ContextDecorator
 import multiprocessing
 import itertools
 import collections
+from functools import lru_cache
 
 T = TypeVar('T')
 
@@ -26,6 +28,9 @@ class SingleProcessPool(ContextDecorator):
 
     def imap_unordered(self, f, iterable):
         return list(map(f, iterable))
+
+    def starmap(self, f, iterable):
+        return [f(*p) for p in iterable]
 
     def __enter__(self):
         return self
@@ -132,7 +137,7 @@ def _publish_with_template(output_path: pathlib.Path,
     file_path.mkdir(parents=True, exist_ok=True)
     file_path = file_path / 'index.html'
 
-    template = template_repository.find_template(node.path)
+    template = template_repository.find_template(node.path, site)
     file_path.write_text(template.render(
         site=SiteTemplateProxy(site),
         page=page,
@@ -465,10 +470,10 @@ class Site:
         return self.__nodes.keys()
 
     def create_links(self):
-        '''This creates links between parents/children.
+        """This creates links between parents/children.
 
         We have to do this in a separate step, as we merge static/resource
-        nodes from themes etc.'''
+        nodes from themes etc."""
         for key, node in self.__nodes.items():
             parent_path = key.parent
             parent_node = self.__nodes.get(parent_path)
@@ -486,6 +491,50 @@ def process_content(obj):
 
 def publish(node, path):
     node.publish(path)
+
+
+@lru_cache(maxsize=None)
+def match_url(url, pattern, site: Optional[Site] = None) -> Tuple[bool, int]:
+    """Match an url against a pattern.
+
+    Returns a tuple, the first entry indicates if the url matches the pattern.
+    The second entry is the hit score, where 0 is a perfect match, and higher
+    numbers are worse matches (this allows to use sorted() and pick the
+    first hit.)
+
+    This function is really expensive, hence we force caching to ensure it runs
+    efficiently even if a template calls it repeatedly (and thus we'd enumerate
+    all pages per page -- eventually, we want some smarter matching which
+    traverses a prefix tree or something similar to limit the subset of pages
+    we visit, but that's an upstream optimization."""
+    import fnmatch
+    import urllib.parse
+    if '?' in pattern and site:
+        pattern, params = pattern.split('?')
+
+        node = site.get_node(url)
+        params = urllib.parse.parse_qs(params)
+        if 'kind' in params:
+            kinds = params['kind']
+            for kind in kinds:
+                if kind == 'document' or kind == 'doc':
+                    if node.kind == NodeKind.Document:
+                        break
+                elif kind == 'index' or kind == 'idx':
+                    if node.kind == NodeKind.Index:
+                        break
+            else:
+                return False, -1
+
+    # Exact matches always win
+    if pattern == str(url):
+        return True, 0
+    # If not exact, we'll look for the longest matching pattern,
+    # assuming it is the most specific
+    if fnmatch.fnmatch(url, pattern):
+        return True, len(str(url)) - len(pattern)
+
+    return False, -1
 
 
 def create_default_configuration() -> Dict[str, Any]:
@@ -508,6 +557,9 @@ def create_default_configuration() -> Dict[str, Any]:
 
 
 def flatten_dictionary(d, sep='.', parent_key=None):
+    """Flatten a nested dictionary. This uses the separator to combine keys
+    together, so a dictionary access like ['a']['b'] with a separator '.' turns
+    into 'a.b'."""
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
@@ -757,6 +809,8 @@ class Liara:
             print(f'Publishing {len(site.generated)} generated file(s)')
             pool.starmap(publish, zip(site.generated,
                                       itertools.repeat(output_path)))
+
+            print(match_url.cache_info())
 
             with (output_path / '.htaccess').open('w') as output:
                 for node in self.__redirections:

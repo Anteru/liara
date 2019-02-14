@@ -1,5 +1,5 @@
 from typing import Dict
-from . import Site
+from . import Site, match_url
 from .query import Query
 import pathlib
 
@@ -21,19 +21,15 @@ class TemplateRepository:
     def find_template(self, url: str) -> Template:
         pass
 
-    def _match_template(self, url: str) -> str:
-        import fnmatch
+    def _match_template(self, url: str, site: Site) -> str:
         matches = []
         for pattern, template in self.__paths.items():
-            # Exact matches always win
-            if pattern == str(url):
-                return template
-            # If not exact, we'll look for the longest matching pattern,
-            # assuming it is the most specific
-            if fnmatch.fnmatch(url, pattern):
-                matches.append((len(pattern), template))
+            match, score = match_url(url, pattern, site)
+            if match:
+                matches.append((score, template,))
 
-        matches = list(sorted(matches, key=lambda x: x[0], reverse=True))
+        matches = list(sorted(matches, key=lambda x: x[0]))
+
         return matches[0][1]
 
 
@@ -51,8 +47,8 @@ class MakoTemplateRepository(TemplateRepository):
         from mako.lookup import TemplateLookup
         self.__lookup = TemplateLookup(directories=[str(path)])
 
-    def find_template(self, url) -> Template:
-        template = self._match_template(url)
+    def find_template(self, url, site) -> Template:
+        template = self._match_template(url, site)
         return MakoTemplate(self.__lookup.get_template(template))
 
 
@@ -71,8 +67,8 @@ class Jinja2TemplateRepository(TemplateRepository):
 
         self.__env = Environment(loader=FileSystemLoader(str(path)))
 
-    def find_template(self, url) -> Template:
-        template = self._match_template(url)
+    def find_template(self, url, site) -> Template:
+        template = self._match_template(url, site)
         return Jinja2Template(self.__env.get_template(template))
 
 
@@ -90,9 +86,12 @@ class SiteTemplateProxy:
         return self.__data
 
     def select(self, query):
-        import fnmatch
         nodes = []
+        # TODO This should split the query into individual path components,
+        # and traverse the node tree to perform the match instead of
+        # enumerating all nodes and then matching them brute force
         for node in self.__site.nodes:
-            if fnmatch.fnmatch(node.path, query):
+            match, _ = match_url(node.path, query, self.__site)
+            if match:
                 nodes.append(node)
         return Query(nodes)

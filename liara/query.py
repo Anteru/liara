@@ -1,5 +1,6 @@
 from typing import Iterable, List, Iterator
-from . import Node, Page
+from .nodes import Node
+from .template import Page
 
 
 class SelectionFilter:

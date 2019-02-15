@@ -3,23 +3,17 @@ import pathlib
 from typing import (
         Dict,
         List,
-        Optional,
         Any,
-        Iterable,
-        Type,
-        Union,
-        Generic,
-        TypeVar,
-        Tuple
+        Optional,
+        Tuple,
     )
-from enum import Enum, auto
-from contextlib import suppress, ContextDecorator
+from contextlib import ContextDecorator
 import multiprocessing
 import itertools
 import collections
-from functools import lru_cache
-
-T = TypeVar('T')
+from .yaml import load_yaml
+from .site import Site
+from .nodes import DocumentNodeFactory, RedirectionNode, ResourceNodeFactory
 
 
 class SingleProcessPool(ContextDecorator):
@@ -42,458 +36,6 @@ class SingleProcessPool(ContextDecorator):
 __version__ = '0.2.0'
 
 
-def load_yaml(s):
-    import yaml
-    try:
-        from yaml import CLoader as Loader
-    except ImportError:
-        from yaml import Loader
-    return yaml.load(s, Loader=Loader)
-
-
-def dump_yaml(data, stream=None):
-    import yaml
-    try:
-        from yaml import CDumper as Dumper
-    except ImportError:
-        from yaml import Dumper
-
-    return yaml.dump(data, stream, Dumper=Dumper)
-
-
-class NodeKind(Enum):
-    Resource = auto()
-    Index = auto()
-    Document = auto()
-    Data = auto()
-    # Static nodes will not get any processing applied. Metadata can be
-    # generated (for instance, image size)
-    Static = auto()
-    # Nodes can be automatically generated, for instance for redirections
-    Generated = auto()
-
-
-class Node:
-    kind: NodeKind
-    # Source file path
-    src: pathlib.Path
-    # Relative path
-    path: pathlib.PurePosixPath
-
-    metadata: Dict[str, Any]
-    children: List['Node']
-    parent: Optional['Node']
-
-    def __init__(self):
-        self.children = []
-        self.metadata = {}
-        self.parent = None
-
-    def add_child(self, child: 'Node') -> None:
-        self.children.append(child)
-        child.parent = self
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}({self.path})'
-
-    def select_children(self):
-        from .query import Query
-        return Query(self.children)
-
-
-def extract_metadata_content(path: pathlib.Path):
-    # We start by expecting a '---', once we find that, we keep reading
-    # until we discover another '---'.
-    # The states are:
-    # 0: Expecting '---'
-    # 1: Assembling metadata, expecting '---'
-    # 2: Content
-    # TODO Use a stream here instead of readlines() to improve reading
-    # performance
-    state = 0
-    metadata = ''
-    content = ''
-
-    for line in path.open(encoding='utf-8').readlines():
-        if state == 0 and line == '---\n':
-            state = 1
-        elif state == 1 and line == '---\n' or line == '---':
-            state = 2
-        elif state == 1 and line != '---\n':
-            metadata += line
-        elif state == 2:
-            content += line
-
-    return load_yaml(metadata), content
-
-
-def _publish_with_template(output_path: pathlib.Path,
-                           node: Union['DocumentNode', 'IndexNode'],
-                           site: 'Site',
-                           template_repository) -> pathlib.Path:
-    from .template import SiteTemplateProxy
-    page = Page(node)
-    file_path = pathlib.Path(str(output_path) + str(node.path))
-    file_path.mkdir(parents=True, exist_ok=True)
-    file_path = file_path / 'index.html'
-
-    template = template_repository.find_template(node.path, site)
-    file_path.write_text(template.render(
-        site=SiteTemplateProxy(site),
-        page=page,
-        node=node), encoding='utf-8')
-
-    return file_path
-
-
-class DocumentNode(Node):
-    def __init__(self, src, path, metadata_path=None):
-        super().__init__()
-        self.kind = NodeKind.Document
-        self.src = src
-        self.path = path
-        if metadata_path:
-            self.metadata = load_yaml(self.src.open('r'))
-            self._raw_content = src.read_text('utf-8')
-        else:
-            self.metadata, self._raw_content = \
-                extract_metadata_content(self.src)
-        self.content = None
-
-    def validate_metadata(self):
-        if 'title' not in self.metadata:
-            raise Exception(f"'title' missing for Document: '{self.src}'")
-
-    def validate_links(self, site: 'Site'):
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(self.content, 'lxml')
-
-        def validate_link(link):
-            if not link.startswith('/'):
-                return
-
-            link = pathlib.PurePosixPath(link)
-            if link not in site.urls:
-                print(f'"{link}" referenced in "{self.path}" does not exist')
-
-        for link in soup.find_all('a'):
-            target = link.attrs.get('href', None)
-            validate_link(target)
-
-        for image in soup.find_all('img'):
-            target = image.attrs.get('src', None)
-            validate_link(target)
-
-    def reload(self):
-        self.metadata, self._raw_content = extract_metadata_content(self.src)
-
-    def publish(self, output_path: pathlib.Path,
-                site: 'Site',
-                template_repository) -> pathlib.Path:
-        return _publish_with_template(output_path, self, site,
-                                      template_repository)
-
-
-class HtmlDocumentNode(DocumentNode):
-    def process(self):
-        self.content = self._raw_content
-
-
-class MarkdownDocumentNode(DocumentNode):
-    def process(self):
-        import markdown
-        import pymdownx.arithmatex as arithmatex
-        from .md import HeadingLevelFixupExtension
-
-        extensions = [
-            arithmatex.ArithmatexExtension(),
-            HeadingLevelFixupExtension(),
-            'fenced_code',
-            'codehilite',
-            'smarty'
-        ]
-        extension_configs = {
-            'codehilite': {
-                'css_class': 'code'
-            }
-        }
-        self.content = markdown.markdown(self._raw_content,
-                                         extensions=extensions,
-                                         extension_configs=extension_configs)
-
-
-class DataNode(Node):
-    def __init__(self, src, path):
-        super().__init__()
-        self.kind = NodeKind.Data
-        self.src = src
-        self.path = path
-        self.metadata = load_yaml(self.src.open('r'))
-
-
-class IndexNode(Node):
-    def __init__(self, path):
-        super().__init__()
-        self.kind = NodeKind.Index
-        self.src = None
-        self.path = path
-
-    def publish(self, output_path: pathlib.Path,
-                site: 'Site',
-                template_repository) -> pathlib.Path:
-        return _publish_with_template(output_path, self, site,
-                                      template_repository)
-
-
-class GeneratedNode(Node):
-    def __init__(self, path, metadata={}):
-        super().__init__()
-        self.kind = NodeKind.Generated
-        self.src = None
-        self.path = path
-        self.metadata = metadata
-
-    def publish(self, output_path: pathlib.Path):
-        pass
-
-
-_REDIRECTION_TEMPLATE = """<!DOCTYPE HTML>
-<html lang="en-US">
-    <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="refresh" content="0; url={{NEW_URL}}">
-        <script type="text/javascript">
-            window.location.href = "{{NEW_URL}}"
-        </script>
-        <title>Page Redirection</title>
-    </head>
-    <body>
-        <h1>Page has been moved</h1>
-        <p>If you are not redirected automatically, follow this
-        <a href='{{NEW_URL}}'>link.</a>.</p>
-    </body>
-</html>"""
-
-
-class RedirectionNode(GeneratedNode):
-    def __init__(self, path, dst):
-        super().__init__(path)
-        self.dst = dst
-
-    def generate(self, output_path: pathlib.Path):
-        os.makedirs(output_path, exist_ok=True)
-        output_path = output_path / 'index.html'
-        text = _REDIRECTION_TEMPLATE.replace('{{NEW_URL}}',
-                                             self.dst.as_posix())
-        output_path.write_text(text)
-
-
-class ResourceNode(Node):
-    def __init__(self, src, path, metadata_path=None):
-        super().__init__()
-        self.kind = NodeKind.Resource
-        self.src = src
-        self.path = path
-        self.content = None
-        if metadata_path:
-            self.metadata = load_yaml(open(metadata_path, 'r'))
-
-    def process(self) -> None:
-        """Process the content.
-
-        After this function call, self.content is populated."""
-        pass
-
-    def reload(self) -> None:
-        pass
-
-    def publish(self, output_path: pathlib.Path) -> pathlib.Path:
-        self.process()
-        file_path = pathlib.Path(str(output_path) + str(self.path))
-        os.makedirs(file_path.parent, exist_ok=True)
-        file_path.write_bytes(self.content)
-        return file_path
-
-
-class SassResourceNode(ResourceNode):
-    def __init__(self, src, path, metadata_path=None):
-        super().__init__(src, path, metadata_path)
-        if src.suffix not in {'.scss', '.sass'}:
-            raise Exception("SassResource can be only created for a .scss or "
-                            " .sass file")
-
-        self.path = self.path.with_suffix('.css')
-
-    def reload(self) -> None:
-        self.content = None
-
-    def process(self):
-        import sass
-        if self.content is None:
-            self.content = sass.compile(filename=str(self.src)).encode('utf-8')
-
-
-class NodeFactory(Generic[T]):
-    __known_types: Dict[str, Type]
-
-    def __init__(self):
-        self.__known_types = {}
-
-    @property
-    def known_types(self):
-        return self.__known_types.keys()
-
-    def register_type(self, suffixes, node_type) -> None:
-        if isinstance(suffixes, str):
-            suffixes = [suffixes]
-
-        for suffix in suffixes:
-            self.__known_types[suffix] = node_type
-
-    def create_node(self, suffix, src, path, metadata_path=None) -> T:
-        class_ = self.__known_types[suffix]
-        return class_(src, path, metadata_path)
-
-
-class ResourceNodeFactory(NodeFactory[ResourceNode]):
-    def __init__(self):
-        super().__init__()
-        self.register_type(['.sass', '.scss'], SassResourceNode)
-
-
-class DocumentNodeFactory(NodeFactory[DocumentNode]):
-    def __init__(self):
-        super().__init__()
-        self.register_type(['.md'], MarkdownDocumentNode)
-        self.register_type(['.html'], HtmlDocumentNode)
-
-
-class StaticNode(Node):
-    def __init__(self, src, path, metadata_path=None):
-        super().__init__()
-        self.kind = NodeKind.Static
-        self.src = src
-        self.path = path
-        if metadata_path:
-            self.metadata = load_yaml(open(metadata_path, 'r'))
-
-    def update_metadata(self) -> None:
-        from PIL import Image
-        if self.src.suffix in {'.jpg', '.png'}:
-            image = Image.open(self.src)
-            self.metadata.update({
-                'image_size': image.size
-            })
-
-    def publish(self, output_path: pathlib.Path) -> pathlib.Path:
-        import shutil
-        file_path = pathlib.Path(str(output_path) + str(self.path))
-        os.makedirs(file_path.parent, exist_ok=True)
-
-        with suppress(FileExistsError):
-            # Symlink requires an absolute path
-            source_path = os.path.abspath(self.src)
-            try:
-                os.symlink(source_path, file_path)
-            # If we can't symlink for some reason (for instance,
-            # Windows does not support symlinks by default, we try to
-            # copy instead.
-            except OSError:
-                shutil.copyfile(source_path, file_path)
-
-        return file_path
-
-
-class Page:
-    def __init__(self, node):
-        self.__node = node
-
-    @property
-    def content(self):
-        return self.__node.content
-
-    @property
-    def url(self):
-        # Path is a PosixPath object, but inside a template we want to use a
-        # basic string
-        return str(self.__node.path)
-
-    @property
-    def meta(self):
-        return self.__node.metadata
-
-
-class Site:
-    data: List[DataNode] = []
-    indices: List[IndexNode] = []
-    documents: List[DocumentNode] = []
-    resources: List[ResourceNode] = []
-    static: List[StaticNode] = []
-    generated: List[GeneratedNode] = []
-    __nodes: Dict[pathlib.PurePosixPath, Node] = {}
-
-    def add_data(self, node: DataNode) -> None:
-        self.data.append(node)
-        self.__register_node(node)
-
-    def add_index(self, node: IndexNode) -> None:
-        self.indices.append(node)
-        self.__register_node(node)
-
-    def add_document(self, node: DocumentNode) -> None:
-        self.documents.append(node)
-        self.__register_node(node)
-
-    def add_resource(self, node: ResourceNode) -> None:
-        self.resources.append(node)
-        self.__register_node(node)
-
-    def add_static(self, node: StaticNode) -> None:
-        self.static.append(node)
-        self.__register_node(node)
-
-    def add_generated(self, node: GeneratedNode) -> None:
-        self.generated.append(node)
-        self.__register_node(node)
-
-    def __register_node(self, node: Node) -> None:
-        if node.path in self.__nodes:
-            raise Exception(f'"{node.path}" already exists, cannot overwrite.')
-        self.__nodes[node.path] = node
-
-    @property
-    def nodes(self) -> Iterable[Node]:
-        return self.__nodes.values()
-
-    @property
-    def urls(self) -> Iterable[pathlib.PurePosixPath]:
-        return self.__nodes.keys()
-
-    def create_links(self):
-        """This creates links between parents/children.
-
-        We have to do this in a separate step, as we merge static/resource
-        nodes from themes etc."""
-        for key, node in self.__nodes.items():
-            parent_path = key.parent
-            parent_node = self.__nodes.get(parent_path)
-            if parent_node:
-                parent_node.add_child(node)
-
-    def get_node(self, path: pathlib.PurePosixPath) -> Optional[Node]:
-        return self.__nodes.get(path)
-
-
-def process_content(obj):
-    obj.process()
-    return obj
-
-
-def publish(node, path):
-    node.publish(path)
-
-
-@lru_cache(maxsize=None)
 def match_url(url, pattern, site: Optional[Site] = None) -> Tuple[bool, int]:
     """Match an url against a pattern.
 
@@ -509,10 +51,12 @@ def match_url(url, pattern, site: Optional[Site] = None) -> Tuple[bool, int]:
     we visit, but that's an upstream optimization."""
     import fnmatch
     import urllib.parse
+    from .nodes import NodeKind
     if '?' in pattern and site:
         pattern, params = pattern.split('?')
 
         node = site.get_node(url)
+        assert node
         params = urllib.parse.parse_qs(params)
         if 'kind' in params:
             kinds = params['kind']
@@ -532,9 +76,15 @@ def match_url(url, pattern, site: Optional[Site] = None) -> Tuple[bool, int]:
     # If not exact, we'll look for the longest matching pattern,
     # assuming it is the most specific
     if fnmatch.fnmatch(url, pattern):
-        return True, len(str(url)) - len(pattern)
+        # abs is required, if our pattern is /*, and the url we match against
+        # is /, then the pattern is longer than the URL
+        return True, abs(len(str(url)) - len(pattern))
 
     return False, -1
+
+
+def _publish(node, publisher):
+    return node.publish(publisher)
 
 
 def create_default_configuration() -> Dict[str, Any]:
@@ -609,11 +159,6 @@ class Liara:
         template_configuration = pathlib.Path(self.__configuration['template'])
         self.__setup_template_backend(template_configuration)
 
-    def _reload_template_paths(self):
-        template_configuration = pathlib.Path(self.__configuration['template'])
-        configuration = load_yaml(template_configuration.open())
-        self.__template_repository.update_paths(configuration['paths'])
-
     def __setup_template_backend(self, configuration_file: pathlib.Path):
         from .template import Jinja2TemplateRepository, MakoTemplateRepository
 
@@ -647,6 +192,7 @@ class Liara:
                                    template_path / static_directory)
 
     def __discover_redirections(self, site: Site, static_routes: pathlib.Path):
+        from .nodes import RedirectionNode
         if not static_routes.exists():
             return
 
@@ -660,6 +206,7 @@ class Liara:
 
     def __discover_content(self, site: Site, content_root: pathlib.Path) \
             -> None:
+        from .nodes import DataNode, IndexNode, Node, StaticNode
         document_factory = self.__document_node_factory
 
         for (dirpath, _, filenames) in os.walk(content_root):
@@ -706,6 +253,7 @@ class Liara:
                     site.add_static(node)
 
     def __discover_static(self, site: Site, static_root: pathlib.Path) -> None:
+        from .nodes import StaticNode
         for dirpath, _, filenames in os.walk(static_root):
             directory = pathlib.Path(dirpath)
 
@@ -776,118 +324,63 @@ class Liara:
             shutil.rmtree(output_directory)
 
     def build(self):
+        from .publish import TemplatePublisher
         if self.__configuration['build.clean_output']:
             self.__clean_output()
 
+        # Moving this stuff (actually, just the next command) into the with
+        # statement breaks the whole process, it seems that the call is
+        # skipped (only templates get populated, from the __init__ call)
+        site = self.discover_content()
+        site.create_links()
+
+        for document in site.documents:
+            document.validate_metadata()
+
+        for document in site.documents:
+            document.process()
+
+        output_path = pathlib.Path(self.__configuration['output_directory'])
+
+        publisher = TemplatePublisher(output_path, site,
+                                      self.__template_repository)
+
         with self.__create_pool() as pool:
-            self.discover_content()
+            print(f'Publishing {len(site.documents)} document(s)')
+            pool.starmap(_publish, zip(site.documents,
+                                       itertools.repeat(publisher)))
 
-            site = self.__site
-            site.create_links()
-
-            for document in site.documents:
-                document.validate_metadata()
-
-            for document in site.documents:
-                document.process()
-
-            output_path = pathlib.Path(
-                self.__configuration['output_directory'])
-
-            for node in site.documents:
-                node.publish(output_path, site, self.__template_repository)
-
-            for node in site.indices:
-                node.publish(output_path, site, self.__template_repository)
+            print(f'Publishing {len(site.indices)} '
+                  f'{"indices" if len(site.indices)>1 else "index"}')
+            pool.starmap(_publish, zip(site.indices,
+                                       itertools.repeat(publisher)))
 
             print(f'Publishing {len(site.resources)} resource(s)')
-            pool.starmap(publish, zip(site.resources,
-                                      itertools.repeat(output_path)))
+            pool.starmap(_publish, zip(site.resources,
+                                       itertools.repeat(publisher)))
             print(f'Publishing {len(site.static)} static file(s)')
-            pool.starmap(publish, zip(site.static,
-                                      itertools.repeat(output_path)))
+            pool.starmap(_publish, zip(site.static,
+                                       itertools.repeat(publisher)))
             print(f'Publishing {len(site.generated)} generated file(s)')
-            pool.starmap(publish, zip(site.generated,
-                                      itertools.repeat(output_path)))
-
-            print(match_url.cache_info())
+            pool.starmap(_publish, zip(site.generated,
+                                       itertools.repeat(publisher)))
 
             with (output_path / '.htaccess').open('w') as output:
                 for node in self.__redirections:
                     output.write(f'RedirectPermanent {str(node.path)} '
                                  f'{str(node.dst)}\n')
 
-    def _build_single_node(self, path: pathlib.PurePosixPath):
-        """Build a single node.
-
-        This is used for just-in-time page generation. Based on a request, a
-        single node is built. Special rules apply to make sure this is
-        useful for actual work -- for instance, document/resource nodes
-        are always rebuilt from scratch, and for documents, we also reload
-        all templates."""
-        from collections import namedtuple
-        result = namedtuple('BuildResult', ['path', 'cache'])
-        node = self.__site.get_node(path)
-        output_path = pathlib.Path(
-            self.__configuration['output_directory'])
-
-        if node is None:
-            print(f'Node not found for path: "{path}"')
-            return
-
-        # We always regenerate the content
-        if node.kind in {NodeKind.Document, NodeKind.Resource}:
-            node.reload()
-            node.process()
-            cache = False
-        else:
-            cache = True
-
-        if node.kind == NodeKind.Document:
-            self._reload_template_paths()
-            return result(node.publish(output_path, self.__site,
-                                       self.__template_repository),
-                          cache)
-        else:
-            return result(node.publish(output_path), cache)
-
     def serve(self):
-        """Serve the page.
-
-        This does not build the whole page up-front, but rather serves each
-        node individually just-in-time, making it very fast to start."""
-        import http.server
+        from .server import HttpServer
         if self.__configuration['build.clean_output']:
             self.__clean_output()
 
-        self.discover_content()
-
-        site = self.__site
+        site = self.discover_content()
         site.create_links()
 
         for document in site.documents:
             document.validate_metadata()
 
-        class RequestHandler(http.server.BaseHTTPRequestHandler):
-            def do_GET(self):
-                path = pathlib.PurePosixPath(self.path)
-                if path not in self.server.cache:
-                    node_path, cache = \
-                        self.server.liara._build_single_node(path)
-
-                    if cache:
-                        self.server.cache[path] = node_path
-                else:
-                    node_path = self.server.cache[path]
-
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.write(node_path.open('rb').read())
-
-        server_address = ('', 8080)
-        httpd = http.server.HTTPServer(server_address,
-                                       RequestHandler)
-        httpd.liara = self
-        httpd.cache = {}
-        print('Listening: http://127.0.0.1:8080')
-        httpd.serve_forever()
+        server = HttpServer(site, self.__template_repository,
+                            self.__configuration)
+        server.serve()

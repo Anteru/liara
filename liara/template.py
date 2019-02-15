@@ -1,6 +1,5 @@
 from typing import Dict
 from . import Site, match_url
-from .query import Query
 import pathlib
 
 
@@ -61,15 +60,49 @@ class Jinja2Template(Template):
 
 
 class Jinja2TemplateRepository(TemplateRepository):
+    """Jinja2 based template repository.
+
+    This class has extra magic internally to allow it to be pickled/unpickled,
+    which is necessary for multiprocessing."""
     def __init__(self, paths: Dict[str, str], path: pathlib.Path):
-        super().__init__(paths)
         from jinja2 import FileSystemLoader, Environment
 
-        self.__env = Environment(loader=FileSystemLoader(str(path)))
+        super().__init__(paths)
+        self.__path = path
+        self.__env = Environment(loader=FileSystemLoader(str(self.__path)))
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['_Jinja2TemplateRepository__env']
+        return state
+
+    def __setstate__(self, state):
+        from jinja2 import FileSystemLoader, Environment
+        self.__dict__.update(state)
+        self.__env = Environment(loader=FileSystemLoader(str(self.__path)))
 
     def find_template(self, url, site) -> Template:
         template = self._match_template(url, site)
         return Jinja2Template(self.__env.get_template(template))
+
+
+class Page:
+    def __init__(self, node):
+        self.__node = node
+
+    @property
+    def content(self):
+        return self.__node.content
+
+    @property
+    def url(self):
+        # Path is a PosixPath object, but inside a template we want to use a
+        # basic string
+        return str(self.__node.path)
+
+    @property
+    def meta(self):
+        return self.__node.metadata
 
 
 class SiteTemplateProxy:
@@ -86,6 +119,7 @@ class SiteTemplateProxy:
         return self.__data
 
     def select(self, query):
+        from .query import Query
         nodes = []
         # TODO This should split the query into individual path components,
         # and traverse the node tree to perform the match instead of

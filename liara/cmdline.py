@@ -1,6 +1,7 @@
 import click
 import cProfile
-from . import Liara, create_default_configuration, dump_yaml, __version__
+from . import Liara, create_default_configuration, __version__
+from .yaml import dump_yaml
 
 pass_liara = click.make_pass_decorator(Liara)
 

@@ -24,6 +24,7 @@ class Site:
     static: List[StaticNode] = []
     generated: List[GeneratedNode] = []
     __nodes: Dict[pathlib.PurePosixPath, Node] = {}
+    __root = pathlib.PurePosixPath('/')
 
     def add_data(self, node: DataNode) -> None:
         self.data.append(node)
@@ -70,8 +71,28 @@ class Site:
         for key, node in self.__nodes.items():
             parent_path = key.parent
             parent_node = self.__nodes.get(parent_path)
-            if parent_node:
+            # The parent_node != node check is required so the root node
+            # doesn't get added to itself (by virtue of / being a parent of /)
+            if parent_node and parent_node != node:
                 parent_node.add_child(node)
 
     def get_node(self, path: pathlib.PurePosixPath) -> Optional[Node]:
         return self.__nodes.get(path)
+
+    def select(self, query) -> List[Node]:
+        parts = query.split('/')
+        # A valid query must start with /
+        assert parts[0] == ''
+        node = self.__nodes[self.__root]
+        for component in parts[1:]:
+            if component == '**':
+                return node.get_children(recursive=True)
+            if component == '*':
+                return node.get_children(recursive=False)
+            if component == '':
+                return [node]
+
+            node = node.get_child(component)
+            if node is None:
+                return []
+        return node

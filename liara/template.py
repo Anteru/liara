@@ -120,12 +120,4 @@ class SiteTemplateProxy:
 
     def select(self, query):
         from .query import Query
-        nodes = []
-        # TODO This should split the query into individual path components,
-        # and traverse the node tree to perform the match instead of
-        # enumerating all nodes and then matching them brute force
-        for node in self.__site.nodes:
-            match, _ = match_url(node.path, query, self.__site)
-            if match:
-                nodes.append(node)
-        return Query(nodes)
+        return Query(self.__site.select(query))

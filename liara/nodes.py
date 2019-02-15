@@ -49,16 +49,22 @@ class Node:
     path: pathlib.PurePosixPath
 
     metadata: Dict[str, Any]
-    children: List['Node']
     parent: Optional['Node']
+    __nodes: Dict[str, 'Node']
+
+    @property
+    def children(self):
+        return self.__nodes.values()
 
     def __init__(self):
-        self.children = []
+        self.__nodes = {}
         self.metadata = {}
         self.parent = None
 
     def add_child(self, child: 'Node') -> None:
-        self.children.append(child)
+        assert self.path != child.path
+        name = child.path.relative_to(self.path).parts[0]
+        self.__nodes[name] = child
         child.parent = self
 
     def __repr__(self):
@@ -67,6 +73,15 @@ class Node:
     def select_children(self):
         from .query import Query
         return Query(self.children)
+
+    def get_child(self, name) -> Optional['Node']:
+        return self.__nodes.get(name)
+
+    def get_children(self, recursive=False):
+        for child in self.children:
+            yield child
+            if recursive:
+                yield from child.get_children(recursive=True)
 
 
 def extract_metadata_content(path: pathlib.Path):

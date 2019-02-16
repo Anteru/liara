@@ -113,9 +113,9 @@ class Query(Iterable[Node]):
 
         if self.__limit > 0:
             for i, e in enumerate(result):
-                yield Page(e)
-                if i > self.__limit:
+                if i >= self.__limit:
                     break
+                yield Page(e)
         else:
             for e in result:
                 yield Page(e)

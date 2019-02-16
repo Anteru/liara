@@ -77,7 +77,7 @@ class Node:
     def get_child(self, name) -> Optional['Node']:
         return self.__nodes.get(name)
 
-    def get_children(self, recursive=False):
+    def get_children(self, *, recursive=False):
         for child in self.children:
             yield child
             if recursive:

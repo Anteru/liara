@@ -19,6 +19,10 @@ class HttpServer:
                                              self.__template_repository)
 
     def _reload_template_paths(self):
+        """Reload the template configuration.
+
+        This ensures that any change to the template configuration is
+        reflected in the template repository."""
         from .yaml import load_yaml
         template_configuration = pathlib.Path(self.__configuration['template'])
         configuration = load_yaml(template_configuration.open())
@@ -27,8 +31,7 @@ class HttpServer:
     def _build_single_node(self, path: pathlib.PurePosixPath):
         """Build a single node.
 
-        This is used for just-in-time page generation. Based on a request, a
-        single node is built. Special rules apply to make sure this is
+        Build a single node on-demand. Special rules apply to make sure this is
         useful for actual work -- for instance, document/resource nodes
         are always rebuilt from scratch, and for documents, we also reload
         all templates."""
@@ -37,7 +40,7 @@ class HttpServer:
         node = self.__site.get_node(path)
 
         if node is None:
-            print(f'Node not found for path: "{path}"')
+            print(f'Could not find node for path: "{path}"')
             return
 
         # We always regenerate the content
@@ -54,10 +57,13 @@ class HttpServer:
         return result(node.publish(self.__publisher), cache)
 
     def serve(self):
-        """Serve the page.
+        """Serve the site with just-in-time processing.
 
-        This does not build the whole page up-front, but rather serves each
-        node individually just-in-time, making it very fast to start."""
+        This does not build the whole site up-front, but rather builds nodes
+        on demand. Nodes requiring templates are rebuilt from scratch every
+        time to ensure they're up-to-date. Adding/removing nodes while
+        serving will break the server, as it will not get notified and
+        re-discover content."""
         import http.server
 
         class RequestHandler(http.server.BaseHTTPRequestHandler):

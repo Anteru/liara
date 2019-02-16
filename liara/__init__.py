@@ -4,8 +4,6 @@ from typing import (
         Dict,
         List,
         Any,
-        Optional,
-        Tuple,
     )
 from contextlib import ContextDecorator
 import multiprocessing
@@ -55,7 +53,8 @@ def create_default_configuration() -> Dict[str, Any]:
             'static': 'static_routes.yaml',
             'generated': 'generated_routes.yaml'
         },
-        'base_url': 'http://localhost:8000'
+        'base_url': 'http://localhost:8000',
+        'collections': {}
     }
 
 
@@ -258,6 +257,11 @@ class Liara:
         static_routes = pathlib.Path(configuration['routes.static'])
         self.__discover_redirections(self.__site, static_routes)
 
+        self.__site.create_links()
+
+        collections = pathlib.Path(configuration['collections'])
+        self.__site.create_collections(load_yaml(collections.read_text()))
+
         return self.__site
 
     @property
@@ -285,7 +289,6 @@ class Liara:
         # statement breaks the whole process, it seems that the call is
         # skipped (only templates get populated, from the __init__ call)
         site = self.discover_content()
-        site.create_links()
 
         for document in site.documents:
             document.validate_metadata()
@@ -318,10 +321,10 @@ class Liara:
             pool.starmap(_publish, zip(site.generated,
                                        itertools.repeat(publisher)))
 
-            with (output_path / '.htaccess').open('w') as output:
-                for node in self.__redirections:
-                    output.write(f'RedirectPermanent {str(node.path)} '
-                                 f'{str(node.dst)}\n')
+        with (output_path / '.htaccess').open('w') as output:
+            for node in self.__redirections:
+                output.write(f'RedirectPermanent {str(node.path)} '
+                             f'{str(node.dst)}\n')
 
     def serve(self):
         from .server import HttpServer
@@ -329,7 +332,6 @@ class Liara:
             self.__clean_output()
 
         site = self.discover_content()
-        site.create_links()
 
         for document in site.documents:
             document.validate_metadata()

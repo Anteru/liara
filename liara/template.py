@@ -155,6 +155,13 @@ class Page:
     def meta(self):
         return self.__node.metadata
 
+    @property
+    def _node(self):
+        return self.__node
+
+    def __str__(self):
+        return f'Page({self.url})'
+
 
 class SiteTemplateProxy:
     __site: Site
@@ -172,3 +179,19 @@ class SiteTemplateProxy:
     def select(self, query):
         from .query import Query
         return Query(self.__site.select(query))
+
+    def get_previous_in_collection(self, collection: str, page: Page):
+        next_node = self.__site.get_previous_in_collection(collection,
+                                                           page._node)
+        if next_node is not None:
+            return Page(next_node)
+        else:
+            return None
+
+    def get_next_in_collection(self, collection: str, page: Page):
+        previous_node = self.__site.get_next_in_collection(collection,
+                                                           page._node)
+        if previous_node is not None:
+            return Page(previous_node)
+        else:
+            return None

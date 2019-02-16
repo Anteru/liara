@@ -1,5 +1,5 @@
-from liara.query import Query
-from liara import DocumentNode, NodeKind, Node
+from liara.nodes import DocumentNode, NodeKind, Node
+import pathlib
 
 
 class MockDocumentNode(DocumentNode):
@@ -7,13 +7,14 @@ class MockDocumentNode(DocumentNode):
         self.kind = NodeKind.Document
         self.metadata = metadata
         self.src = src
-        self.path = src
+        self.path = pathlib.PurePosixPath(src)
 
 
 def test_query_filter_by_tag():
     n1 = MockDocumentNode('/a', {'tags': {'a', 'b'}})
-    n2 = MockDocumentNode('/a', {'tags': {'a', 'c'}})
+    n2 = MockDocumentNode('/b', {'tags': {'a', 'c'}})
     root = Node()
+    root.path = pathlib.PurePosixPath('/')
     root.add_child(n1)
     root.add_child(n2)
 

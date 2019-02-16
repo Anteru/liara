@@ -1,0 +1,6 @@
+syntax: glob
+__pycache__/**
+.pytest_vcache/**
+liara.egg-info/*
+.idea/**
+.pytest_cache/**

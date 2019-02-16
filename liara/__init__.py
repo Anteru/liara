@@ -36,53 +36,6 @@ class SingleProcessPool(ContextDecorator):
 __version__ = '0.2.0'
 
 
-def match_url(url, pattern, site: Optional[Site] = None) -> Tuple[bool, int]:
-    """Match an url against a pattern.
-
-    Returns a tuple, the first entry indicates if the url matches the pattern.
-    The second entry is the hit score, where 0 is a perfect match, and higher
-    numbers are worse matches (this allows to use sorted() and pick the
-    first hit.)
-
-    This function is really expensive, hence we force caching to ensure it runs
-    efficiently even if a template calls it repeatedly (and thus we'd enumerate
-    all pages per page -- eventually, we want some smarter matching which
-    traverses a prefix tree or something similar to limit the subset of pages
-    we visit, but that's an upstream optimization."""
-    import fnmatch
-    import urllib.parse
-    from .nodes import NodeKind
-    if '?' in pattern and site:
-        pattern, params = pattern.split('?')
-
-        node = site.get_node(url)
-        assert node
-        params = urllib.parse.parse_qs(params)
-        if 'kind' in params:
-            kinds = params['kind']
-            for kind in kinds:
-                if kind == 'document' or kind == 'doc':
-                    if node.kind == NodeKind.Document:
-                        break
-                elif kind == 'index' or kind == 'idx':
-                    if node.kind == NodeKind.Index:
-                        break
-            else:
-                return False, -1
-
-    # Exact matches always win
-    if pattern == str(url):
-        return True, 0
-    # If not exact, we'll look for the longest matching pattern,
-    # assuming it is the most specific
-    if fnmatch.fnmatch(url, pattern):
-        # abs is required, if our pattern is /*, and the url we match against
-        # is /, then the pattern is longer than the URL
-        return True, abs(len(str(url)) - len(pattern))
-
-    return False, -1
-
-
 def _publish(node, publisher):
     return node.publish(publisher)
 

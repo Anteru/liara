@@ -1,6 +1,57 @@
 from typing import Dict
-from . import Site, match_url
+from . import Site
 import pathlib
+from typing import (
+    Tuple,
+)
+
+
+def _match_url(url: pathlib.PurePosixPath, pattern: str, site: Site) \
+    -> Tuple[bool, int]:
+    """Match an url against a pattern.
+
+    Returns a tuple, the first entry indicates if the url matches the pattern.
+    The second entry is the hit score, where 0 is a perfect match, and higher
+    numbers are worse matches (this allows to use sorted() and pick the
+    first hit.)
+
+    This function is really expensive, hence we force caching to ensure it runs
+    efficiently even if a template calls it repeatedly (and thus we'd enumerate
+    all pages per page -- eventually, we want some smarter matching which
+    traverses a prefix tree or something similar to limit the subset of pages
+    we visit, but that's an upstream optimization."""
+    import fnmatch
+    import urllib.parse
+    from .nodes import NodeKind
+    if '?' in pattern and site:
+        pattern, params = pattern.split('?')
+
+        node = site.get_node(url)
+        assert node
+        params = urllib.parse.parse_qs(params)
+        if 'kind' in params:
+            kinds = params['kind']
+            for kind in kinds:
+                if kind == 'document' or kind == 'doc':
+                    if node.kind == NodeKind.Document:
+                        break
+                elif kind == 'index' or kind == 'idx':
+                    if node.kind == NodeKind.Index:
+                        break
+            else:
+                return False, -1
+
+    # Exact matches always win
+    if pattern == str(url):
+        return True, 0
+    # If not exact, we'll look for the longest matching pattern,
+    # assuming it is the most specific
+    if fnmatch.fnmatch(url, pattern):
+        # abs is required, if our pattern is /*, and the url we match against
+        # is /, then the pattern is longer than the URL
+        return True, abs(len(str(url)) - len(pattern))
+
+    return False, -1
 
 
 class Template:
@@ -23,7 +74,7 @@ class TemplateRepository:
     def _match_template(self, url: str, site: Site) -> str:
         matches = []
         for pattern, template in self.__paths.items():
-            match, score = match_url(url, pattern, site)
+            match, score = _match_url(url, pattern, site)
             if match:
                 matches.append((score, template,))
 
@@ -46,7 +97,7 @@ class MakoTemplateRepository(TemplateRepository):
         from mako.lookup import TemplateLookup
         self.__lookup = TemplateLookup(directories=[str(path)])
 
-    def find_template(self, url, site) -> Template:
+    def find_template(self, url, site: Site) -> Template:
         template = self._match_template(url, site)
         return MakoTemplate(self.__lookup.get_template(template))
 
@@ -81,7 +132,7 @@ class Jinja2TemplateRepository(TemplateRepository):
         self.__dict__.update(state)
         self.__env = Environment(loader=FileSystemLoader(str(self.__path)))
 
-    def find_template(self, url, site) -> Template:
+    def find_template(self, url, site: Site) -> Template:
         template = self._match_template(url, site)
         return Jinja2Template(self.__env.get_template(template))
 

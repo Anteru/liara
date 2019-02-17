@@ -34,8 +34,8 @@ class TagFilter(SelectionFilter):
 
 
 class Sorter:
-    def __init__(self):
-        self._reverse = False
+    def __init__(self, reverse=False):
+        self._reverse = reverse
 
     def get_key(self, item):
         pass
@@ -51,15 +51,16 @@ class TitleSorter(Sorter):
 
 
 class DateSorter(Sorter):
-    def __init__(self, reverse):
-        self._reverse = reverse
+    def __init__(self, reverse=False):
+        super().__init__(reverse)
 
     def get_key(self, item: Page):
         return item.metadata.get('date')
 
 
 class TagSorter(Sorter):
-    def __init__(self, tag: str):
+    def __init__(self, tag: str, reverse=False):
+        super().__init__(reverse)
         self.__tag = tag
 
     def get_key(self, item: Page):
@@ -94,12 +95,12 @@ class Query(Iterable[Node]):
         self.__sorters.append(TitleSorter())
         return self
 
-    def sorted_by_date(self, reverse=False) -> 'Query':
+    def sorted_by_date(self, *, reverse=False) -> 'Query':
         self.__sorters.append(DateSorter(reverse))
         return self
 
-    def sorted_by_tag(self, tag: str) -> 'Query':
-        self.__sorters.append(TagSorter(tag))
+    def sorted_by_tag(self, tag: str, *, reverse=False) -> 'Query':
+        self.__sorters.append(TagSorter(tag, reverse))
         return self
 
     def __iter__(self) -> Iterator[Page]:

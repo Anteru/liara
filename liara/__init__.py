@@ -275,6 +275,9 @@ class Liara:
         collections = pathlib.Path(configuration['collections'])
         self.__site.create_collections(load_yaml(collections.read_text()))
 
+        indices = pathlib.Path(configuration['indices'])
+        self.__site.create_indices(load_yaml(indices.read_text()))
+
         self.__log.info(f'Discovered {len(self.__site.nodes)} items')
 
         return self.__site

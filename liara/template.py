@@ -7,7 +7,7 @@ from typing import (
 
 
 def _match_url(url: pathlib.PurePosixPath, pattern: str, site: Site) \
-    -> Tuple[bool, int]:
+        -> Tuple[bool, int]:
     """Match an url against a pattern.
 
     Returns a tuple, the first entry indicates if the url matches the pattern.
@@ -161,6 +161,14 @@ class Page:
 
     def __str__(self):
         return f'Page({self.url})'
+
+    @property
+    def references(self):
+        from .nodes import NodeKind
+        from .query import Query
+        assert self.__node.kind == NodeKind.Index
+
+        return Query(self.__node.references)
 
 
 class SiteTemplateProxy:

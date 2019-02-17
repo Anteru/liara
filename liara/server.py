@@ -7,6 +7,7 @@ from .template import TemplateRepository
 from .publish import TemplatePublisher
 import logging
 
+
 class HttpServer:
     __log = logging.getLogger('liara.HttpServer')
 
@@ -49,6 +50,9 @@ class HttpServer:
         if node.kind in {NodeKind.Document, NodeKind.Resource}:
             node.reload()
             node.process()
+            cache = False
+        # We don't cache index nodes so templates get re-applied
+        elif node.kind == NodeKind.Index:
             cache = False
         else:
             cache = True

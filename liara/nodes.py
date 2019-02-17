@@ -227,11 +227,12 @@ class IndexNode(Node):
     # children which are not direct descendants
     references: List[Node]
 
-    def __init__(self, path):
+    def __init__(self, path, metadata={}):
         super().__init__()
         self.kind = NodeKind.Index
         self.src = None
         self.path = path
+        self.metadata = metadata
         self.references = []
 
     def add_reference(self, node):

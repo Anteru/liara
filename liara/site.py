@@ -17,6 +17,21 @@ from typing import (
 from .util import pairwise
 
 
+def _create_metadata_accessor(field_name):
+    import operator
+    if '.' in field_name:
+        def key_fun(o):
+            field = field_name.split('.')
+            accessor = operator.attrgetter('.'.join(field[1:]))
+            metadata = o.metadata[field[0]]
+            return accessor(metadata)
+        return key_fun
+    else:
+        def key_fun(o):
+            return o.metadata[field_name]
+        return key_fun
+
+
 class Collection:
     def __init__(self, site, pattern, order_by=[]):
         self.__site = site
@@ -29,7 +44,6 @@ class Collection:
         self.__build()
 
     def __build(self):
-        import operator
         nodes = self.__site.select(self.__filter)
 
         # We want to remove all nodes that don't have the required fields,
@@ -44,16 +58,8 @@ class Collection:
         nodes = filter(filter_fun, nodes)
 
         for ordering in self.__order_by:
-            if '.' in ordering:
-                def key_fun(o):
-                    accessor = operator.attrgetter(ordering)
-                    metadata = o.metadata
-                    return accessor(metadata)
-                nodes = sorted(nodes, key=key_fun)
-            else:
-                def key_fun(o):
-                    return o.metadata[ordering]
-                nodes = sorted(nodes, key=key_fun)
+            key_fun = _create_metadata_accessor(ordering)
+            nodes = sorted(nodes, key=key_fun)
         pairs = list(pairwise(nodes))
         self.__next = {i[0].path: i[1] for i in pairs}
         self.__previous = {i[1].path: i[0] for i in pairs}
@@ -70,6 +76,66 @@ class Collection:
         return self.__previous.get(node.path)
 
 
+def _group_recursive(iterable, group_keys: List[str]):
+    import collections
+    import itertools
+    if not group_keys:
+        return list(iterable)
+
+    current_key = group_keys[0]
+    group_keys = group_keys[1:]
+    if current_key[0] == '*':
+        key_func = _create_metadata_accessor(current_key[1:])
+        # If the group key starts with a *, this means it's a list of items,
+        # not a single item to group by -- for instance, a list of tags
+        # In this case, we create one bucket per item, append the items to that
+        # list, and eventually we recurse if needed
+        result = collections.defaultdict(list)
+        for item in iterable:
+            groups = key_func(item)
+            for group in groups:
+                result[group].append(item)
+
+        if group_keys:
+            result = {k: _group_recursive(v, group_keys)
+                      for k, v in result.items()}
+        return result
+    else:
+        key_func = _create_metadata_accessor(current_key)
+        iterable = sorted(iterable, key=key_func)
+        result = {}
+        for k, v in itertools.groupby(iterable, key_func):
+            values = _group_recursive(v, group_keys)
+            result[k] = values
+        return result
+
+
+class Index:
+    def __init__(self, site, collection: Collection, pattern, group_by=[]):
+        nodes = collection.nodes
+        self.__groups = _group_recursive(nodes, group_by)
+        self.__site = site
+        self.__pattern = pattern
+
+    def create_nodes(self, site):
+        self._create_nodes_recursive(site, self.__pattern,
+                                     self.__groups, 1)
+
+    def _create_nodes_recursive(self, site, pattern, d, index):
+        for k, v in d.items():
+            url = pathlib.PurePosixPath(pattern.replace(f'%{index}', str(k)))
+            # TODO Find out what to do here -- either don't create intermediate
+            # nodes (i.e. as long as one %N placeholder is left), or cut off
+            # the URL.
+            node = IndexNode(url, {'key': k})
+            site.add_index(node)
+            if isinstance(v, dict):
+                self._create_nodes_recursive(site, url, v, index+1)
+            else:
+                for reference in v:
+                    node.add_reference(reference)
+
+
 class Site:
     data: List[DataNode]
     indices: List[IndexNode]
@@ -80,6 +146,7 @@ class Site:
     __nodes: Dict[pathlib.PurePosixPath, Node]
     __root = pathlib.PurePosixPath('/')
     __collections: Dict[str, Collection]
+    __indices: List[Index]
 
     def __init__(self):
         self.data = []
@@ -90,6 +157,7 @@ class Site:
         self.generated = []
         self.__nodes = {}
         self.__collections = {}
+        self.__indices = []
 
     def add_data(self, node: DataNode) -> None:
         self.data.append(node)
@@ -147,6 +215,19 @@ class Site:
             self.__collections[name] = Collection(self, collection['filter'],
                                                   order_by)
 
+    def create_indices(self, indices):
+        for index_definition in indices:
+            collection = self.get_collection(index_definition['collection'])
+            index = Index(self, collection, index_definition['path'],
+                          index_definition['group_by'])
+            self.__indices.append(index)
+
+        for index in self.__indices:
+            index.create_nodes(self)
+
+        # Indices may add new nodes that need linking
+        self.create_links()
+
     def get_next_in_collection(self, collection, node) -> Optional[Node]:
         next_node = self.__collections[collection].get_next(node)
         return next_node
@@ -154,6 +235,9 @@ class Site:
     def get_previous_in_collection(self, collection, node) -> Optional[Node]:
         previous_node = self.__collections[collection].get_previous(node)
         return previous_node
+
+    def get_collection(self, collection) -> Collection:
+        return self.__collections[collection]
 
     def get_node(self, path: pathlib.PurePosixPath) -> Optional[Node]:
         return self.__nodes.get(path)

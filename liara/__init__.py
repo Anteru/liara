@@ -272,11 +272,13 @@ class Liara:
 
         self.__site.create_links()
 
-        collections = pathlib.Path(configuration['collections'])
-        self.__site.create_collections(load_yaml(collections.read_text()))
+        if 'collections' in configuration:
+            collections = pathlib.Path(configuration['collections'])
+            self.__site.create_collections(load_yaml(collections.read_text()))
 
-        indices = pathlib.Path(configuration['indices'])
-        self.__site.create_indices(load_yaml(indices.read_text()))
+        if 'indices' in configuration:
+            indices = pathlib.Path(configuration['indices'])
+            self.__site.create_indices(load_yaml(indices.read_text()))
 
         self.__log.info(f'Discovered {len(self.__site.nodes)} items')
 
@@ -317,7 +319,7 @@ class Liara:
         self.__log.info('Processing documents ...')
         for document in site.documents:
             document.process()
-        self.__log.info(f'{len(site.documents)} processed')
+        self.__log.info(f'Processed {len(site.documents)} documents')
 
         output_path = pathlib.Path(self.__configuration['output_directory'])
 
@@ -343,17 +345,20 @@ class Liara:
                                        itertools.repeat(publisher)))
             self.__log.info(f'Published {len(site.static)} static file(s)')
 
-            pool.starmap(_publish, zip(site.generated,
-                                       itertools.repeat(publisher)))
-            self.__log.info(f'Published {len(site.generated)} '
-                            'generated file(s)')
+            if site.generated:
+                pool.starmap(_publish, zip(site.generated,
+                                           itertools.repeat(publisher)))
+                self.__log.info(f'Published {len(site.generated)} '
+                                'generated file(s)')
 
-        self.__log.info('Writing redirection file ...')
-        with (output_path / '.htaccess').open('w') as output:
-            for node in self.__redirections:
-                output.write(f'RedirectPermanent {str(node.path)} '
-                             f'{str(node.dst)}\n')
-        self.__log.info(f'Wrote {len(self.__redirections)} redirections')
+        if self.__redirections:
+            self.__log.info('Writing redirection file ...')
+            with (output_path / '.htaccess').open('w') as output:
+                for node in self.__redirections:
+                    output.write(f'RedirectPermanent {str(node.path)} '
+                                f'{str(node.dst)}\n')
+            self.__log.info(f'Wrote {len(self.__redirections)} redirections')
+
         self.__log.info('Build finished')
 
     def serve(self):

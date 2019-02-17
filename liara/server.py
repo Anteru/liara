@@ -5,9 +5,11 @@ import pathlib
 from .site import Site
 from .template import TemplateRepository
 from .publish import TemplatePublisher
-
+import logging
 
 class HttpServer:
+    __log = logging.getLogger('liara.HttpServer')
+
     def __init__(self, site: Site, template_repository: TemplateRepository,
                  configuration):
         self.__site = site
@@ -82,9 +84,13 @@ class HttpServer:
                 self.end_headers()
                 self.wfile.write(node_path.open('rb').read())
 
+            def log_message(self, f, *args):
+                self.server.log.info(f, *args)
+
         server_address = ('', 8080)
         server = http.server.HTTPServer(server_address, RequestHandler)
         server.http_server = self
+        server.log = self.__log
         server.cache = {}
-        print('Listening: http://127.0.0.1:8080')
+        self.__log.info('Listening on http://127.0.0.1:8080')
         server.serve_forever()

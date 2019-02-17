@@ -12,6 +12,7 @@ import collections
 from .yaml import load_yaml
 from .site import Site
 from .nodes import DocumentNodeFactory, RedirectionNode, ResourceNodeFactory
+import logging
 
 
 class SingleProcessPool(ContextDecorator):
@@ -92,8 +93,9 @@ class Liara:
     __resource_node_factory: ResourceNodeFactory
     __document_node_factory: DocumentNodeFactory
     __redirections: List[RedirectionNode]
+    __log = logging.getLogger('liara')
 
-    def __init__(self, configuration):
+    def __init__(self, configuration, *, configuration_overrides={}):
         self.__redirections = []
         self.__resource_node_factory = ResourceNodeFactory()
         self.__document_node_factory = DocumentNodeFactory()
@@ -104,6 +106,8 @@ class Liara:
         else:
             project_configuration = load_yaml(configuration)
         self.__configuration = collections.ChainMap(
+            # Must be flattened already
+            configuration_overrides,
             flatten_dictionary(project_configuration),
             flatten_dictionary(default_configuration))
 
@@ -250,6 +254,7 @@ class Liara:
                 site.add_resource(node)
 
     def discover_content(self) -> Site:
+        self.__log.info('Discovering content ...')
         configuration = self.__configuration
 
         content_root = pathlib.Path(configuration['content_directory'])
@@ -270,6 +275,8 @@ class Liara:
         collections = pathlib.Path(configuration['collections'])
         self.__site.create_collections(load_yaml(collections.read_text()))
 
+        self.__log.info(f'Discovered {len(self.__site.nodes)} items')
+
         return self.__site
 
     @property
@@ -285,11 +292,14 @@ class Liara:
     def __clean_output(self):
         import shutil
         output_directory = self.__configuration['output_directory']
+        self.__log.info(f'Cleaning output directory: "{output_directory}" ...')
         if os.path.exists(output_directory):
             shutil.rmtree(output_directory)
+        self.__log.info('Output directory cleaned')
 
     def build(self):
         from .publish import TemplatePublisher
+        self.__log.info('Build started')
         if self.__configuration['build.clean_output']:
             self.__clean_output()
 
@@ -301,8 +311,10 @@ class Liara:
         for document in site.documents:
             document.validate_metadata()
 
+        self.__log.info('Processing documents ...')
         for document in site.documents:
             document.process()
+        self.__log.info(f'{len(site.documents)} processed')
 
         output_path = pathlib.Path(self.__configuration['output_directory'])
 
@@ -310,29 +322,36 @@ class Liara:
                                       self.__template_repository)
 
         with self.__create_pool() as pool:
-            print(f'Publishing {len(site.documents)} document(s)')
+            self.__log.info('Publishing ...')
             pool.starmap(_publish, zip(site.documents,
                                        itertools.repeat(publisher)))
+            self.__log.info(f'Published {len(site.documents)} document(s)')
 
-            print(f'Publishing {len(site.indices)} '
-                  f'{"indices" if len(site.indices)>1 else "index"}')
             pool.starmap(_publish, zip(site.indices,
                                        itertools.repeat(publisher)))
+            self.__log.info(f'Published {len(site.indices)} '
+                            f'{"indices" if len(site.indices)>1 else "index"}')
 
-            print(f'Publishing {len(site.resources)} resource(s)')
             pool.starmap(_publish, zip(site.resources,
                                        itertools.repeat(publisher)))
-            print(f'Publishing {len(site.static)} static file(s)')
+            self.__log.info(f'Published {len(site.resources)} resource(s)')
+
             pool.starmap(_publish, zip(site.static,
                                        itertools.repeat(publisher)))
-            print(f'Publishing {len(site.generated)} generated file(s)')
+            self.__log.info(f'Published {len(site.static)} static file(s)')
+
             pool.starmap(_publish, zip(site.generated,
                                        itertools.repeat(publisher)))
+            self.__log.info(f'Published {len(site.generated)} '
+                            'generated file(s)')
 
+        self.__log.info('Writing redirection file ...')
         with (output_path / '.htaccess').open('w') as output:
             for node in self.__redirections:
                 output.write(f'RedirectPermanent {str(node.path)} '
                              f'{str(node.dst)}\n')
+        self.__log.info(f'Wrote {len(self.__redirections)} redirections')
+        self.__log.info('Build finished')
 
     def serve(self):
         from .server import HttpServer

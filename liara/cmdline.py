@@ -2,15 +2,21 @@ import click
 import cProfile
 from . import Liara, create_default_configuration, __version__
 from .yaml import dump_yaml
+import logging
 
 pass_liara = click.make_pass_decorator(Liara)
 
 
 @click.group()
 @click.option('--config', default='config.yaml', metavar='PATH')
+@click.option('--quiet', default=False, is_flag=True)
 @click.version_option(__version__)
 @click.pass_context
-def cli(ctx, config):
+def cli(ctx, config, quiet):
+    if not quiet:
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s %(name)s %(message)s')
+
     ctx.obj = Liara(config)
 
 

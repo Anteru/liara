@@ -35,7 +35,7 @@ def validate_links(liara):
     """Validate links."""
     site = liara.discover_content()
     for document in site.documents:
-        document.process_content()
+        document.process()
         document.validate_links(site)
 
 

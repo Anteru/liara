@@ -4,6 +4,7 @@ from .nodes import (
     Publisher,
     ResourceNode,
     StaticNode,
+    GeneratedNode,
 )
 from .template import Page, SiteTemplateProxy, TemplateRepository
 from .site import Site
@@ -45,6 +46,13 @@ class DefaultPublisher(Publisher):
         file_path = pathlib.Path(str(self._output_path) + str(resource.path))
         os.makedirs(file_path.parent, exist_ok=True)
         file_path.write_bytes(resource.content)
+        return file_path
+
+    def publish_generated(self, generated: GeneratedNode):
+        import os
+        file_path = pathlib.Path(str(self._output_path) + str(generated.path))
+        os.makedirs(file_path.parent, exist_ok=True)
+        file_path.write_text(generated.content, encoding='utf-8')
         return file_path
 
     def publish_static(self, static: StaticNode):

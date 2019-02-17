@@ -4,9 +4,9 @@ from .yaml import load_yaml
 from typing import (
     Any,
     Dict,
+    Generic,
     List,
     Optional,
-    Generic,
     Type,
     TypeVar,
 )
@@ -26,6 +26,9 @@ class Publisher:
         pass
 
     def publish_static(self, static: 'StaticNode'):
+        pass
+
+    def publish_generated(self, generated: 'GeneratedNode'):
         pass
 
 
@@ -128,12 +131,29 @@ class DocumentNode(Node):
         if 'title' not in self.metadata:
             raise Exception(f"'title' missing for Document: '{self.src}'")
 
-    def validate_links(self, site: 'Site'):
+    def _fixup_relative_links(self):
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(self.content, 'lxml')
+
+        def is_relative_url(s):
+            return s and s[0] == '.'
+
+        for link in soup.find_all('a', {'href': is_relative_url}):
+            target = link.attrs.get('href')
+            link.attrs['href'] = \
+                str(self.path.parent / pathlib.PurePosixPath(target))
+
+        self.content = str(soup)
+
+    def validate_links(self, site):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(self.content, 'lxml')
 
         def validate_link(link):
-            if not link.startswith('/'):
+            if link.startswith('//') \
+                    or link.startswith('http://') \
+                    or link.startswith('https://') \
+                    or link.startswith('#'):
                 return
 
             link = pathlib.PurePosixPath(link)
@@ -158,6 +178,7 @@ class DocumentNode(Node):
 class HtmlDocumentNode(DocumentNode):
     def process(self):
         self.content = self._raw_content
+        self._fixup_relative_links()
 
         return self
 
@@ -183,7 +204,7 @@ class MarkdownDocumentNode(DocumentNode):
         self.content = markdown.markdown(self._raw_content,
                                          extensions=extensions,
                                          extension_configs=extension_configs)
-
+        self._fixup_relative_links()
         return self
 
 
@@ -197,11 +218,19 @@ class DataNode(Node):
 
 
 class IndexNode(Node):
+    # Stores all nodes referenced by this index, which allows linking to
+    # children which are not direct descendants
+    references: List[Node]
+
     def __init__(self, path):
         super().__init__()
         self.kind = NodeKind.Index
         self.src = None
         self.path = path
+        self.references = []
+
+    def add_reference(self, node):
+        self.references.append(node)
 
     def publish(self, publisher) -> pathlib.Path:
         return publisher.publish_index(self)
@@ -216,7 +245,7 @@ class GeneratedNode(Node):
         self.metadata = metadata
 
     def publish(self, publisher: Publisher):
-        pass
+        return publisher.publish_generated(self)
 
 
 _REDIRECTION_TEMPLATE = """<!DOCTYPE HTML>
@@ -242,13 +271,14 @@ class RedirectionNode(GeneratedNode):
         super().__init__(path)
         self.dst = dst
 
-    def generate(self, output_path: pathlib.Path):
-        import os
-        os.makedirs(output_path, exist_ok=True)
-        output_path = output_path / 'index.html'
+    def generate(self):
         text = _REDIRECTION_TEMPLATE.replace('{{NEW_URL}}',
                                              self.dst.as_posix())
-        output_path.write_text(text)
+        self.content = text
+
+    def publish(self, publisher: Publisher):
+        self.generate()
+        publisher.publish_generated(self)
 
 
 class ResourceNode(Node):

@@ -50,8 +50,7 @@ def create_default_configuration() -> Dict[str, Any]:
         },
         'template': 'templates/default.yaml',
         'routes': {
-            'static': 'static_routes.yaml',
-            'generated': 'generated_routes.yaml'
+            'static': 'static_routes.yaml'
         },
         'base_url': 'http://localhost:8000',
         'collections': {}
@@ -168,6 +167,7 @@ class Liara:
             # directory
             # Otherwise, we create a new index node
             node: Node
+            indexNode: Node = None
             for filename in filenames:
                 if filename.startswith('_index'):
                     src = pathlib.Path(os.path.join(dirpath, filename))
@@ -181,6 +181,7 @@ class Liara:
                 node = IndexNode(_create_relative_path(directory,
                                                        content_root))
                 site.add_index(node)
+                indexNode = node
 
             for filename in filenames:
                 if filename.startswith('_index'):
@@ -192,6 +193,13 @@ class Liara:
                 if src.suffix in document_factory.known_types:
                     node = document_factory.create_node(src.suffix, src, path)
                     site.add_document(node)
+                    # If there's an index node, we add each document directly
+                    # below it manually to the reference list
+                    # This way, a simply query using index.references returns
+                    # all documents, instead of having to go through the
+                    # children and filter by type
+                    if indexNode:
+                        indexNode.add_reference(node)
                 elif src.suffix in {'.yaml'}:
                     node = DataNode(src, path)
                     site.add_data(node)

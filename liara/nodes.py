@@ -132,6 +132,11 @@ class DocumentNode(Node):
             raise Exception(f"'title' missing for Document: '{self.src}'")
 
     def _fixup_relative_links(self):
+        # early out if there's no relative link in here, as the parsing is
+        # very expensive
+        if "href=\"." not in self.content:
+            return
+
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(self.content, 'lxml')
 

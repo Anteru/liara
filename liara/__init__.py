@@ -5,31 +5,12 @@ from typing import (
         List,
         Any,
     )
-from contextlib import ContextDecorator
-import multiprocessing
 import itertools
 import collections
 from .yaml import load_yaml
 from .site import Site
 from .nodes import DocumentNodeFactory, RedirectionNode, ResourceNodeFactory
 import logging
-
-
-class SingleProcessPool(ContextDecorator):
-    def map(self, f, iterable):
-        return list(map(f, iterable))
-
-    def imap_unordered(self, f, iterable):
-        return list(map(f, iterable))
-
-    def starmap(self, f, iterable):
-        return [f(*p) for p in iterable]
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc):
-        return False
 
 
 __version__ = '0.2.0'
@@ -46,8 +27,7 @@ def create_default_configuration() -> Dict[str, Any]:
         'static_directory': 'static',
         'output_directory': 'output',
         'build': {
-            'clean_output': True,
-            'multiprocess': True
+            'clean_output': True
         },
         'template': 'templates/default.yaml',
         'routes': {
@@ -288,12 +268,6 @@ class Liara:
     def site(self) -> Site:
         return self.__site
 
-    def __create_pool(self):
-        if self.__configuration['build.multiprocess']:
-            return multiprocessing.Pool()
-        else:
-            return SingleProcessPool()
-
     def __clean_output(self):
         import shutil
         output_directory = self.__configuration['output_directory']
@@ -326,37 +300,36 @@ class Liara:
         publisher = TemplatePublisher(output_path, site,
                                       self.__template_repository)
 
-        with self.__create_pool() as pool:
-            self.__log.info('Publishing ...')
-            pool.starmap(_publish, zip(site.documents,
-                                       itertools.repeat(publisher)))
-            self.__log.info(f'Published {len(site.documents)} document(s)')
+        self.__log.info('Publishing ...')
+        for document in site.documents:
+            document.publish(publisher)
+        self.__log.info(f'Published {len(site.documents)} document(s)')
 
-            pool.starmap(_publish, zip(site.indices,
-                                       itertools.repeat(publisher)))
-            self.__log.info(f'Published {len(site.indices)} '
-                            f'{"indices" if len(site.indices)>1 else "index"}')
+        for index in site.indices:
+            index.publish(publisher)
+        self.__log.info(f'Published {len(site.indices)} '
+                        f'{"indices" if len(site.indices)>1 else "index"}')
 
-            pool.starmap(_publish, zip(site.resources,
-                                       itertools.repeat(publisher)))
-            self.__log.info(f'Published {len(site.resources)} resource(s)')
+        for resource in site.resources:
+            resource.publish(publisher)
+        self.__log.info(f'Published {len(site.resources)} resource(s)')
 
-            pool.starmap(_publish, zip(site.static,
-                                       itertools.repeat(publisher)))
-            self.__log.info(f'Published {len(site.static)} static file(s)')
+        for static in site.static:
+            static.publish(publisher)
+        self.__log.info(f'Published {len(site.static)} static file(s)')
 
-            if site.generated:
-                pool.starmap(_publish, zip(site.generated,
-                                           itertools.repeat(publisher)))
-                self.__log.info(f'Published {len(site.generated)} '
-                                'generated file(s)')
+        if site.generated:
+            for generated in site.generated:
+                generated.publish(publisher)
+            self.__log.info(f'Published {len(site.generated)} '
+                            'generated file(s)')
 
         if self.__redirections:
             self.__log.info('Writing redirection file ...')
             with (output_path / '.htaccess').open('w') as output:
                 for node in self.__redirections:
                     output.write(f'RedirectPermanent {str(node.path)} '
-                                f'{str(node.dst)}\n')
+                                 f'{str(node.dst)}\n')
             self.__log.info(f'Wrote {len(self.__redirections)} redirections')
 
         self.__log.info('Build finished')

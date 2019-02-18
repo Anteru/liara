@@ -199,7 +199,9 @@ class MarkdownDocumentNode(DocumentNode):
             HeadingLevelFixupExtension(),
             'fenced_code',
             'codehilite',
-            'smarty'
+            'smarty',
+            'admonition',
+            'tables'
         ]
         extension_configs = {
             'codehilite': {

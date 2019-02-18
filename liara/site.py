@@ -6,6 +6,7 @@ from .nodes import (
     Node,
     StaticNode,
     GeneratedNode,
+    ThumbnailNode,
 )
 import pathlib
 from typing import (
@@ -226,6 +227,34 @@ class Site:
             index.create_nodes(self)
 
         # Indices may add new nodes that need linking
+        self.create_links()
+
+    def create_thumbnails(self, thumbnail_definition):
+        from .util import add_suffix
+        new_static = []
+        for static in self.static:
+            if not static.is_image:
+                continue
+            static.update_metadata()
+            width, height = static.metadata['image_size']
+            for k, v in thumbnail_definition.items():
+                new_url = add_suffix(static.path, k)
+                thumbnail_width = v.get('width', width)
+                thumbnail_height = v.get('height', height)
+                if width <= thumbnail_width and height <= thumbnail_height:
+                    # The image has the right size already (smaller or equal
+                    # to the thumbnail), so we just link a new static node
+                    copy = StaticNode(static.src, new_url)
+                    copy.metadata = static.metadata
+                    new_static.append(copy)
+                else:
+                    thumbnail = ThumbnailNode(static.src, new_url, v)
+                    self.add_resource(thumbnail)
+
+        for static in new_static:
+            self.add_static(static)
+
+        # New nodes have been created, need linking
         self.create_links()
 
     def get_next_in_collection(self, collection, node) -> Optional[Node]:

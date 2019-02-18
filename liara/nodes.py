@@ -381,5 +381,40 @@ class StaticNode(Node):
                 'image_size': image.size
             })
 
+    @property
+    def is_image(self):
+        return self.src.suffix in {'.jpg', '.png'}
+
     def publish(self, publisher: Publisher) -> pathlib.Path:
         return publisher.publish_static(self)
+
+
+class ThumbnailNode(ResourceNode):
+    def __init__(self, src, path, size):
+        super().__init__(src, path)
+        self.__size = size
+
+    def process(self):
+        from PIL import Image
+        import io
+        image = Image.open(self.src)
+        width, height = image.size
+
+        scale = 1
+        if 'height' in self.__size:
+            scale = min(self.__size['height'] / height, scale)
+        if 'width' in self.__size:
+            scale = min(self.__size['width'] / width, scale)
+        width *= scale
+        height *= scale
+
+        image.thumbnail((width, height,))
+        storage = io.BytesIO()
+        if self.src.suffix == '.jpg':
+            image.save(storage, 'JPEG')
+            self.content = storage.getbuffer()
+        elif self.src.suffix == '.png':
+            image.save(storage, 'PNG')
+            self.content = storage.getbuffer()
+        else:
+            raise Exception("Unsupported image type for thumbnails")

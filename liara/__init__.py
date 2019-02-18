@@ -103,6 +103,9 @@ class Liara:
         backend = configuration['backend']
         paths = configuration['paths']
 
+        self.__thumbnail_definition = configuration.get(
+            'image_thumbnail_sizes', {})
+
         if backend == 'jinja2':
             self.__template_repository = Jinja2TemplateRepository(
                 paths, template_path)
@@ -249,6 +252,9 @@ class Liara:
 
         static_routes = pathlib.Path(configuration['routes.static'])
         self.__discover_redirections(self.__site, static_routes)
+
+        if self.__thumbnail_definition:
+            self.__site.create_thumbnails(self.__thumbnail_definition)
 
         self.__site.create_links()
 

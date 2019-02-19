@@ -191,21 +191,23 @@ class HtmlDocumentNode(DocumentNode):
 class MarkdownDocumentNode(DocumentNode):
     def process(self):
         import markdown
-        import pymdownx.arithmatex as arithmatex
         from .md import HeadingLevelFixupExtension
 
         extensions = [
-            arithmatex.ArithmatexExtension(),
+            'pymdownx.arithmatex',
             HeadingLevelFixupExtension(),
             'fenced_code',
             'codehilite',
             'smarty',
-            'admonition',
-            'tables'
+            'tables',
+            'admonition'
         ]
         extension_configs = {
             'codehilite': {
                 'css_class': 'code'
+            },
+            'pymdownx.arithmatex': {
+                'generic': True
             }
         }
         self.content = markdown.markdown(self._raw_content,

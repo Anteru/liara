@@ -17,4 +17,4 @@ def add_suffix(path: pathlib.Path, suffix):
 
 
 def readtime(wordcount: int, words_per_minute=300):
-    return round(wordcount / 300)
+    return max(1, round(wordcount / 300))

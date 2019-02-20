@@ -14,3 +14,7 @@ def add_suffix(path: pathlib.Path, suffix):
     name = path.name
     name, sep, extension = name.rpartition('.')
     return path.with_name(name + '.' + suffix + '.' + extension)
+
+
+def readtime(wordcount: int, words_per_minute=300):
+    return round(wordcount / 300)

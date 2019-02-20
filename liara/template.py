@@ -116,11 +116,15 @@ class Jinja2TemplateRepository(TemplateRepository):
     This class has extra magic internally to allow it to be pickled/unpickled,
     which is necessary for multiprocessing."""
     def __init__(self, paths: Dict[str, str], path: pathlib.Path):
-        from jinja2 import FileSystemLoader, Environment
-
         super().__init__(paths)
         self.__path = path
+        self.__create_environment()
+
+    def __create_environment(self):
+        from jinja2 import FileSystemLoader, Environment
+        from .util import readtime
         self.__env = Environment(loader=FileSystemLoader(str(self.__path)))
+        self.__env.filters['readtime'] = readtime
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -128,9 +132,8 @@ class Jinja2TemplateRepository(TemplateRepository):
         return state
 
     def __setstate__(self, state):
-        from jinja2 import FileSystemLoader, Environment
         self.__dict__.update(state)
-        self.__env = Environment(loader=FileSystemLoader(str(self.__path)))
+        self.__create_environment()
 
     def find_template(self, url, site: Site) -> Template:
         template = self._match_template(url, site)

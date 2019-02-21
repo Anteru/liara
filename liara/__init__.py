@@ -5,11 +5,11 @@ from typing import (
         List,
         Any,
     )
-import itertools
 import collections
 from .yaml import load_yaml
 from .site import Site
 from .nodes import DocumentNodeFactory, RedirectionNode, ResourceNodeFactory
+from .cache import Cache
 import logging
 
 
@@ -27,7 +27,8 @@ def create_default_configuration() -> Dict[str, Any]:
         'static_directory': 'static',
         'output_directory': 'output',
         'build': {
-            'clean_output': True
+            'clean_output': True,
+            'cache_directory': 'cache'
         },
         'template': 'templates/default.yaml',
         'routes': {
@@ -74,6 +75,7 @@ class Liara:
     __document_node_factory: DocumentNodeFactory
     __redirections: List[RedirectionNode]
     __log = logging.getLogger('liara')
+    __cache: Cache
 
     def __init__(self, configuration, *, configuration_overrides={}):
         self.__redirections = []
@@ -93,6 +95,10 @@ class Liara:
 
         template_configuration = pathlib.Path(self.__configuration['template'])
         self.__setup_template_backend(template_configuration)
+
+        cache_directory = pathlib.Path(
+            self.__configuration['build.cache_directory'])
+        self.__cache = Cache(cache_directory)
 
     def __setup_template_backend(self, configuration_file: pathlib.Path):
         from .template import Jinja2TemplateRepository, MakoTemplateRepository
@@ -298,8 +304,13 @@ class Liara:
 
         self.__log.info('Processing documents ...')
         for document in site.documents:
-            document.process()
+            document.process(self.__cache)
         self.__log.info(f'Processed {len(site.documents)} documents')
+
+        self.__log.info('Processing resources ...')
+        for resource in site.resources:
+            resource.process(self.__cache)
+        self.__log.info(f'Processed {len(site.resources)} resources')
 
         output_path = pathlib.Path(self.__configuration['output_directory'])
 
@@ -339,6 +350,7 @@ class Liara:
             self.__log.info(f'Wrote {len(self.__redirections)} redirections')
 
         self.__log.info('Build finished')
+        self.__cache.persist()
 
     def serve(self):
         from .server import HttpServer

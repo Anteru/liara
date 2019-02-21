@@ -42,7 +42,6 @@ class DefaultPublisher(Publisher):
     def publish_resource(self, resource: ResourceNode):
         import os
         assert resource is not None
-        resource.process()
         file_path = pathlib.Path(str(self._output_path) + str(resource.path))
         os.makedirs(file_path.parent, exist_ok=True)
         file_path.write_bytes(resource.content)

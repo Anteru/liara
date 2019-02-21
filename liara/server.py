@@ -5,6 +5,7 @@ import pathlib
 from .site import Site
 from .template import TemplateRepository
 from .publish import TemplatePublisher
+from .cache import Cache
 import logging
 
 
@@ -16,6 +17,9 @@ class HttpServer:
         self.__site = site
         self.__template_repository = template_repository
         self.__configuration = configuration
+        self.__cache = Cache(pathlib.Path(
+            self.__configuration['build.cache_directory']
+        ))
         output_path = pathlib.Path(
             self.__configuration['output_directory'])
         self.__publisher = TemplatePublisher(output_path, self.__site,
@@ -49,7 +53,7 @@ class HttpServer:
         # We always regenerate the content
         if node.kind in {NodeKind.Document, NodeKind.Resource}:
             node.reload()
-            node.process()
+            node.process(self.__cache)
             cache = False
         # We don't cache index nodes so templates get re-applied
         elif node.kind == NodeKind.Index:

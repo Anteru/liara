@@ -1,6 +1,7 @@
 from enum import auto, Enum
 import pathlib
 from .yaml import load_yaml
+from .cache import Cache
 from typing import (
     Any,
     Dict,
@@ -181,7 +182,7 @@ class DocumentNode(Node):
 
 
 class HtmlDocumentNode(DocumentNode):
-    def process(self):
+    def process(self, cache: Cache):
         self.content = self._raw_content
         self._fixup_relative_links()
 
@@ -189,9 +190,16 @@ class HtmlDocumentNode(DocumentNode):
 
 
 class MarkdownDocumentNode(DocumentNode):
-    def process(self):
+    def process(self, cache: Cache):
         import markdown
         from .md import HeadingLevelFixupExtension
+        import hashlib
+
+        byte_content = self._raw_content.encode('utf-8')
+        content_hash = hashlib.sha256(byte_content).digest()
+        if cache.contains(content_hash):
+            self.content = cache.get(content_hash)
+            return
 
         extensions = [
             'pymdownx.arithmatex',
@@ -214,6 +222,7 @@ class MarkdownDocumentNode(DocumentNode):
                                          extensions=extensions,
                                          extension_configs=extension_configs)
         self._fixup_relative_links()
+        cache.put(content_hash, self.content)
         return self
 
 
@@ -301,7 +310,7 @@ class ResourceNode(Node):
         if metadata_path:
             self.metadata = load_yaml(open(metadata_path, 'r'))
 
-    def process(self) -> None:
+    def process(self, cache: Cache) -> None:
         """Process the content.
 
         After this function call, self.content is populated."""
@@ -326,7 +335,7 @@ class SassResourceNode(ResourceNode):
     def reload(self) -> None:
         self.content = None
 
-    def process(self):
+    def process(self, cache: Cache):
         import sass
         if self.content is None:
             self.content = sass.compile(filename=str(self.src)).encode('utf-8')
@@ -398,9 +407,31 @@ class ThumbnailNode(ResourceNode):
         super().__init__(src, path)
         self.__size = size
 
-    def process(self):
+    def __get_hash_key(self) -> bytes:
+        import hashlib
+        hash_key = hashlib.sha256(self.src.open('rb').read()).digest()
+
+        if 'height' in self.__size:
+            hash_key += self.__size['height'].to_bytes(4, 'little')
+        else:
+            hash_key += bytes([0, 0, 0, 0])
+
+        if 'width' in self.__size:
+            hash_key += self.__size['width'].to_bytes(4, 'little')
+        else:
+            hash_key += bytes([0, 0, 0, 0])
+
+        return hash_key
+
+    def process(self, cache: Cache):
         from PIL import Image
         import io
+
+        hash_key = self.__get_hash_key()
+        if cache.contains(hash_key):
+            self.content = cache.get(hash_key)
+            return
+
         image = Image.open(self.src)
         width, height = image.size
 
@@ -422,3 +453,5 @@ class ThumbnailNode(ResourceNode):
             self.content = storage.getbuffer()
         else:
             raise Exception("Unsupported image type for thumbnails")
+
+        cache.put(hash_key, bytes(self.content))

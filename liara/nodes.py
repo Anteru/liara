@@ -151,29 +151,6 @@ class DocumentNode(Node):
 
         self.content = str(soup)
 
-    def validate_links(self, site):
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(self.content, 'lxml')
-
-        def validate_link(link):
-            if link.startswith('//') \
-                    or link.startswith('http://') \
-                    or link.startswith('https://') \
-                    or link.startswith('#'):
-                return
-
-            link = pathlib.PurePosixPath(link)
-            if link not in site.urls:
-                print(f'"{link}" referenced in "{self.path}" does not exist')
-
-        for link in soup.find_all('a'):
-            target = link.attrs.get('href', None)
-            validate_link(target)
-
-        for image in soup.find_all('img'):
-            target = image.attrs.get('src', None)
-            validate_link(target)
-
     def reload(self):
         self.metadata, self._raw_content = extract_metadata_content(self.src)
 

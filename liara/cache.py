@@ -6,6 +6,16 @@ import os
 
 
 class Cache:
+    def put(self, key: bytes, value: object) -> bool:
+        return True
+
+    def contains(self, key: bytes) -> bool:
+        return False
+
+    def get(self, key: bytes) -> object:
+        return None
+
+class FilesystemCache(Cache):
     __index: Dict[bytes, pathlib.Path]
 
     def __init__(self, path: pathlib.Path):
@@ -39,3 +49,22 @@ class Cache:
     def get(self, key: bytes) -> object:
         cache_object_path = self.__index[key]
         return pickle.load(cache_object_path.open('rb'))
+
+
+class MemoryCache(Cache):
+    __index: Dict[bytes, object]
+
+    def __init__(self):
+        self.__index = {}
+
+    def contains(self, key: bytes) -> bool:
+        return key in self.__index
+
+    def put(self, key: bytes, value: object) -> bool:
+        if key in self.__index:
+            return False
+
+        self.__index[key] = object
+
+    def get(self, key: bytes) -> object:
+        return self.__index[key]

@@ -9,12 +9,15 @@ pass_liara = click.make_pass_decorator(Liara)
 
 @click.group()
 @click.option('--config', default='config.yaml', metavar='PATH')
-@click.option('--quiet', default=False, is_flag=True)
+@click.option('--verbose', default=False, is_flag=True)
 @click.version_option(__version__)
 @click.pass_context
-def cli(ctx, config, quiet):
-    if not quiet:
+def cli(ctx, config, verbose):
+    if verbose:
         logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s %(name)s %(message)s')
+    else:
+        logging.basicConfig(level=logging.WARN,
                             format='%(asctime)s %(name)s %(message)s')
 
     ctx.obj = Liara(config)
@@ -39,10 +42,14 @@ def build(liara, profile, profile_file):
 @pass_liara
 def validate_links(liara):
     """Validate links."""
+    from .cache import MemoryCache
+    from .actions import validate_document_links
     site = liara.discover_content()
+    cache = MemoryCache()
+
     for document in site.documents:
-        document.process()
-        document.validate_links(site)
+        document.process(cache)
+        validate_document_links(document, site)
 
 
 @cli.command()
@@ -144,4 +151,5 @@ def list_content(liara, format):
 @cli.command()
 @pass_liara
 def serve(liara):
+    """Run a local development server."""
     liara.serve()

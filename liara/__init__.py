@@ -9,11 +9,11 @@ import collections
 from .yaml import load_yaml
 from .site import Site
 from .nodes import DocumentNodeFactory, RedirectionNode, ResourceNodeFactory
-from .cache import Cache
+from .cache import Cache, FilesystemCache
 import logging
 
 
-__version__ = '0.2.0'
+__version__ = '0.5.0'
 
 
 def _publish(node, publisher):
@@ -98,7 +98,7 @@ class Liara:
 
         cache_directory = pathlib.Path(
             self.__configuration['build.cache_directory'])
-        self.__cache = Cache(cache_directory)
+        self.__cache = FilesystemCache(cache_directory)
 
     def __setup_template_backend(self, configuration_file: pathlib.Path):
         from .template import Jinja2TemplateRepository, MakoTemplateRepository
@@ -272,6 +272,8 @@ class Liara:
             indices = pathlib.Path(configuration['indices'])
             self.__site.create_indices(load_yaml(indices.read_text()))
 
+        self.__site.create_links()
+
         self.__log.info(f'Discovered {len(self.__site.nodes)} items')
 
         return self.__site
@@ -294,9 +296,6 @@ class Liara:
         if self.__configuration['build.clean_output']:
             self.__clean_output()
 
-        # Moving this stuff (actually, just the next command) into the with
-        # statement breaks the whole process, it seems that the call is
-        # skipped (only templates get populated, from the __init__ call)
         site = self.discover_content()
 
         for document in site.documents:

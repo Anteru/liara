@@ -3,6 +3,7 @@ import cProfile
 from . import Liara, create_default_configuration, __version__
 from .yaml import dump_yaml
 import logging
+import os
 
 
 def cli():
@@ -70,12 +71,19 @@ def cli():
         parser.print_help()
 
 
+def _create_liara(options):
+    if os.path.exists(options.config):
+        return Liara(options.config)
+    else:
+        return Liara()
+
+
 def build(options):
     """Build a site."""
     if options.profile:
         pr = cProfile.Profile()
         pr.enable()
-    liara = Liara(options.config)
+    liara = _create_liara(options)
     liara.build()
     if options.profile:
         pr.disable()
@@ -86,7 +94,7 @@ def validate_links(options):
     """Validate links."""
     from .cache import MemoryCache
     from .actions import validate_document_links
-    liara = Liara(options.config)
+    liara = _create_liara(options)
     site = liara.discover_content()
     cache = MemoryCache()
 
@@ -101,7 +109,7 @@ def list_tags(options):
     This uses a metadata field named 'tags' and returns the union of all tags,
     as well as the count how often each tag is used."""
     from collections import Counter
-    liara = Liara(options.config)
+    liara = _create_liara(options)
     site = liara.discover_content()
     tags = []
     for document in site.documents:
@@ -118,7 +126,7 @@ def find_by_tag(options):
 
     This searches the metadata for a 'tags' field, which is assumed to be
     a list of tags."""
-    liara = Liara(options.config)
+    liara = _create_liara(options)
     site = liara.discover_content()
     tags = set(options.tag)
     for document in site.documents:
@@ -142,7 +150,7 @@ def quickstart(options):
 def list_content(options):
     """List all content."""
     import treelib
-    liara = Liara(options.config)
+    liara = _create_liara(options)
     content = liara.discover_content()
 
     # We sort by path name, which makes it trivial to sort it later into a tree
@@ -191,5 +199,5 @@ def list_content(options):
 
 def serve(options):
     """Run a local development server."""
-    liara = Liara(options.config)
+    liara = _create_liara(options)
     liara.serve()

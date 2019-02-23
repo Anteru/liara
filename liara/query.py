@@ -45,26 +45,17 @@ class Sorter:
         return self._reverse
 
 
-class TitleSorter(Sorter):
-    def get_key(self, item: Page):
-        return item.metadata.get('title').lower()
-
-
-class DateSorter(Sorter):
-    def __init__(self, reverse=False):
+class MetadataSorter(Sorter):
+    def __init__(self, item: str, reverse=False, case_sensitive=False):
         super().__init__(reverse)
+        self.__item = item
+        self.__case_sensitive = case_sensitive
 
     def get_key(self, item: Page):
-        return item.metadata.get('date')
-
-
-class TagSorter(Sorter):
-    def __init__(self, tag: str, reverse=False):
-        super().__init__(reverse)
-        self.__tag = tag
-
-    def get_key(self, item: Page):
-        return item.metadata.get(self.__tag)
+        key = item.metadata.get(self.__item)
+        if isinstance(key, str) and self.__case_sensitive is False:
+            return key.lower()
+        return key
 
 
 class Query(Iterable[Node]):
@@ -91,16 +82,15 @@ class Query(Iterable[Node]):
         self.__filters.append(TagFilter(name))
         return self
 
-    def sorted_by_title(self) -> 'Query':
-        self.__sorters.append(TitleSorter())
-        return self
+    def sorted_by_title(self, *, reverse=False) -> 'Query':
+        return self.sorted_by_metadata('title', reverse=reverse)
 
     def sorted_by_date(self, *, reverse=False) -> 'Query':
-        self.__sorters.append(DateSorter(reverse))
-        return self
+        return self.sorted_by_metadata('date', reverse=reverse)
 
-    def sorted_by_tag(self, tag: str, *, reverse=False) -> 'Query':
-        self.__sorters.append(TagSorter(tag, reverse))
+    def sorted_by_metadata(self, tag: str, *,
+                           reverse=False, case_sensitive=False) -> 'Query':
+        self.__sorters.append(MetadataSorter(tag, reverse, case_sensitive))
         return self
 
     def __iter__(self) -> Iterator[Page]:

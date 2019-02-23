@@ -82,7 +82,7 @@ __TEMPLATES = {
 {{ page.content }}
 <ul>
     {% for page in
-       node.select_children().sorted_by_tag('key',reverse=reverse) %}
+       node.select_children().sorted_by_metadata('key',reverse=reverse) %}
     <li>
         <a href="{{ page.url }}">{{ page.meta.key }}</a>
         ({{ page.references|length }} posts)
@@ -133,10 +133,9 @@ def generate_theme():
 def generate_content():
     import datetime
     import os
-    page_template = """
----
+    page_template = """---
 title: %TITLE%
-tags: %TAGS%
+tags: [%TAGS%]
 date: %DATE%
 ----
 
@@ -173,8 +172,8 @@ Sample post using _Markdown_
         t = page_template.replace("%TITLE%", title)
         t = t.replace("%TAGS%", ', '.join(tag))
         t = t.replace("%DATE%", str(date))
-        os.makedirs(f'content/blog/{{ date.year }}', exist_ok=True)
-        open(f'content/blog/{{ date.year }}/f{slug}.md', 'w').write(t)
+        os.makedirs(f'content/blog/{date.year}', exist_ok=True)
+        open(f'content/blog/{date.year}/{slug}.md', 'w').write(t)
 
     open('content/archive.md', 'w').write("""
 ---

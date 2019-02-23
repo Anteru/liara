@@ -10,4 +10,25 @@ Run:
 
 .. code:: bash
 
-  pip install 
+  pip install Liara
+
+Create a project
+----------------
+
+Installing Liara deploys the command-line runner ``liara``, which is your entry point for all future operations. To get started, create a new folder somewhere and run:
+
+.. code:: bash
+
+  liara quickstart
+
+This will deploy the required scaffolding for a super-simple blog, which we'll use throughout this guide.
+
+Build the site
+--------------
+
+From the main directory, run ``liara build`` to build the site. The site will be generated in an ``output`` subdirectory by default.
+
+Preview the site
+----------------
+
+Run ``liara serve`` to run a local web-server which will show the page. You can edit pages and templates while in this mode and hit refresh to see updates. You cannot add/remove content or change meta-data while running the interactive server though.

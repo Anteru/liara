@@ -77,13 +77,15 @@ class Liara:
     __log = logging.getLogger('liara')
     __cache: Cache
 
-    def __init__(self, configuration, *, configuration_overrides={}):
+    def __init__(self, configuration=None, *, configuration_overrides={}):
         self.__redirections = []
         self.__resource_node_factory = ResourceNodeFactory()
         self.__document_node_factory = DocumentNodeFactory()
 
         default_configuration = create_default_configuration()
-        if isinstance(configuration, str):
+        if configuration is None:
+            project_configuration = {}
+        elif isinstance(configuration, str):
             project_configuration = load_yaml(open(configuration))
         else:
             project_configuration = load_yaml(configuration)

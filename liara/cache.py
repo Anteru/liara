@@ -15,6 +15,7 @@ class Cache:
     def get(self, key: bytes) -> object:
         return None
 
+
 class FilesystemCache(Cache):
     __index: Dict[bytes, pathlib.Path]
 
@@ -65,6 +66,7 @@ class MemoryCache(Cache):
             return False
 
         self.__index[key] = object
+        return True
 
     def get(self, key: bytes) -> object:
         return self.__index[key]

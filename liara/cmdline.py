@@ -1,49 +1,92 @@
-import click
+import argparse
 import cProfile
 from . import Liara, create_default_configuration, __version__
 from .yaml import dump_yaml
 import logging
 
-pass_liara = click.make_pass_decorator(Liara)
 
+def cli():
+    parser = argparse.ArgumentParser()
 
-@click.group()
-@click.option('--config', default='config.yaml', metavar='PATH')
-@click.option('--verbose', default=False, is_flag=True)
-@click.version_option(__version__)
-@click.pass_context
-def cli(ctx, config, verbose):
-    if verbose:
+    parser.add_argument('--config', default='config.yaml')
+    parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--version', action='version',
+                        version=f'%(prog)s {__version__}')
+
+    subparsers = parser.add_subparsers(title='Commands',
+                                       metavar='COMMAND',
+                                       help='The command to invoke')
+
+    build_cmd = subparsers.add_parser('build', help='Build the site')
+    build_cmd.add_argument('--profile', action='store_true')
+    build_cmd.add_argument('--profile-file', default='build.prof')
+    build_cmd.set_defaults(func=build)
+
+    validate_links_cmd = subparsers.add_parser('validate-links',
+                                               help='Validate links')
+    validate_links_cmd.set_defaults(func=validate_links)
+
+    find_by_tag_cmd = subparsers.add_parser('find-by-tag',
+                                            help='Find content by tag')
+    find_by_tag_cmd.add_argument('tag', nargs='+')
+    find_by_tag_cmd.set_defaults(func=find_by_tag)
+
+    serve_cmd = subparsers.add_parser('serve', help='Start a web server')
+    serve_cmd.set_defaults(func=serve)
+
+    quickstart_cmd = subparsers.add_parser('quickstart',
+                                           help='Generate a quickstart blog')
+    quickstart_cmd.set_defaults(func=quickstart)
+
+    create_config_cmd = subparsers.add_parser('create-config',
+                                              help='Create a default '
+                                                   'configuration')
+    create_config_cmd.add_argument('-o', '--output', default='config.yaml')
+    create_config_cmd.set_defaults(func=create_config)
+
+    list_tags_cmd = subparsers.add_parser('list-tags',
+                                          help='List all unique entries in the'
+                                               ' metadata.tags field.')
+    list_tags_cmd.set_defaults(func=list_tags)
+
+    list_content_cmd = subparsers.add_parser('list-content',
+                                             help='Show all tracked content')
+    list_content_cmd.add_argument('-f', '--format', choices=['tree', 'list'],
+                                  default='tree')
+    list_content_cmd.set_defaults(func=list_content)
+
+    args = parser.parse_args()
+
+    if args.verbose:
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(name)s %(message)s')
     else:
         logging.basicConfig(level=logging.WARN,
                             format='%(asctime)s %(name)s %(message)s')
 
-    ctx.obj = Liara(config)
+    if hasattr(args, 'func'):
+        args.func(args)
+    else:
+        parser.print_help()
 
 
-@cli.command()
-@click.option('--profile', is_flag=True, default=False)
-@click.option('--profile-file', default='build.prof')
-@pass_liara
-def build(liara, profile, profile_file):
+def build(options):
     """Build a site."""
-    if profile:
+    if options.profile:
         pr = cProfile.Profile()
         pr.enable()
+    liara = Liara(options.config)
     liara.build()
-    if profile:
+    if options.profile:
         pr.disable()
-        pr.dump_stats(profile_file)
+        pr.dump_stats(options.profile_file)
 
 
-@cli.command()
-@pass_liara
-def validate_links(liara):
+def validate_links(options):
     """Validate links."""
     from .cache import MemoryCache
     from .actions import validate_document_links
+    liara = Liara(options.config)
     site = liara.discover_content()
     cache = MemoryCache()
 
@@ -52,14 +95,13 @@ def validate_links(liara):
         validate_document_links(document, site)
 
 
-@cli.command()
-@pass_liara
-def list_tags(liara):
+def list_tags(options):
     """List all tags.
 
     This uses a metadata field named 'tags' and returns the union of all tags,
     as well as the count how often each tag is used."""
     from collections import Counter
+    liara = Liara(options.config)
     site = liara.discover_content()
     tags = []
     for document in site.documents:
@@ -71,16 +113,14 @@ def list_tags(liara):
         print(k, v)
 
 
-@cli.command()
-@click.argument('tag', nargs=-1)
-@pass_liara
-def find_by_tag(liara, tag):
+def find_by_tag(options):
     """Find pages by tag.
 
     This searches the metadata for a 'tags' field, which is assumed to be
     a list of tags."""
+    liara = Liara(options.config)
     site = liara.discover_content()
-    tags = set(tag)
+    tags = set(options.tag)
     for document in site.documents:
         for tag in document.metadata.get('tags', []):
             if tag in tags:
@@ -88,20 +128,21 @@ def find_by_tag(liara, tag):
                 break
 
 
-@cli.command()
-@click.argument('output', type=click.File('w'))
-def create_config(output):
+def create_config(options):
     """Create a default configuration."""
-    dump_yaml(create_default_configuration(), output)
+    dump_yaml(create_default_configuration(), options.output)
 
 
-@cli.command()
-@click.option('--format', '-f', type=click.Choice(['tree', 'list']),
-              default='list')
-@pass_liara
-def list_content(liara, format):
+def quickstart(options):
+    """Create a quickstart project."""
+    from .quickstart import generate
+    generate()
+
+
+def list_content(options):
     """List all content."""
     import treelib
+    liara = Liara(options.config)
     content = liara.discover_content()
 
     # We sort by path name, which makes it trivial to sort it later into a tree
@@ -110,7 +151,7 @@ def list_content(liara, format):
     if not sorted_nodes:
         return
 
-    if format == 'tree':
+    if options.format == 'tree':
         tree = treelib.Tree()
         tree.create_node('Site', ('/',))
         if sorted_nodes[0].path.parts == ('/',):
@@ -143,13 +184,12 @@ def list_content(liara, format):
                 tuple(node.path.parts), parent, data=node.path)
             known_paths.add(tuple(node.path.parts))
         tree.show(key=lambda n: str(n.data).casefold())
-    elif format == 'list':
+    elif options.format == 'list':
         for node in sorted_nodes:
             print(str(node.path))
 
 
-@cli.command()
-@pass_liara
-def serve(liara):
+def serve(options):
     """Run a local development server."""
+    liara = Liara(options.config)
     liara.serve()

@@ -5,7 +5,7 @@ import pathlib
 from .site import Site
 from .template import TemplateRepository
 from .publish import TemplatePublisher
-from .cache import Cache
+from .cache import FilesystemCache
 import logging
 
 
@@ -17,7 +17,7 @@ class HttpServer:
         self.__site = site
         self.__template_repository = template_repository
         self.__configuration = configuration
-        self.__cache = Cache(pathlib.Path(
+        self.__cache = FilesystemCache(pathlib.Path(
             self.__configuration['build.cache_directory']
         ))
         output_path = pathlib.Path(
@@ -100,5 +100,5 @@ class HttpServer:
         server.http_server = self
         server.log = self.__log
         server.cache = {}
-        self.__log.info('Listening on http://127.0.0.1:8080')
+        print('Listening on http://127.0.0.1:8080')
         server.serve_forever()

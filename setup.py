@@ -12,6 +12,7 @@ setup(
     author_email="dev@anteru.net",
     description="Static page generator",
     long_description=open('README.md', 'r').read(),
+    long_description_content_type="text/markdown",
 
     license="BSD",
     keywords=[],

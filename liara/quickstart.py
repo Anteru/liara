@@ -20,23 +20,26 @@ __TEMPLATES = {
     <link type="text/css" rel="stylesheet" href="/style.css" />
 </head>
 <body>
-    <header id="header">
-        <a class="/">Home</a>
-        <a class="/archive">Archive</a>
-    </header>
-    <div id="container">
+    <div class="container">
+        <header id="header">
+            <nav>
+                <a href="/">Home</a>
+                <a href="/archive">Archive</a>
+            </nav>
+        </header>
         <main id="content">
         {% block content %}
+            {{ page.content }}
         {% endblock %}
         </main>
+        <footer id="footer">
+            <p>Generated using Liara</p>
+        </footer>
     </div>
-    <footer id="footer">
-        <p>Generated using Liara</p>
-    </footer>
 </body>
 </html>
     """,
-    'blog.jinja2': """
+    'blog.jinja2': """{% extends "page.jinja2" %}
 <article>
     <header>
         <h1>{{page.meta.title}}</h1>
@@ -78,38 +81,67 @@ __TEMPLATES = {
     'archive.jinja2': """
 {% extends "page.jinja2" %}
 {% block content %}
-<h1>Blog archive</h1>
+<h1>Blog archive {% if page.meta.key %}for {{ page.meta.key }}{% endif %}</h1>
 {{ page.content }}
 <ul>
-    {% for page in
-       node.select_children().sorted_by_metadata('key',reverse=reverse) %}
-    <li>
-        <a href="{{ page.url }}">{{ page.meta.key }}</a>
-        ({{ page.references|length }} posts)
-        <ul>
-            {% for ref in page.references.sorted_by_date(reverse=True) %}
-            <li>
-                <a href="{{ ref.url }}">{{ ref.meta.title}}</a>
-            </li>
-            {% endfor %}
-        </ul>
-    </li>
-    {% endfor %}
+    {% if page.references %}
+        {% for ref in page.references %}
+        <li>
+            <a href="{{ ref.url }}">{{ ref.meta.title }}</a>
+        </li>
+        {% endfor %}
+    {% else %}
+        {% for page in
+        node.select_children().sorted_by_metadata('key') %}
+        <li>
+            <a href="{{ page.url }}">{{ page.meta.key }}</a>
+            ({{ page.references|length }} posts)
+            <ul>
+                {% for ref in page.references.sorted_by_date(reverse=True) %}
+                <li>
+                    <a href="{{ ref.url }}">{{ ref.meta.title}}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </li>
+        {% endfor %}
+    {% endif %}
 </ul>
 {% endblock %}
     """
 }
 
 __SCSS = """
+.container {
+    max-width: 800px;
+
+    margin: auto;
+
+    header {
+        background-color: #EEE;
+        padding: 0.5em;
+    }
+
+    main {
+        padding: 0.5em;
+    }
+
+    footer {
+        font-size: 0.8em;
+        padding: 0.5em;
+        border-top: 1px solid #CCC;
+    }
+}
 """
 
 __THEME_CONFIG = {
     'backend': 'jinja2',
     'paths': {
-        '/blog/*': 'blog.jinja2',
-        '/': 'page.jinja2',
-        '/archive': 'archive.jinja2'
-    }
+        '/blog/*?kind=document': 'blog.jinja2',
+        '/archive/*': 'archive.jinja2',
+        '/*': 'page.jinja2',
+    },
+    'resource_directory': 'resources'
 }
 
 
@@ -119,7 +151,9 @@ def generate_templates():
 
 
 def generate_css():
-    open('templates/style.scss', 'w').write(__SCSS)
+    import os
+    os.makedirs('templates/resources', exist_ok=True)
+    open('templates/resources/style.scss', 'w').write(__SCSS)
 
 
 def generate_theme():
@@ -137,7 +171,7 @@ def generate_content():
 title: %TITLE%
 tags: [%TAGS%]
 date: %DATE%
-----
+---
 
 Sample post using _Markdown_
 """
@@ -180,8 +214,8 @@ Sample post using _Markdown_
 title: The archive
 ---
 
-The blog archive
-    """)
+The blog archive. Find blog posts [by year](/archive/by-year) or
+[by tag](/archive/by-tag).""")
 
     open('content/_index.md', 'w').write("""
 ---
@@ -191,6 +225,41 @@ title: Hello world
 Welcome to the sample blog.""")
 
 
+__DEFAULT_CONFIG = {
+    'collections': 'collections.yaml',
+    'indices': 'indices.yaml'
+}
+
+__DEFAULT_COLLECTIONS = {
+    'blog': {
+        'filter': '/blog/**',
+        'order_by': 'date'
+    }
+}
+
+__DEFAULT_INDICES = [
+    {
+        'collection': 'blog',
+        'group_by': ['date.year'],
+        'path': '/archive/by-year/%1',
+        'create_top_level_index': True
+    },
+    {
+        'collection': 'blog',
+        'group_by': ['*tags'],
+        'path': '/archive/by-tag/%1',
+        'create_top_level_index': True
+    }
+]
+
+
+def generate_configs():
+    dump_yaml(__DEFAULT_CONFIG, open('config.yaml', 'w'))
+    dump_yaml(__DEFAULT_COLLECTIONS, open('collections.yaml', 'w'))
+    dump_yaml(__DEFAULT_INDICES, open('indices.yaml', 'w'))
+
+
 def generate():
     generate_theme()
     generate_content()
+    generate_configs()

@@ -112,19 +112,33 @@ def _group_recursive(iterable, group_keys: List[str]):
 
 
 class Index:
-    def __init__(self, site, collection: Collection, pattern, group_by=[]):
+    def __init__(self, site, collection: Collection,
+                 path: str, group_by=[], **kwargs):
         nodes = collection.nodes
         self.__groups = _group_recursive(nodes, group_by)
         self.__site = site
-        self.__pattern = pattern
+        self.__path = path
+        self.__create_top_level_index = kwargs.get('create_top_level_index',
+                                                   False)
 
     def create_nodes(self, site):
-        self._create_nodes_recursive(site, self.__pattern,
+        self._create_nodes_recursive(site, self.__path,
                                      self.__groups, 1)
 
-    def _create_nodes_recursive(self, site, pattern, d, index):
+        if self.__create_top_level_index:
+            url = self.__path
+            # Strip off components until we have no parameter left
+            while '%' in url:
+                url = url[:url.rfind('/')]
+            node = IndexNode(pathlib.PurePosixPath(url), {
+                'path': self.__path,
+                'top_level_index': True
+            })
+            site.add_index(node)
+
+    def _create_nodes_recursive(self, site, path, d, index):
         for k, v in d.items():
-            url = pathlib.PurePosixPath(pattern.replace(f'%{index}', str(k)))
+            url = pathlib.PurePosixPath(path.replace(f'%{index}', str(k)))
             # TODO Find out what to do here -- either don't create intermediate
             # nodes (i.e. as long as one %N placeholder is left), or cut off
             # the URL.
@@ -219,8 +233,8 @@ class Site:
     def create_indices(self, indices):
         for index_definition in indices:
             collection = self.get_collection(index_definition['collection'])
-            index = Index(self, collection, index_definition['path'],
-                          index_definition['group_by'])
+            del index_definition['collection']
+            index = Index(self, collection, **index_definition)
             self.__indices.append(index)
 
         for index in self.__indices:

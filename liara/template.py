@@ -80,6 +80,10 @@ class TemplateRepository:
 
         matches = list(sorted(matches, key=lambda x: x[0]))
 
+        if not matches:
+            raise Exception(f'Could not find matching template for path: '
+                            f'"{url}"')
+
         return matches[0][1]
 
 

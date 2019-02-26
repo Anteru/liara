@@ -40,6 +40,7 @@ __TEMPLATES = {
 </html>
     """,
     'blog.jinja2': """{% extends "page.jinja2" %}
+{% block content %}
 <article>
     <header>
         <h1>{{page.meta.title}}</h1>
@@ -77,6 +78,7 @@ __TEMPLATES = {
         </div>
     </aside>
 </article>
+{% endblock %}
     """,
     'archive.jinja2': """
 {% extends "page.jinja2" %}
@@ -124,6 +126,11 @@ __SCSS = """
 
     main {
         padding: 0.5em;
+
+        header {
+            padding: 0;
+            background-color: unset;
+        }
     }
 
     footer {

@@ -99,9 +99,7 @@ class MetadataKind(Enum):
     Toml = auto()
 
 
-def extract_metadata_content(path: pathlib.Path):
-    text = path.read_text(encoding='utf-8')
-
+def extract_metadata_content(text: str):
     meta_start, meta_end = 0, 0
     content_start, content_end = 0, 0
     metadata_kind = MetadataKind.Unknown
@@ -131,10 +129,10 @@ def extract_metadata_content(path: pathlib.Path):
     if metadata_kind == MetadataKind.Yaml:
         metadata = load_yaml(text[meta_start:meta_end])
     elif metadata_kind == MetadataKind.Toml:
-        metadata = toml.load(text[meta_start:meta_end])
+        metadata = toml.loads(text[meta_start:meta_end])
     else:
-        # We didn't find any metadata here
-        metadata = None
+        # We didn't find any metadata here, so everything must be content
+        return None, text
 
     content = text[content_start:content_end]
     return metadata, content
@@ -181,7 +179,7 @@ class DocumentNode(Node):
             self._raw_content = self.src.read_text('utf-8')
         else:
             self.metadata, self._raw_content = \
-                extract_metadata_content(self.src)
+                extract_metadata_content(self.src.read_text('utf-8'))
 
     def reload(self):
         self.__load()

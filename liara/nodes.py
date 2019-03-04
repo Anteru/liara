@@ -1,6 +1,7 @@
 from enum import auto, Enum
 import pathlib
 from .yaml import load_yaml
+import toml
 from .cache import Cache
 from typing import (
     Any,
@@ -11,6 +12,7 @@ from typing import (
     Type,
     TypeVar,
 )
+import re
 
 
 T = TypeVar('T')
@@ -88,30 +90,54 @@ class Node:
                 yield from child.get_children(recursive=True)
 
 
+_metadata_marker = re.compile(r'(---|\+\+\+)\n')
+
+
+class MetadataKind(Enum):
+    Unknown = auto()
+    Yaml = auto()
+    Toml = auto()
+
+
 def extract_metadata_content(path: pathlib.Path):
-    # We start by expecting a '---', once we find that, we keep reading
-    # until we discover another '---'.
-    # The states are:
-    # 0: Expecting '---'
-    # 1: Assembling metadata, expecting '---'
-    # 2: Content
-    # TODO Use a stream here instead of readlines() to improve reading
-    # performance
-    state = 0
-    metadata = ''
-    content = ''
+    text = path.read_text(encoding='utf-8')
 
-    for line in path.open(encoding='utf-8').readlines():
-        if state == 0 and line == '---\n':
-            state = 1
-        elif state == 1 and line == '---\n' or line == '---':
-            state = 2
-        elif state == 1 and line != '---\n':
-            metadata += line
-        elif state == 2:
-            content += line
+    meta_start, meta_end = 0, 0
+    content_start, content_end = 0, 0
+    metadata_kind = MetadataKind.Unknown
 
-    return load_yaml(metadata), content
+    for match in _metadata_marker.finditer(text):
+        if meta_start == 0:
+            if match.group() == '---\n':
+                metadata_kind = MetadataKind.Yaml
+            elif match.group() == '+++\n':
+                metadata_kind = MetadataKind.Toml
+            meta_start = match.span()[1]
+        elif meta_end == 0:
+            if match.group() == '---\n':
+                if metadata_kind != MetadataKind.Yaml:
+                    raise Exception('Metadata markers mismatch -- started '
+                                    'with "---", but ended with "+++"')
+            elif match.group() == '+++\n':
+                if metadata_kind != MetadataKind.Toml:
+                    raise Exception('Metadata markers mismatch -- started '
+                                    'with "+++", but ended with "---"')
+
+            meta_end = match.span()[0]
+            content_start = match.span()[1]
+            content_end = len(text)
+            break
+
+    if metadata_kind == MetadataKind.Yaml:
+        metadata = load_yaml(text[meta_start:meta_end])
+    elif metadata_kind == MetadataKind.Toml:
+        metadata = toml.load(text[meta_start:meta_end])
+    else:
+        # We didn't find any metadata here
+        metadata = None
+
+    content = text[content_start:content_end]
+    return metadata, content
 
 
 class DocumentNode(Node):
@@ -120,15 +146,13 @@ class DocumentNode(Node):
         self.kind = NodeKind.Document
         self.src = src
         self.path = path
-        if metadata_path:
-            self.metadata = load_yaml(self.src.open('r'))
-            self._raw_content = src.read_text('utf-8')
-        else:
-            self.metadata, self._raw_content = \
-                extract_metadata_content(self.src)
+        self.metadata_path = metadata_path
         self.content = None
+        self.__load()
 
     def validate_metadata(self):
+        if self.metadata is None:
+            raise Exception(f"No metadata for document: '{self.src}'")
         if 'title' not in self.metadata:
             raise Exception(f"'title' missing for Document: '{self.src}'")
 
@@ -151,8 +175,16 @@ class DocumentNode(Node):
 
         self.content = str(soup)
 
+    def __load(self):
+        if self.metadata_path:
+            self.metadata = load_yaml(self.metadata_path.read_text())
+            self._raw_content = self.src.read_text('utf-8')
+        else:
+            self.metadata, self._raw_content = \
+                extract_metadata_content(self.src)
+
     def reload(self):
-        self.metadata, self._raw_content = extract_metadata_content(self.src)
+        self.__load()
 
     def publish(self, publisher: Publisher) -> pathlib.Path:
         return publisher.publish_document(self)

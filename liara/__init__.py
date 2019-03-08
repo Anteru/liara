@@ -13,7 +13,7 @@ from .cache import Cache, FilesystemCache
 import logging
 
 
-__version__ = '2.0a1'
+__version__ = '2.0a2'
 
 
 def _publish(node, publisher):

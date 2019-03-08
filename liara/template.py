@@ -210,3 +210,9 @@ class SiteTemplateProxy:
             return Page(previous_node)
         else:
             return None
+
+    def get_collection(self, collection: str):
+        from .query import Query
+        # We need to turn this into a list as nodes is of type dict_values
+        # and can't be sorted/reversed otherwise
+        return Query(list(self.__site.get_collection(collection).nodes))

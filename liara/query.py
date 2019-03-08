@@ -63,12 +63,14 @@ class Query(Iterable[Node]):
     __nodes: List[Node]
     __sorters: List[Sorter]
     __limit: int
+    __reversed: bool
 
     def __init__(self, nodes):
         self.__nodes = nodes
         self.__limit = -1
         self.__filters = []
         self.__sorters = []
+        self.__reversed = False
 
     def limit(self, limit) -> 'Query':
         self.__limit = limit
@@ -93,6 +95,10 @@ class Query(Iterable[Node]):
         self.__sorters.append(MetadataSorter(tag, reverse, case_sensitive))
         return self
 
+    def reversed(self) -> 'Query':
+        self.__reversed = True
+        return self
+
     def __iter__(self) -> Iterator[Page]:
         result = self.__nodes
         for f in self.__filters:
@@ -101,6 +107,9 @@ class Query(Iterable[Node]):
         if self.__sorters:
             for s in self.__sorters:
                 result = sorted(result, key=s.get_key, reverse=s.reverse)
+
+        if self.__reversed:
+            result = reversed(result)
 
         if self.__limit > 0:
             for i, e in enumerate(result):

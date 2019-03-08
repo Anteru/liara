@@ -35,7 +35,8 @@ def create_default_configuration() -> Dict[str, Any]:
             'static': 'static_routes.yaml'
         },
         'base_url': 'http://localhost:8000',
-        'collections': {}
+        'collections': {},
+        'relaxed_date_parsing': False
     }
 
 
@@ -250,6 +251,16 @@ class Liara:
 
         content_root = pathlib.Path(configuration['content_directory'])
         self.__discover_content(self.__site, content_root)
+
+        if configuration['relaxed_date_parsing']:
+            import dateparser
+            for document in self.__site.documents:
+                if 'date' in document.metadata:
+                    date = document.metadata['date']
+                    if isinstance(date, str):
+                        self.__log.debug("String date found in "
+                                         f"'{document.path}', trying to fix")
+                        document.metadata['date'] = dateparser.parse(date)
 
         static_root = pathlib.Path(configuration['static_directory'])
         self.__discover_static(self.__site, static_root)

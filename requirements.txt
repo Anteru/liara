@@ -10,3 +10,4 @@ treelib==1.5.3
 pymdown-extensions
 Pygments
 toml==0.10
+dateparser

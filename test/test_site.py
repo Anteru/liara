@@ -1,5 +1,6 @@
-from liara import site
+from liara import site, nodes
 from collections import namedtuple
+import pathlib
 
 item = namedtuple('item', ['metadata', 'name'])
 
@@ -49,3 +50,29 @@ def test_group_splat():
     assert items[0] in groups['a']
     assert items[1] in groups['a']
     assert items[2] in groups['a']
+
+
+class MockDocumentNode(nodes.DocumentNode):
+    def __init__(self, path, metadata):
+        nodes.Node.__init__(self)
+
+        self.kind = nodes.NodeKind.Document
+        self.metadata = metadata
+        self.path = path
+
+
+def test_content_filters():
+    s = site.Site()
+    cff = site.ContentFilterFactory()
+
+    status_filter = cff.create_filter('status')
+    s.register_content_filter(status_filter)
+
+    prvn = MockDocumentNode('/private', {'status': 'private'})
+    pubn = MockDocumentNode('/public', {})
+
+    s.add_document(pubn)
+    s.add_document(prvn)
+
+    assert len(s.nodes) == 1
+    assert '/public' in s.urls

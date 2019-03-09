@@ -7,7 +7,7 @@ from typing import (
     )
 import collections
 from .yaml import load_yaml
-from .site import Site
+from .site import Site, ContentFilterFactory
 from .nodes import DocumentNodeFactory, RedirectionNode, ResourceNodeFactory
 from .cache import Cache, FilesystemCache
 import logging
@@ -29,6 +29,9 @@ def create_default_configuration() -> Dict[str, Any]:
         'build': {
             'clean_output': True,
             'cache_directory': 'cache'
+        },
+        'content': {
+            'filters': ['date', 'status']
         },
         'template': 'templates/default.yaml',
         'routes': {
@@ -71,7 +74,7 @@ def _create_relative_path(path: pathlib.Path, root: pathlib.Path) \
 
 
 class Liara:
-    __site: Site = Site()
+    __site: Site
     __resource_node_factory: ResourceNodeFactory
     __document_node_factory: DocumentNodeFactory
     __redirections: List[RedirectionNode]
@@ -79,6 +82,7 @@ class Liara:
     __cache: Cache
 
     def __init__(self, configuration=None, *, configuration_overrides={}):
+        self.__site = Site()
         self.__redirections = []
         self.__resource_node_factory = ResourceNodeFactory()
         self.__document_node_factory = DocumentNodeFactory()
@@ -102,6 +106,15 @@ class Liara:
         cache_directory = pathlib.Path(
             self.__configuration['build.cache_directory'])
         self.__cache = FilesystemCache(cache_directory)
+
+        self.__setup_content_filters(self.__configuration['content.filters'])
+
+    def __setup_content_filters(self, filters: List[str]) -> None:
+        content_filter_factory = ContentFilterFactory()
+        for f in filters:
+            self.__site.register_content_filter(
+                content_filter_factory.create_filter(f)
+            )
 
     def __setup_template_backend(self, configuration_file: pathlib.Path):
         from .template import Jinja2TemplateRepository, MakoTemplateRepository

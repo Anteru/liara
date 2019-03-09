@@ -16,6 +16,7 @@ from typing import (
     Optional,
 )
 from .util import pairwise
+import datetime
 
 
 def _create_metadata_accessor(field_name):
@@ -151,6 +152,37 @@ class Index:
                     node.add_reference(reference)
 
 
+class ContentFilter:
+    def apply(self, node: Node) -> bool:
+        pass
+
+
+class DateContentFilter(ContentFilter):
+    def __init__(self):
+        self.__now = datetime.datetime.now()
+
+    def apply(self, node: Node) -> bool:
+        date = node.metadata.get('date', None)
+        return date is None or date <= self.__now
+
+
+class StatusFilter(ContentFilter):
+    def apply(self, node: Node) -> bool:
+        return node.metadata.get('status', '').lower() != 'private'
+
+
+class ContentFilterFactory:
+    def __init__(self):
+        self.__filters = {
+            'date': DateContentFilter,
+            'status': StatusFilter
+        }
+
+    def create_filter(self, name: str) -> ContentFilter:
+        class_ = self.__filters[name]
+        return class_()
+
+
 class Site:
     data: List[DataNode]
     indices: List[IndexNode]
@@ -162,6 +194,7 @@ class Site:
     __root = pathlib.PurePosixPath('/')
     __collections: Dict[str, Collection]
     __indices: List[Index]
+    __content_filters: List[ContentFilter]
 
     def __init__(self):
         self.data = []
@@ -173,6 +206,16 @@ class Site:
         self.__nodes = {}
         self.__collections = {}
         self.__indices = []
+        self.__content_filters = []
+
+    def register_content_filter(self, content_filter: ContentFilter):
+        self.__content_filters.append(content_filter)
+
+    def __is_content_filtered(self, node: Node) -> bool:
+        for f in self.__content_filters:
+            if not f.apply(node):
+                return True
+        return False
 
     def add_data(self, node: DataNode) -> None:
         self.data.append(node)
@@ -183,14 +226,23 @@ class Site:
         self.__register_node(node)
 
     def add_document(self, node: DocumentNode) -> None:
+        if self.__is_content_filtered(node):
+            return
+
         self.documents.append(node)
         self.__register_node(node)
 
     def add_resource(self, node: ResourceNode) -> None:
+        if self.__is_content_filtered(node):
+            return
+
         self.resources.append(node)
         self.__register_node(node)
 
     def add_static(self, node: StaticNode) -> None:
+        if self.__is_content_filtered(node):
+            return
+
         self.static.append(node)
         self.__register_node(node)
 

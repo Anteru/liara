@@ -4,10 +4,7 @@ import pathlib
 
 
 def validate_document_links(document: DocumentNode, site: Site):
-    """Validate all ``<a href="">`` and ``<img src="">`` links in a document.
-
-    This runs before templates are applied, but after content has been
-    processed."""
+    """Validate all ``<a href="">`` and ``<img src="">`` links in a document."""
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(document.content, 'lxml')
 
@@ -24,10 +21,9 @@ def validate_document_links(document: DocumentNode, site: Site):
         link = pathlib.PurePosixPath(link)
 
         # Special case handling for index.html:
-        # We try the path with index.html, as redirections need to use the full
-        # path. I.e. if there's a redirection from /foo/bar/index.html, and
-        # a link references /foo/bar, then we will find the redirection this
-        # way.
+        # The redirection table contains full paths including the trailing
+        # index.html, so if we find a link `/foo/bar/`, we also check
+        # `/foo/bar/index.html` in case a redirection is present.
         index_url = link / 'index.html'
         if index_url in site.urls:
             return

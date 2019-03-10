@@ -48,7 +48,7 @@ class HttpServer:
 
         if node is None:
             print(f'Could not find node for path: "{path}"')
-            return
+            return (None, None,)
 
         # We always regenerate the content
         if node.kind in {NodeKind.Document, NodeKind.Resource}:
@@ -82,6 +82,9 @@ class HttpServer:
                 if path not in self.server.cache:
                     node_path, cache = \
                         self.server.http_server._build_single_node(path)
+
+                    if node_path is None:
+                        return
 
                     if cache:
                         self.server.cache[path] = node_path

@@ -17,6 +17,7 @@ from typing import (
 )
 from .util import pairwise
 import datetime
+import logging
 
 
 def _create_metadata_accessor(field_name):
@@ -159,16 +160,28 @@ class ContentFilter:
 
 class DateContentFilter(ContentFilter):
     def __init__(self):
-        self.__now = datetime.datetime.now()
+        self.__utcnow = datetime.datetime.now(datetime.timezone.utc)
 
     def apply(self, node: Node) -> bool:
         date = node.metadata.get('date', None)
-        return date is None or date <= self.__now
+        if date is None:
+            return True
+
+        utcdate = date.replace(tzinfo=datetime.timezone.utc)
+        return utcdate <= self.__utcnow
+
+    @property
+    def reason(self):
+        return 'date <= now()'
 
 
 class StatusFilter(ContentFilter):
     def apply(self, node: Node) -> bool:
         return node.metadata.get('status', '').lower() != 'private'
+
+    @property
+    def reason(self):
+        return 'status set to "private"'
 
 
 class ContentFilterFactory:
@@ -207,6 +220,7 @@ class Site:
         self.__collections = {}
         self.__indices = []
         self.__content_filters = []
+        self.__log = logging.getLogger('site')
 
     def register_content_filter(self, content_filter: ContentFilter):
         self.__content_filters.append(content_filter)
@@ -214,6 +228,7 @@ class Site:
     def __is_content_filtered(self, node: Node) -> bool:
         for f in self.__content_filters:
             if not f.apply(node):
+                self.__log.info(f'Filtered node {node.path} due to {f.reason}')
                 return True
         return False
 

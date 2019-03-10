@@ -18,7 +18,7 @@ import logging
 from . import config
 
 
-__version__ = '2.0a2'
+__version__ = '2.0a3'
 
 
 def flatten_dictionary(d, sep='.', parent_key=None):

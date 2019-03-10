@@ -1,46 +1,24 @@
 import os
 import pathlib
 from typing import (
-        Dict,
         List,
-        Any,
+        Callable
     )
 import collections
 from .yaml import load_yaml
 from .site import Site, ContentFilterFactory
-from .nodes import DocumentNodeFactory, RedirectionNode, ResourceNodeFactory
+from .nodes import (
+    DocumentNodeFactory,
+    RedirectionNode,
+    ResourceNodeFactory,
+    setup_fixups,
+)
 from .cache import Cache, FilesystemCache
 import logging
+from . import config
 
 
 __version__ = '2.0a2'
-
-
-def _publish(node, publisher):
-    return node.publish(publisher)
-
-
-def create_default_configuration() -> Dict[str, Any]:
-    return {
-        'content_directory': 'content',
-        'resource_directory': 'resources',
-        'static_directory': 'static',
-        'output_directory': 'output',
-        'build': {
-            'clean_output': True,
-            'cache_directory': 'cache'
-        },
-        'content': {
-            'filters': ['date', 'status']
-        },
-        'template': 'templates/default.yaml',
-        'routes': {
-            'static': 'static_routes.yaml'
-        },
-        'base_url': 'http://localhost:8000',
-        'collections': {},
-        'relaxed_date_parsing': False
-    }
 
 
 def flatten_dictionary(d, sep='.', parent_key=None):
@@ -80,14 +58,13 @@ class Liara:
     __redirections: List[RedirectionNode]
     __log = logging.getLogger('liara')
     __cache: Cache
+    __document_post_processors = List[Callable]
 
     def __init__(self, configuration=None, *, configuration_overrides={}):
         self.__site = Site()
         self.__redirections = []
-        self.__resource_node_factory = ResourceNodeFactory()
-        self.__document_node_factory = DocumentNodeFactory()
 
-        default_configuration = create_default_configuration()
+        default_configuration = config.create_default_configuration()
         if configuration is None:
             project_configuration = {}
         elif isinstance(configuration, str):
@@ -100,6 +77,9 @@ class Liara:
             flatten_dictionary(project_configuration),
             flatten_dictionary(default_configuration))
 
+        self.__resource_node_factory = ResourceNodeFactory()
+        self.__document_node_factory = DocumentNodeFactory()
+
         template_configuration = pathlib.Path(self.__configuration['template'])
         self.__setup_template_backend(template_configuration)
 
@@ -108,6 +88,7 @@ class Liara:
         self.__cache = FilesystemCache(cache_directory)
 
         self.__setup_content_filters(self.__configuration['content.filters'])
+        setup_fixups(self.__configuration)
 
     def __setup_content_filters(self, filters: List[str]) -> None:
         content_filter_factory = ContentFilterFactory()
@@ -169,25 +150,6 @@ class Liara:
         from .nodes import DataNode, IndexNode, Node, StaticNode
 
         document_factory = self.__document_node_factory
-        configuration = self.__configuration
-
-        document_post_processors = []
-
-        def fixup_date(document):
-                import dateparser
-                if 'date' in document.metadata:
-                    date = document.metadata['date']
-                    if isinstance(date, str):
-                        self.__log.debug("String date found in "
-                                         f"'{document.path}', trying to fix")
-                        document.metadata['date'] = dateparser.parse(date)
-
-        if configuration['relaxed_date_parsing']:
-            document_post_processors.append(fixup_date)
-
-        def apply_document_post_processors(document):
-            for pp in document_post_processors:
-                pp(document)
 
         for (dirpath, _, filenames) in os.walk(content_root):
             directory = pathlib.Path(dirpath)
@@ -204,7 +166,6 @@ class Liara:
                                                           content_root)
                     node = document_factory.create_node(src.suffix,
                                                         src, relative_path)
-                    apply_document_post_processors(node)
                     site.add_document(node)
                     break
             else:
@@ -222,7 +183,6 @@ class Liara:
 
                 if src.suffix in document_factory.known_types:
                     node = document_factory.create_node(src.suffix, src, path)
-                    apply_document_post_processors(node)
                     site.add_document(node)
                     # If there's an index node, we add each document directly
                     # below it manually to the reference list

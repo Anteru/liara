@@ -11,6 +11,7 @@ from typing import (
     Optional,
     Type,
     TypeVar,
+    Callable
 )
 import re
 
@@ -138,7 +139,50 @@ def extract_metadata_content(text: str):
     return metadata, content
 
 
+def fixup_relative_links(document: 'DocumentNode'):
+    # early out if there's no relative link in here, as the parsing is
+    # very expensive
+    if "href=\"." not in document.content:
+        return
+
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(document.content, 'lxml')
+
+    def is_relative_url(s):
+        return s and s[0] == '.'
+
+    for link in soup.find_all('a', {'href': is_relative_url}):
+        target = link.attrs.get('href')
+        link.attrs['href'] = \
+            str(document.path.parent / pathlib.PurePosixPath(target))
+
+    document.content = str(soup)
+
+
+def fixup_date(document: 'DocumentNode'):
+    import dateparser
+    if 'date' in document.metadata:
+        date = document.metadata['date']
+        if isinstance(date, str):
+            document.metadata['date'] = dateparser.parse(date)
+
+
 class DocumentNode(Node):
+    # These functions are called right after the document has been loaded,
+    # and can be used to fixup metadata, content, etc. before it gets processed
+    # (These should be called before __init__()/reload() returns)
+    _load_fixups: List[Callable] = []
+    # These functions are called after a document has been processed
+    # (These should be called before process() returns)
+    _process_fixups: List[Callable] = [fixup_relative_links]
+
+    @classmethod
+    def setup_fixups(cls, configuration):
+        if configuration['relaxed_date_parsing']:
+            cls._load_fixups.append(fixup_date)
+        if configuration['allow_relative_links']:
+            cls._process_fixups.append(fixup_relative_links)
+
     def __init__(self, src, path, metadata_path=None):
         super().__init__()
         self.kind = NodeKind.Document
@@ -154,24 +198,13 @@ class DocumentNode(Node):
         if 'title' not in self.metadata:
             raise Exception(f"'title' missing for Document: '{self.src}'")
 
-    def _fixup_relative_links(self):
-        # early out if there's no relative link in here, as the parsing is
-        # very expensive
-        if "href=\"." not in self.content:
-            return
+    def _apply_load_fixups(self):
+        for fixup in self._load_fixups:
+            fixup(self)
 
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(self.content, 'lxml')
-
-        def is_relative_url(s):
-            return s and s[0] == '.'
-
-        for link in soup.find_all('a', {'href': is_relative_url}):
-            target = link.attrs.get('href')
-            link.attrs['href'] = \
-                str(self.path.parent / pathlib.PurePosixPath(target))
-
-        self.content = str(soup)
+    def _apply_process_fixups(self):
+        for fixup in self._process_fixups:
+            fixup(self)
 
     def __load(self):
         if self.metadata_path:
@@ -180,6 +213,8 @@ class DocumentNode(Node):
         else:
             self.metadata, self._raw_content = \
                 extract_metadata_content(self.src.read_text('utf-8'))
+
+        self._apply_load_fixups()
 
     def reload(self):
         self.__load()
@@ -191,7 +226,8 @@ class DocumentNode(Node):
 class HtmlDocumentNode(DocumentNode):
     def process(self, cache: Cache):
         self.content = self._raw_content
-        self._fixup_relative_links()
+
+        self._apply_process_fixups()
 
         return self
 
@@ -228,7 +264,8 @@ class MarkdownDocumentNode(DocumentNode):
         self.content = markdown.markdown(self._raw_content,
                                          extensions=extensions,
                                          extension_configs=extension_configs)
-        self._fixup_relative_links()
+        self._apply_process_fixups()
+
         cache.put(content_hash, self.content)
         return self
 
@@ -462,3 +499,7 @@ class ThumbnailNode(ResourceNode):
             raise Exception("Unsupported image type for thumbnails")
 
         cache.put(hash_key, bytes(self.content))
+
+
+def setup_fixups(configuration):
+    DocumentNode.setup_fixups(configuration)

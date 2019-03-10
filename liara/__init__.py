@@ -167,7 +167,27 @@ class Liara:
     def __discover_content(self, site: Site, content_root: pathlib.Path) \
             -> None:
         from .nodes import DataNode, IndexNode, Node, StaticNode
+
         document_factory = self.__document_node_factory
+        configuration = self.__configuration
+
+        document_post_processors = []
+
+        def fixup_date(document):
+                import dateparser
+                if 'date' in document.metadata:
+                    date = document.metadata['date']
+                    if isinstance(date, str):
+                        self.__log.debug("String date found in "
+                                         f"'{document.path}', trying to fix")
+                        document.metadata['date'] = dateparser.parse(date)
+
+        if configuration['relaxed_date_parsing']:
+            document_post_processors.append(fixup_date)
+
+        def apply_document_post_processors(document):
+            for pp in document_post_processors:
+                pp(document)
 
         for (dirpath, _, filenames) in os.walk(content_root):
             directory = pathlib.Path(dirpath)
@@ -184,6 +204,7 @@ class Liara:
                                                           content_root)
                     node = document_factory.create_node(src.suffix,
                                                         src, relative_path)
+                    apply_document_post_processors(node)
                     site.add_document(node)
                     break
             else:
@@ -201,6 +222,7 @@ class Liara:
 
                 if src.suffix in document_factory.known_types:
                     node = document_factory.create_node(src.suffix, src, path)
+                    apply_document_post_processors(node)
                     site.add_document(node)
                     # If there's an index node, we add each document directly
                     # below it manually to the reference list
@@ -264,16 +286,6 @@ class Liara:
 
         content_root = pathlib.Path(configuration['content_directory'])
         self.__discover_content(self.__site, content_root)
-
-        if configuration['relaxed_date_parsing']:
-            import dateparser
-            for document in self.__site.documents:
-                if 'date' in document.metadata:
-                    date = document.metadata['date']
-                    if isinstance(date, str):
-                        self.__log.debug("String date found in "
-                                         f"'{document.path}', trying to fix")
-                        document.metadata['date'] = dateparser.parse(date)
 
         static_root = pathlib.Path(configuration['static_directory'])
         self.__discover_static(self.__site, static_root)

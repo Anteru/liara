@@ -1,6 +1,7 @@
 import argparse
 import cProfile
-from . import Liara, create_default_configuration, __version__
+from . import Liara, __version__
+from .config import create_default_configuration
 from .yaml import dump_yaml
 import logging
 import os
@@ -11,6 +12,7 @@ def cli():
 
     parser.add_argument('--config', default='config.yaml')
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--debug', action='store_true')
     parser.add_argument('--version', action='version',
                         version=f'%(prog)s {__version__}')
 
@@ -60,7 +62,10 @@ def cli():
 
     args = parser.parse_args()
 
-    if args.verbose:
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s %(name)s %(message)s')
+    elif args.verbose:
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(name)s %(message)s')
     else:

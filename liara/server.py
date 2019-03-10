@@ -7,13 +7,14 @@ from .template import TemplateRepository
 from .publish import TemplatePublisher
 from .cache import FilesystemCache
 import logging
+import webbrowser
 
 
 class HttpServer:
     __log = logging.getLogger('liara.HttpServer')
 
     def __init__(self, site: Site, template_repository: TemplateRepository,
-                 configuration):
+                 configuration, *, open_browser=True):
         self.__site = site
         self.__template_repository = template_repository
         self.__configuration = configuration
@@ -24,6 +25,7 @@ class HttpServer:
             self.__configuration['output_directory'])
         self.__publisher = TemplatePublisher(output_path, self.__site,
                                              self.__template_repository)
+        self.__open_browser = open_browser
 
     def _reload_template_paths(self):
         """Reload the template configuration.
@@ -104,4 +106,6 @@ class HttpServer:
         server.log = self.__log
         server.cache = {}
         print('Listening on http://127.0.0.1:8080')
+        if self.__open_browser:
+            webbrowser.open('http://127.0.0.1:8080')
         server.serve_forever()

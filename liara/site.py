@@ -115,13 +115,13 @@ def _group_recursive(iterable, group_keys: List[str]):
 
 class Index:
     def __init__(self, site, collection: Collection,
-                 path: str, group_by=[], **kwargs):
+                 path: str, group_by=[], *,
+                 create_top_level_index=False):
         nodes = collection.nodes
         self.__groups = _group_recursive(nodes, group_by)
         self.__site = site
         self.__path = path
-        self.__create_top_level_index = kwargs.get('create_top_level_index',
-                                                   False)
+        self.__create_top_level_index = create_top_level_index
 
     def create_nodes(self, site):
         self._create_nodes_recursive(site, self.__path,

@@ -25,6 +25,8 @@ def cli():
 
     validate_links_cmd = subparsers.add_parser('validate-links',
                                                help='Validate links')
+    validate_links_cmd.add_argument('--type', choices=['external', 'internal'],
+                                    default='internal')
     validate_links_cmd.set_defaults(func=validate_links)
 
     find_by_tag_cmd = subparsers.add_parser('find-by-tag',
@@ -93,14 +95,30 @@ def build(options):
 def validate_links(options):
     """Validate links."""
     from .cache import MemoryCache
-    from .actions import validate_document_links
+    from .actions import (
+        validate_internal_links,
+        validate_external_links,
+        gather_links,
+        LinkType
+    )
     liara = _create_liara(options)
     site = liara.discover_content()
     cache = MemoryCache()
 
     for document in site.documents:
         document.process(cache)
-        validate_document_links(document, site)
+
+    if options.type == 'internal':
+        link_type = LinkType.Internal
+    elif options.type == 'external':
+        link_type = LinkType.External
+
+    links = gather_links(site.documents, link_type)
+
+    if options.type == 'internal':
+        validate_internal_links(links, site)
+    elif options.type == 'external':
+        validate_external_links(links)
 
 
 def list_tags(options):

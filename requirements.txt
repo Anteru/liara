@@ -11,3 +11,4 @@ pymdown-extensions
 Pygments
 toml==0.10
 dateparser
+requests

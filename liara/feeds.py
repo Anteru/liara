@@ -48,7 +48,8 @@ class RSSFeedNode(FeedNode):
                 E.title(item.metadata['title']),
                 E.link(meta['base_url'] + str(item.path)),
                 E.pubDate(email.utils.format_datetime(item.metadata['date'])),
-                E.guid(meta['base_url'] + str(item.path))
+                E.guid(meta['base_url'] + str(item.path)),
+                E.description(item.content)
             )
             c.append(e)
         r.append(c)
@@ -86,7 +87,8 @@ class JsonFeedNode(FeedNode):
                 'id': meta['base_url'] + str(item.path),
                 'title': item.metadata['title'],
                 'date_published': item.metadata['date'].isoformat('T'),
-                'url': meta['base_url'] + str(item.path)
+                'url': meta['base_url'] + str(item.path),
+                'content_html': item.content
             })
 
         result['items'] = result_items

@@ -51,7 +51,10 @@ class DefaultPublisher(Publisher):
         import os
         file_path = pathlib.Path(str(self._output_path) + str(generated.path))
         os.makedirs(file_path.parent, exist_ok=True)
-        file_path.write_text(generated.content, encoding='utf-8')
+        if isinstance(generated.content, bytes):
+            file_path.write_bytes(generated.content)
+        else:
+            file_path.write_text(generated.content, encoding='utf-8')
         return file_path
 
     def publish_static(self, static: StaticNode):

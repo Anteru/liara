@@ -1,5 +1,5 @@
 from .yaml import dump_yaml
-
+from .config import create_default_metadata
 
 __TEMPLATES = {
     'page.jinja2': """
@@ -262,6 +262,7 @@ __DEFAULT_INDICES = [
 
 def generate_configs():
     dump_yaml(__DEFAULT_CONFIG, open('config.yaml', 'w'))
+    dump_yaml(create_default_metadata(), open('metadata.yaml', 'w'))
     dump_yaml(__DEFAULT_COLLECTIONS, open('collections.yaml', 'w'))
     dump_yaml(__DEFAULT_INDICES, open('indices.yaml', 'w'))
 

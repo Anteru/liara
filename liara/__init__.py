@@ -1,8 +1,10 @@
 import os
 import pathlib
 from typing import (
+        Any,
+        Dict,
         List,
-        Callable
+        Callable,
     )
 import collections
 from .yaml import load_yaml
@@ -59,6 +61,7 @@ class Liara:
     __log = logging.getLogger('liara')
     __cache: Cache
     __document_post_processors = List[Callable]
+    __metadata: Dict[str, Any]
 
     def __init__(self, configuration=None, *, configuration_overrides={}):
         self.__site = Site()
@@ -240,9 +243,39 @@ class Liara:
                     node = resource_factory.create_node(src.suffix, src, path)
                 site.add_resource(node)
 
+    def __discover_feeds(self, site: Site, feeds: pathlib.Path) -> None:
+        from .feeds import JsonFeedNode, RSSFeedNode
+
+        if not feeds.exists():
+            return
+
+        for key, options in load_yaml(feeds.open()).items():
+            path = pathlib.PurePosixPath(options['path'])
+            del options['path']
+
+            if key == 'rss':
+                feed = RSSFeedNode(path, site, self.__metadata,
+                                   **options)
+                site.add_generated(feed)
+            elif key == 'json':
+                feed = JsonFeedNode(path, site, self.__metadata,
+                                    **options)
+                site.add_generated(feed)
+            else:
+                self.__log.warn(f'Unknown feed type: "{key}", ignored')
+
+    def __discover_metadata(self, metadata: pathlib.Path) -> None:
+        if not metadata.exists():
+            return
+
+        self.__metadata = load_yaml(metadata.open())
+
     def discover_content(self) -> Site:
         self.__log.info('Discovering content ...')
         configuration = self.__configuration
+
+        metadata = pathlib.Path(configuration['metadata'])
+        self.__discover_metadata(metadata)
 
         content_root = pathlib.Path(configuration['content_directory'])
         self.__discover_content(self.__site, content_root)
@@ -256,6 +289,10 @@ class Liara:
 
         static_routes = pathlib.Path(configuration['routes.static'])
         self.__discover_redirections(self.__site, static_routes)
+
+        # Feeds use metadata, so this must come after self.__discover_metadata
+        feeds = pathlib.Path(configuration['feeds'])
+        self.__discover_feeds(self.__site, feeds)
 
         if self.__thumbnail_definition:
             self.__site.create_thumbnails(self.__thumbnail_definition)
@@ -334,6 +371,7 @@ class Liara:
 
         if site.generated:
             for generated in site.generated:
+                generated.generate()
                 generated.publish(publisher)
             self.__log.info(f'Published {len(site.generated)} '
                             'generated file(s)')

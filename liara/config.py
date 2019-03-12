@@ -24,5 +24,19 @@ def create_default_configuration() -> Dict[str, Any]:
         'base_url': 'http://localhost:8000',
         'collections': {},
         'relaxed_date_parsing': False,
-        'allow_relative_links': True
+        'allow_relative_links': True,
+        'feeds': 'feeds.yaml',
+        'metadata': 'metadata.yaml'
+    }
+
+
+def create_default_metadata() -> Dict[str, Any]:
+    return {
+        'title': 'Default title',
+        'base_url': 'https://example.org',
+        'description': 'Default description',
+        'language': 'en-US',
+        'copyright': 'Licensed under the '
+                     '<a href="http://creativecommons.org/licenses/by/4.0/"> '
+                     'Creative Commons Attribution 4.0 International License.'
     }

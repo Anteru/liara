@@ -185,21 +185,11 @@ def fixup_date_timezone(document: 'DocumentNode'):
 class DocumentNode(Node):
     # These functions are called right after the document has been loaded,
     # and can be used to fixup metadata, content, etc. before it gets processed
-    # (These should be called before __init__()/reload() returns)
-    _load_fixups: List[Callable] = [fixup_date_timezone]
+    # (These should be called before load()/reload() returns)
+    _load_fixups: List[Callable]
     # These functions are called after a document has been processed
     # (These should be called before process() returns)
-    _process_fixups: List[Callable] = []
-
-    @classmethod
-    def setup_fixups(cls, configuration):
-        if configuration['relaxed_date_parsing']:
-            # This is tricky, as fixup_date_timezone depends on this running
-            # first. We thus prepend this before any other fixup and hope this
-            # is the only one with ordering issues.
-            cls._load_fixups.insert(0, fixup_date)
-        if configuration['allow_relative_links']:
-            cls._process_fixups.append(fixup_relative_links)
+    _process_fixups: List[Callable]
 
     def __init__(self, src, path, metadata_path=None):
         super().__init__()
@@ -208,6 +198,14 @@ class DocumentNode(Node):
         self.path = path
         self.metadata_path = metadata_path
         self.content = None
+        self._load_fixups = []
+        self._process_fixups = []
+
+    def set_fixups(self, *, load_fixups, process_fixups) -> None:
+        self._load_fixups = load_fixups
+        self._process_fixups = process_fixups
+    
+    def load(self):
         self.__load()
 
     def validate_metadata(self):
@@ -420,9 +418,12 @@ class NodeFactory(Generic[T]):
         for suffix in suffixes:
             self.__known_types[suffix] = node_type
 
+    def _create_node(self, cls, src, path, metadata_path) -> T:
+        return cls(src, path, metadata_path)
+
     def create_node(self, suffix, src, path, metadata_path=None) -> T:
-        class_ = self.__known_types[suffix]
-        return class_(src, path, metadata_path)
+        cls = self.__known_types[suffix]
+        return self._create_node(cls, src, path, metadata_path)
 
 
 class ResourceNodeFactory(NodeFactory[ResourceNode]):
@@ -432,10 +433,32 @@ class ResourceNodeFactory(NodeFactory[ResourceNode]):
 
 
 class DocumentNodeFactory(NodeFactory[DocumentNode]):
-    def __init__(self):
+    def __setup_fixups(self, configuration):
+        if configuration['relaxed_date_parsing']:
+            # This is tricky, as fixup_date_timezone depends on this running
+            # first. We thus prepend this before any other fixup and hope this
+            # is the only one with ordering issues.
+            self.__load_fixups.insert(0, fixup_date)
+        if configuration['allow_relative_links']:
+            self.__process_fixups.append(fixup_relative_links)
+
+    def __init__(self, configuration):
         super().__init__()
+        self.__load_fixups = [fixup_date_timezone]
+        self.__process_fixups = []
+
+        self.__setup_fixups(configuration)
+
         self.register_type(['.md'], MarkdownDocumentNode)
         self.register_type(['.html'], HtmlDocumentNode)
+
+    def _create_node(self, cls, src, path, metadata_path=None):
+        node = cls(src, path, metadata_path)
+        node.set_fixups(
+            load_fixups=self.__load_fixups,
+            process_fixups=self.__process_fixups)
+        node.load()
+        return node
 
 
 class StaticNode(Node):
@@ -516,7 +539,3 @@ class ThumbnailNode(ResourceNode):
             raise Exception("Unsupported image type for thumbnails")
 
         cache.put(hash_key, bytes(self.content))
-
-
-def setup_fixups(configuration):
-    DocumentNode.setup_fixups(configuration)

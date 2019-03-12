@@ -13,7 +13,6 @@ from .nodes import (
     DocumentNodeFactory,
     RedirectionNode,
     ResourceNodeFactory,
-    setup_fixups,
 )
 from .cache import Cache, FilesystemCache
 import logging
@@ -81,7 +80,9 @@ class Liara:
             flatten_dictionary(default_configuration))
 
         self.__resource_node_factory = ResourceNodeFactory()
-        self.__document_node_factory = DocumentNodeFactory()
+        self.__document_node_factory = DocumentNodeFactory(
+            self.__configuration
+        )
 
         template_configuration = pathlib.Path(self.__configuration['template'])
         self.__setup_template_backend(template_configuration)
@@ -91,7 +92,6 @@ class Liara:
         self.__cache = FilesystemCache(cache_directory)
 
         self.__setup_content_filters(self.__configuration['content.filters'])
-        setup_fixups(self.__configuration)
 
     def __setup_content_filters(self, filters: List[str]) -> None:
         content_filter_factory = ContentFilterFactory()

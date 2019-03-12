@@ -194,7 +194,10 @@ class DocumentNode(Node):
     @classmethod
     def setup_fixups(cls, configuration):
         if configuration['relaxed_date_parsing']:
-            cls._load_fixups.append(fixup_date)
+            # This is tricky, as fixup_date_timezone depends on this running
+            # first. We thus prepend this before any other fixup and hope this
+            # is the only one with ordering issues.
+            cls._load_fixups.insert(0, fixup_date)
         if configuration['allow_relative_links']:
             cls._process_fixups.append(fixup_relative_links)
 

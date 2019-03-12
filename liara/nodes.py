@@ -140,6 +140,8 @@ def extract_metadata_content(text: str):
 
 
 def fixup_relative_links(document: 'DocumentNode'):
+    '''Replace relative links in the document with links relative to the
+    site root.'''
     # early out if there's no relative link in here, as the parsing is
     # very expensive
     if "href=\"." not in document.content:
@@ -160,6 +162,8 @@ def fixup_relative_links(document: 'DocumentNode'):
 
 
 def fixup_date(document: 'DocumentNode'):
+    '''If the date in the document is a string, try to parse it to produce a
+    datetime object.'''
     import dateparser
     if 'date' in document.metadata:
         date = document.metadata['date']
@@ -167,14 +171,25 @@ def fixup_date(document: 'DocumentNode'):
             document.metadata['date'] = dateparser.parse(date)
 
 
+def fixup_date_timezone(document: 'DocumentNode'):
+    '''If the date in the document has no timezone info, set it to the local
+    timezone.'''
+    import tzlocal
+    if 'date' in document.metadata:
+        date = document.metadata['date']
+        if date.tzinfo is None:
+            tz = tzlocal.get_localzone()
+            document.metadata['date'] = tz.localize(date)
+
+
 class DocumentNode(Node):
     # These functions are called right after the document has been loaded,
     # and can be used to fixup metadata, content, etc. before it gets processed
     # (These should be called before __init__()/reload() returns)
-    _load_fixups: List[Callable] = []
+    _load_fixups: List[Callable] = [fixup_date_timezone]
     # These functions are called after a document has been processed
     # (These should be called before process() returns)
-    _process_fixups: List[Callable] = [fixup_relative_links]
+    _process_fixups: List[Callable] = []
 
     @classmethod
     def setup_fixups(cls, configuration):
@@ -340,7 +355,6 @@ class RedirectionNode(GeneratedNode):
         self.content = text
 
     def publish(self, publisher: Publisher):
-        self.generate()
         publisher.publish_generated(self)
 
 

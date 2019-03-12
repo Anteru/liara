@@ -220,7 +220,7 @@ class Site:
         self.__collections = {}
         self.__indices = []
         self.__content_filters = []
-        self.__log = logging.getLogger('site')
+        self.__log = logging.getLogger('liara.site')
 
     def register_content_filter(self, content_filter: ContentFilter):
         self.__content_filters.append(content_filter)

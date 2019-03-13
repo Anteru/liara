@@ -171,15 +171,18 @@ def fixup_date(document: 'DocumentNode'):
             document.metadata['date'] = dateparser.parse(date)
 
 
-def fixup_date_timezone(document: 'DocumentNode'):
-    '''If the date in the document has no timezone info, set it to the local
-    timezone.'''
-    import tzlocal
-    if 'date' in document.metadata:
-        date = document.metadata['date']
-        if date.tzinfo is None:
-            tz = tzlocal.get_localzone()
-            document.metadata['date'] = tz.localize(date)
+class FixupDateTimezone:
+    def __init__(self):
+        import tzlocal
+        self.__tz = tzlocal.get_localzone()
+
+    def __call__(self, document: 'DocumentNode'):
+        '''If the date in the document has no timezone info, set it to the local
+        timezone.'''
+        if 'date' in document.metadata:
+            date = document.metadata['date']
+            if date.tzinfo is None:
+                document.metadata['date'] = self.__tz.localize(date)
 
 
 class DocumentNode(Node):
@@ -204,7 +207,7 @@ class DocumentNode(Node):
     def set_fixups(self, *, load_fixups, process_fixups) -> None:
         self._load_fixups = load_fixups
         self._process_fixups = process_fixups
-    
+
     def load(self):
         self.__load()
 
@@ -444,7 +447,7 @@ class DocumentNodeFactory(NodeFactory[DocumentNode]):
 
     def __init__(self, configuration):
         super().__init__()
-        self.__load_fixups = [fixup_date_timezone]
+        self.__load_fixups = [FixupDateTimezone()]
         self.__process_fixups = []
 
         self.__setup_fixups(configuration)

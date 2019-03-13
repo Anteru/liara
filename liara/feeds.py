@@ -20,7 +20,7 @@ class RSSFeedNode(FeedNode):
         self.__metadata = metadata
 
     def generate(self):
-        from lxml.builder import E
+        from lxml.builder import ElementMaker
         from lxml import etree
         import tzlocal
 
@@ -30,9 +30,16 @@ class RSSFeedNode(FeedNode):
         meta = self.__metadata
         tz = tzlocal.get_localzone()
 
+        E = ElementMaker(nsmap={
+            'atom': "http://www.w3.org/2005/Atom"
+        })
+        A = ElementMaker(namespace='http://www.w3.org/2005/Atom')
         r = E.rss(version='2.0')
 
         c = E.channel(
+            # See: http://www.rssboard.org/rss-profile#namespace-elements-atom
+            A.link(href=meta['base_url'] + str(self.path), rel='self',
+                   type='application/rss+xml'),
             E.title(meta['title']),
             E.link(meta['base_url']),
             E.description(meta['description']),

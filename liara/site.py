@@ -160,15 +160,18 @@ class ContentFilter:
 
 class DateContentFilter(ContentFilter):
     def __init__(self):
-        self.__utcnow = datetime.datetime.now(datetime.timezone.utc)
+        import tzlocal
+        self.__tz = tzlocal.get_localzone()
+        self.__now = self.__tz.localize(datetime.datetime.now())
 
     def apply(self, node: Node) -> bool:
         date = node.metadata.get('date', None)
         if date is None:
             return True
 
-        utcdate = date.replace(tzinfo=datetime.timezone.utc)
-        return utcdate <= self.__utcnow
+        if date.tzinfo is None:
+            date = self.__tz.localize(date)
+        return date <= self.__now
 
     @property
     def reason(self):

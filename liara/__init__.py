@@ -244,7 +244,7 @@ class Liara:
                 site.add_resource(node)
 
     def __discover_feeds(self, site: Site, feeds: pathlib.Path) -> None:
-        from .feeds import JsonFeedNode, RSSFeedNode
+        from .feeds import JsonFeedNode, RSSFeedNode, SitemapXmlFeedNode
 
         if not feeds.exists():
             return
@@ -260,6 +260,10 @@ class Liara:
             elif key == 'json':
                 feed = JsonFeedNode(path, site, self.__metadata,
                                     **options)
+                site.add_generated(feed)
+            elif key == 'sitemap':
+                feed = SitemapXmlFeedNode(path, site, self.__metadata,
+                                          **options)
                 site.add_generated(feed)
             else:
                 self.__log.warn(f'Unknown feed type: "{key}", ignored')

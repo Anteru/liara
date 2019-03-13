@@ -1,4 +1,4 @@
-from .nodes import GeneratedNode
+from .nodes import GeneratedNode, NodeKind
 from .site import Site
 from . import __version__
 import datetime
@@ -100,3 +100,42 @@ class JsonFeedNode(FeedNode):
 
         result['items'] = result_items
         self.content = json.dumps(result)
+
+
+class SitemapXmlFeedNode(FeedNode):
+    def __init__(self, path, site: Site, metadata):
+        super().__init__(path)
+        self.__site = site
+        self.__metadata = metadata
+
+    def generate(self):
+        from lxml.builder import ElementMaker
+        from lxml import etree
+
+        E = ElementMaker(
+            namespace='http://www.sitemaps.org/schemas/sitemap/0.9',
+            nsmap={
+                None: 'http://www.sitemaps.org/schemas/sitemap/0.9'
+            })
+
+        metadata = self.__metadata
+        now = datetime.datetime.now()
+
+        urlset = E.urlset()
+        for node in self.__site.nodes:
+            if node.kind not in {NodeKind.Document, NodeKind.Index}:
+                continue
+
+            url = E.url()
+            url.append(E.loc(metadata['base_url'] + str(node.path)))
+
+            if 'date' in node.metadata:
+                url.append(E.lastmod(node.metadata['date'].isoformat()))
+            else:
+                url.append(E.lastmod(now.isoformat()))
+            if node.kind == NodeKind.Index:
+                # This is machine generated, so reduce priority
+                url.append(E.priority('0'))
+            urlset.append(url)
+        self.content = etree.tostring(urlset)
+

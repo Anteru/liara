@@ -64,6 +64,7 @@ class Query(Iterable[Node]):
     __sorters: List[Sorter]
     __limit: int
     __reversed: bool
+    __result: List[Page]
 
     def __init__(self, nodes):
         self.__nodes = nodes
@@ -71,6 +72,7 @@ class Query(Iterable[Node]):
         self.__filters = []
         self.__sorters = []
         self.__reversed = False
+        self.__result = None
 
     def limit(self, limit) -> 'Query':
         self.__limit = limit
@@ -99,7 +101,11 @@ class Query(Iterable[Node]):
         self.__reversed = True
         return self
 
-    def __iter__(self) -> Iterator[Page]:
+    def __execute(self):
+        if self.__result is not None:
+            return
+
+        self.__result = []
         result = self.__nodes
         for f in self.__filters:
             result = filter(lambda x: f.match(x), result)
@@ -115,17 +121,15 @@ class Query(Iterable[Node]):
             for i, e in enumerate(result):
                 if i >= self.__limit:
                     break
-                yield Page(e)
+                self.__result.append(Page(e))
         else:
             for e in result:
-                yield Page(e)
+                self.__result.append(Page(e))
+
+    def __iter__(self) -> Iterator[Page]:
+        self.__execute()
+        return iter(self.__result)
 
     def __len__(self) -> int:
-        i = 0
-        it = iter(self)
-        try:
-            while True:
-                next(it)
-                i += 1
-        except StopIteration:
-            return i
+        self.__execute()
+        return len(self.__result)

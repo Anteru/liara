@@ -11,6 +11,7 @@ class FeedNode(GeneratedNode):
 
 
 class RSSFeedNode(FeedNode):
+    """A `RSS 2.0 <http://www.rssboard.org/rss-specification>`_ based feed."""
     def __init__(self, path, site: Site,
                  *, collection='', limit=10):
         super().__init__(path)
@@ -64,6 +65,7 @@ class RSSFeedNode(FeedNode):
 
 
 class JsonFeedNode(FeedNode):
+    """A `JSONFeed <https://jsonfeed.org/>`_ based feed."""
     def __init__(self, path, site: Site,
                  *, collection='', limit=10):
         super().__init__(path)
@@ -101,6 +103,7 @@ class JsonFeedNode(FeedNode):
 
 
 class SitemapXmlFeedNode(FeedNode):
+    """A `Sitemap 0.90 <https://www.sitemaps.org/>`_ based feed."""
     def __init__(self, path, site: Site):
         super().__init__(path)
         self.__site = site

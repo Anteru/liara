@@ -3,10 +3,16 @@ from markdown.treeprocessors import Treeprocessor
 
 
 class HeadingLevelFixupProcessor(Treeprocessor):
-    def run(self, root):
-        return self.demote_header(root)
+    """This processor demotes headings by one level.
 
-    def demote_header(self, element):
+    By default, Markdown starts headings with ``<h1>``, but in general the
+    title will be provided by a template. This processor replaces each heading
+    with the next-lower heading, and adds a ``demoted`` class.
+    """
+    def run(self, root):
+        return self._demote_header(root)
+
+    def _demote_header(self, element):
         if element.tag == 'h1':
             element.tag = 'h2'
             element.set('class', 'demoted')
@@ -31,6 +37,8 @@ class HeadingLevelFixupProcessor(Treeprocessor):
 
 
 class HeadingLevelFixupExtension(Extension):
+    """Markdown extension for the :py:class:`HeadingLevelFixupProcessor`.
+    """
     def extendMarkdown(self, md):
         md.treeprocessors.register(HeadingLevelFixupProcessor(md),
                                    'heading-level-fixup',

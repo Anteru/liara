@@ -1,6 +1,7 @@
 from liara.nodes import extract_metadata_content
 import pytest
 
+
 def test_extract_toml_metadata():
     document = """+++
 a = "b"

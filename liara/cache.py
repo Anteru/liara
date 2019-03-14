@@ -6,17 +6,42 @@ import os
 
 
 class Cache:
+    """A key-value cache."""
     def put(self, key: bytes, value: object) -> bool:
+        """Put a value into the cache using the provided key.
+
+        :param key: The key under which ``value`` will be stored.
+        :param value: A pickable Python object to be stored.
+        :return: ``True`` if the value was added to the cache, ``False`` if
+                 it was already cached.
+        """
         return True
 
     def contains(self, key: bytes) -> bool:
+        """Check if an object is stored.
+
+        :param key: The key to check.
+        :return: ``True`` if such an object exists, else ``False``.
+        """
         return False
 
     def get(self, key: bytes) -> object:
+        """Get a stored object.
+
+        :param key: The object key.
+        :return: An object if one exists. Otherwise, the behavior is undefined.
+                 Use :py:meth:`contains` to check if an object exists.
+        """
         return None
 
 
 class FilesystemCache(Cache):
+    """A :py:class:`Cache` implementation which uses the filesystem to cache
+    data.
+
+    This cache tries to load a previously generated index. Use
+    :py:meth:`persist` to write the cache index to disk.
+    """
     __index: Dict[bytes, pathlib.Path]
 
     def __init__(self, path: pathlib.Path):
@@ -32,6 +57,12 @@ class FilesystemCache(Cache):
                 pass
 
     def persist(self):
+        """Persists this cache to disk.
+
+        This function should be called after the cache has been populated. On
+        the next run, the constructor will then pick up the index and return
+        cached data.
+        """
         pickle.dump(self.__index, self.__index_file.open('wb'))
 
     def put(self, key: bytes, value: object) -> bool:
@@ -53,6 +84,10 @@ class FilesystemCache(Cache):
 
 
 class MemoryCache(Cache):
+    """An in-memory :py:class:`Cache` implementation.
+
+    This cache stores all objects in-memory.
+    """
     __index: Dict[bytes, object]
 
     def __init__(self):

@@ -5,6 +5,7 @@ from typing import (
 
 
 def create_default_configuration() -> Dict[str, Any]:
+    """Creates a dictionary with the default configuration."""
     return {
         'content_directory': 'content',
         'resource_directory': 'resources',
@@ -31,6 +32,7 @@ def create_default_configuration() -> Dict[str, Any]:
 
 
 def create_default_metadata() -> Dict[str, Any]:
+    """Creates a dictionary with the default metadata."""
     return {
         'title': 'Default title',
         'base_url': 'https://example.org',

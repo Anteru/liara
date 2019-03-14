@@ -145,6 +145,13 @@ class Jinja2TemplateRepository(TemplateRepository):
 
 
 class Page:
+    """A wrapper around :py:class:`DocumentNode` and :py:class:`IndexNode` for
+    use inside templates.
+
+    Templates only get applied to those node types, and the :py:class:`Page`
+    class provides convenience accessors while hiding the underlying node from
+    template code.
+    """
     def __init__(self, node):
         self.__node = node
 
@@ -179,13 +186,14 @@ class Page:
 
 
 class SiteTemplateProxy:
+    """A wrapper around :py:class:`Site` for use inside templates."""
     __site: Site
 
     def __init__(self, site: Site):
         self.__site = site
         self.__data = {}
         for data in self.__site.data:
-            self.__data.update(data.metadata)
+            self.__data.update(data.content)
 
     @property
     def data(self):

@@ -8,6 +8,7 @@ import os
 
 
 def cli():
+    """Entry point for the command line."""
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--config', default='config.yaml')
@@ -171,7 +172,12 @@ def quickstart(options):
 
 
 def list_content(options):
-    """List all content."""
+    """List all content.
+
+    If ``options.format`` is set to ``tree``, this will print the content as a
+    tree. If ``options.format`` is set to ``list``, this will produce a
+    flat list instead.
+    """
     import treelib
     liara = _create_liara(options)
     content = liara.discover_content()

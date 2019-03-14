@@ -13,26 +13,29 @@ from .nodes import (
     ResourceNodeFactory,
 )
 from .cache import Cache, FilesystemCache
+from .util import flatten_dictionary
 import logging
 from . import config
 
 
 __version__ = '2.0a5'
-
-
-def flatten_dictionary(d, sep='.', parent_key=None):
-    """Flatten a nested dictionary. This uses the separator to combine keys
-    together, so a dictionary access like ['a']['b'] with a separator '.' turns
-    into 'a.b'."""
-    items = []
-    for k, v in d.items():
-        new_key = parent_key + sep + k if parent_key else k
-        if isinstance(v, collections.Mapping):
-            items.extend(flatten_dictionary(v, sep=sep,
-                                            parent_key=new_key).items())
-        else:
-            items.append((new_key, v,))
-    return dict(items)
+__all__ = [
+    'actions',
+    'cache',
+    'cmdline',
+    'config',
+    'feeds',
+    'md',
+    'nodes',
+    'publish',
+    'query',
+    'quickstart',
+    'server',
+    'site',
+    'template',
+    'util',
+    'yaml'
+]
 
 
 __ROOT_PATH = pathlib.PurePosixPath('/')

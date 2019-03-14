@@ -20,19 +20,27 @@ T = TypeVar('T')
 
 
 class Publisher:
+    """A publisher produces the final output files, applying templates etc. as
+    needed.
+    """
     def publish_document(self, document: 'DocumentNode'):
+        """Publish a document node."""
         pass
 
     def publish_index(self, index: 'IndexNode'):
+        """Publish an index node."""
         pass
 
     def publish_resource(self, resource: 'ResourceNode'):
+        """Publish a resource node."""
         pass
 
     def publish_static(self, static: 'StaticNode'):
+        """Publish a static node."""
         pass
 
     def publish_generated(self, generated: 'GeneratedNode'):
+        """Publish a generated node."""
         pass
 
 
@@ -41,26 +49,38 @@ class NodeKind(Enum):
     Index = auto()
     Document = auto()
     Data = auto()
-    # Static nodes will not get any processing applied. Metadata can be
-    # generated (for instance, image size)
     Static = auto()
-    # Nodes can be automatically generated, for instance for redirections
     Generated = auto()
 
 
 class Node:
     kind: NodeKind
-    # Source file path
+    """The node kind, must be set in the constructor."""
     src: pathlib.Path
-    # Relative path
+    """The full path to the source file.
+
+    This is an OS specific path object."""
+
     path: pathlib.PurePosixPath
+    """The output path, relative to the page root.
+
+    All of these paths *must* start with ``/``.
+    """
 
     metadata: Dict[str, Any]
+    """Metadata associated with this node."""
+
     parent: Optional['Node']
+    """The parent node, if any."""
+
     __nodes: Dict[str, 'Node']
+    """A dictionary containing all child nodes.
+
+    The key is the path to the child node, to enable fast traversal."""
 
     @property
     def children(self):
+        """A list containing all direct children of this node."""
         return self.__nodes.values()
 
     def __init__(self):
@@ -69,6 +89,12 @@ class Node:
         self.parent = None
 
     def add_child(self, child: 'Node') -> None:
+        """Add a new child to this node.
+
+        The path of the child node must be a sub-path of the current node
+        path, with exactly one component more. I.e. if the current node path is
+        ``/foo/bar``, a node with path ``/foo/bar/baz`` can be added as a
+        child, but ``/baz/`` or ``/foo/bar/boo/baz`` would be invalid."""
         assert self.path != child.path
         name = child.path.relative_to(self.path).parts[0]
         self.__nodes[name] = child
@@ -78,13 +104,25 @@ class Node:
         return f'{self.__class__.__name__}({self.path})'
 
     def select_children(self):
+        """Select all children of this node."""
         from .query import Query
         return Query(self.children)
 
     def get_child(self, name) -> Optional['Node']:
+        """Get a child of this node.
+
+        :return: The child node or ``None`` if no such child exists."""
         return self.__nodes.get(name)
 
     def get_children(self, *, recursive=False):
+        """Get all children of this node.
+
+        This function differs from :py:meth:`select_children` in two important
+        ways:
+
+        * It returns :py:class:`Node` instances, not :py:class:`Query`
+        * It can enumerate all children recursively.
+        """
         for child in self.children:
             yield child
             if recursive:
@@ -101,6 +139,19 @@ class MetadataKind(Enum):
 
 
 def extract_metadata_content(text: str):
+    """Extract metadata and content.
+
+    Metadata is stored at the beginning of the file, separated using a metadata
+    seperation marker, for instance::
+
+      +++
+      this_is_toml = True
+      +++
+
+      content
+
+    This function splits the provided text into metadata and actual content.
+    """
     meta_start, meta_end = 0, 0
     content_start, content_end = 0, 0
     metadata_kind = MetadataKind.Unknown
@@ -140,8 +191,8 @@ def extract_metadata_content(text: str):
 
 
 def fixup_relative_links(document: 'DocumentNode'):
-    '''Replace relative links in the document with links relative to the
-    site root.'''
+    """Replace relative links in the document with links relative to the
+    site root."""
     # early out if there's no relative link in here, as the parsing is
     # very expensive
     if "href=\"." not in document.content:
@@ -162,8 +213,8 @@ def fixup_relative_links(document: 'DocumentNode'):
 
 
 def fixup_date(document: 'DocumentNode'):
-    '''If the date in the document is a string, try to parse it to produce a
-    datetime object.'''
+    """If the date in the document is a string, try to parse it to produce a
+    datetime object."""
     import dateparser
     if 'date' in document.metadata:
         date = document.metadata['date']
@@ -172,6 +223,8 @@ def fixup_date(document: 'DocumentNode'):
 
 
 class FixupDateTimezone:
+    """Set the timezone of the ``metadata['date']`` field to the local timezone
+    if no timezone has been set."""
     def __init__(self):
         import tzlocal
         self.__tz = tzlocal.get_localzone()
@@ -186,13 +239,15 @@ class FixupDateTimezone:
 
 
 class DocumentNode(Node):
-    # These functions are called right after the document has been loaded,
-    # and can be used to fixup metadata, content, etc. before it gets processed
-    # (These should be called before load()/reload() returns)
     _load_fixups: List[Callable]
-    # These functions are called after a document has been processed
-    # (These should be called before process() returns)
+    """These functions are called right after the document has been loaded,
+    and can be used to fixup metadata, content, etc. before it gets processed
+    (These should be called before :py:meth:`load`/:py:meth:`reload`
+    returns.)"""
+
     _process_fixups: List[Callable]
+    """These functions are called after a document has been processed
+    (These should be called before :py:meth:`process` returns)."""
 
     def __init__(self, src, path, metadata_path=None):
         super().__init__()
@@ -205,11 +260,20 @@ class DocumentNode(Node):
         self._process_fixups = []
 
     def set_fixups(self, *, load_fixups, process_fixups) -> None:
+        """Set the fixups that should be applied to this document node.
+
+        :param load_fixups: These functions will be executed before
+                            :py:meth:`load` returns.
+        :paramm process_fixups: These functions will be executed before
+                            :py:meth:`process` returns.
+        """
         self._load_fixups = load_fixups
         self._process_fixups = process_fixups
 
     def load(self):
-        self.__load()
+        """Load the content of this node."""
+        self._load()
+        self._apply_load_fixups()
 
     def validate_metadata(self):
         if self.metadata is None:
@@ -225,7 +289,7 @@ class DocumentNode(Node):
         for fixup in self._process_fixups:
             fixup(self)
 
-    def __load(self):
+    def _load(self):
         if self.metadata_path:
             self.metadata = load_yaml(self.metadata_path.read_text())
             self._raw_content = self.src.read_text('utf-8')
@@ -233,16 +297,22 @@ class DocumentNode(Node):
             self.metadata, self._raw_content = \
                 extract_metadata_content(self.src.read_text('utf-8'))
 
+    def reload(self):
+        """Reload this node from disk.
+
+        By default, this just forwards to :py:meth:`_load`.
+        """
+        self._load()
         self._apply_load_fixups()
 
-    def reload(self):
-        self.__load()
-
     def publish(self, publisher: Publisher) -> pathlib.Path:
+        """Publish this node using the provided publisher."""
         return publisher.publish_document(self)
 
 
 class HtmlDocumentNode(DocumentNode):
+    """A node representing a Html document."""
+
     def process(self, cache: Cache):
         self.content = self._raw_content
 
@@ -252,6 +322,7 @@ class HtmlDocumentNode(DocumentNode):
 
 
 class MarkdownDocumentNode(DocumentNode):
+    """A node representing a Markdown document."""
     def process(self, cache: Cache):
         import markdown
         from .md import HeadingLevelFixupExtension
@@ -290,12 +361,15 @@ class MarkdownDocumentNode(DocumentNode):
 
 
 class DataNode(Node):
+    """A data node.
+
+    Data nodes consist of a dictionary."""
     def __init__(self, src, path):
         super().__init__()
         self.kind = NodeKind.Data
         self.src = src
         self.path = path
-        self.metadata = load_yaml(self.src.open('r'))
+        self.content = load_yaml(self.src.open('r'))
 
 
 class IndexNode(Node):
@@ -315,6 +389,7 @@ class IndexNode(Node):
         self.references.append(node)
 
     def publish(self, publisher) -> pathlib.Path:
+        """Publish this node using the provided publisher."""
         return publisher.publish_index(self)
 
 
@@ -326,7 +401,15 @@ class GeneratedNode(Node):
         self.path = path
         self.metadata = metadata
 
+    def generate(self) -> None:
+        """Generate the content of this node.
+
+        After this function has finished, ``self.content`` must be populated
+        with the generated content."""
+        pass
+
     def publish(self, publisher: Publisher):
+        """Publish this node using the provided publisher."""
         return publisher.publish_generated(self)
 
 
@@ -358,9 +441,6 @@ class RedirectionNode(GeneratedNode):
                                              self.dst.as_posix())
         self.content = text
 
-    def publish(self, publisher: Publisher):
-        publisher.publish_generated(self)
-
 
 class ResourceNode(Node):
     def __init__(self, src, path, metadata_path=None):
@@ -373,15 +453,17 @@ class ResourceNode(Node):
             self.metadata = load_yaml(open(metadata_path, 'r'))
 
     def process(self, cache: Cache) -> None:
-        """Process the content.
+        """Process the content of this node.
 
-        After this function call, self.content is populated."""
+        After this function has finished, ``self.content`` must be populated
+        with the processed content."""
         pass
 
     def reload(self) -> None:
         pass
 
     def publish(self, publisher: Publisher) -> pathlib.Path:
+        """Publish this node using the provided publisher."""
         return publisher.publish_resource(self)
 
 
@@ -486,6 +568,7 @@ class StaticNode(Node):
         return self.src.suffix in {'.jpg', '.png'}
 
     def publish(self, publisher: Publisher) -> pathlib.Path:
+        """Publish this node using the provided publisher."""
         return publisher.publish_static(self)
 
 

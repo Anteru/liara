@@ -1,8 +1,6 @@
 import os
 import pathlib
 from typing import (
-        Any,
-        Dict,
         List,
         Callable,
     )
@@ -60,7 +58,6 @@ class Liara:
     __log = logging.getLogger('liara')
     __cache: Cache
     __document_post_processors = List[Callable]
-    __metadata: Dict[str, Any]
 
     def __init__(self, configuration=None, *, configuration_overrides={}):
         self.__site = Site()
@@ -254,32 +251,29 @@ class Liara:
             del options['path']
 
             if key == 'rss':
-                feed = RSSFeedNode(path, site, self.__metadata,
-                                   **options)
+                feed = RSSFeedNode(path, site, **options)
                 site.add_generated(feed)
             elif key == 'json':
-                feed = JsonFeedNode(path, site, self.__metadata,
-                                    **options)
+                feed = JsonFeedNode(path, site, **options)
                 site.add_generated(feed)
             elif key == 'sitemap':
-                feed = SitemapXmlFeedNode(path, site, self.__metadata,
-                                          **options)
+                feed = SitemapXmlFeedNode(path, site, **options)
                 site.add_generated(feed)
             else:
                 self.__log.warn(f'Unknown feed type: "{key}", ignored')
 
-    def __discover_metadata(self, metadata: pathlib.Path) -> None:
+    def __discover_metadata(self, site: Site, metadata: pathlib.Path) -> None:
         if not metadata.exists():
             return
 
-        self.__metadata = load_yaml(metadata.open())
+        site.set_metadata(load_yaml(metadata.open()))
 
     def discover_content(self) -> Site:
         self.__log.info('Discovering content ...')
         configuration = self.__configuration
 
         metadata = pathlib.Path(configuration['metadata'])
-        self.__discover_metadata(metadata)
+        self.__discover_metadata(self.__site, metadata)
 
         content_root = pathlib.Path(configuration['content_directory'])
         self.__discover_content(self.__site, content_root)

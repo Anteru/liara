@@ -10,6 +10,7 @@ from .nodes import (
 )
 import pathlib
 from typing import (
+    Any,
     Dict,
     Iterable,
     List,
@@ -206,6 +207,7 @@ class Site:
     resources: List[ResourceNode]
     static: List[StaticNode]
     generated: List[GeneratedNode]
+    metadata: Dict[str, Any]
     __nodes: Dict[pathlib.PurePosixPath, Node]
     __root = pathlib.PurePosixPath('/')
     __collections: Dict[str, Collection]
@@ -219,6 +221,7 @@ class Site:
         self.resources = []
         self.static = []
         self.generated = []
+        self.metadata = {}
         self.__nodes = {}
         self.__collections = {}
         self.__indices = []
@@ -227,6 +230,9 @@ class Site:
 
     def register_content_filter(self, content_filter: ContentFilter):
         self.__content_filters.append(content_filter)
+
+    def set_metadata(self, metadata: Dict[str, Any]) -> None:
+        self.metadata = metadata
 
     def __is_content_filtered(self, node: Node) -> bool:
         for f in self.__content_filters:

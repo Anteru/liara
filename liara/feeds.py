@@ -11,13 +11,12 @@ class FeedNode(GeneratedNode):
 
 
 class RSSFeedNode(FeedNode):
-    def __init__(self, path, site: Site, metadata,
+    def __init__(self, path, site: Site,
                  *, collection='', limit=10):
         super().__init__(path)
         self.__collection = collection
         self.__limit = limit
         self.__site = site
-        self.__metadata = metadata
 
     def generate(self):
         from lxml.builder import ElementMaker
@@ -27,7 +26,7 @@ class RSSFeedNode(FeedNode):
         items = reversed(list(self.__site.get_collection(
             self.__collection).nodes)[-self.__limit:])
 
-        meta = self.__metadata
+        meta = self.__site.metadata
         tz = tzlocal.get_localzone()
 
         E = ElementMaker(nsmap={
@@ -65,20 +64,19 @@ class RSSFeedNode(FeedNode):
 
 
 class JsonFeedNode(FeedNode):
-    def __init__(self, path, site: Site, metadata,
+    def __init__(self, path, site: Site,
                  *, collection='', limit=10):
         super().__init__(path)
         self.__collection = collection
         self.__limit = limit
         self.__site = site
-        self.__metadata = metadata
 
     def generate(self):
         import json
         items = reversed(list(self.__site.get_collection(
             self.__collection).nodes)[-self.__limit:])
 
-        meta = self.__metadata
+        meta = self.__site.metadata
 
         result = {
             'version': 'https://jsonfeed.org/version/1',
@@ -103,10 +101,9 @@ class JsonFeedNode(FeedNode):
 
 
 class SitemapXmlFeedNode(FeedNode):
-    def __init__(self, path, site: Site, metadata):
+    def __init__(self, path, site: Site):
         super().__init__(path)
         self.__site = site
-        self.__metadata = metadata
 
     def generate(self):
         from lxml.builder import ElementMaker
@@ -118,7 +115,7 @@ class SitemapXmlFeedNode(FeedNode):
                 None: 'http://www.sitemaps.org/schemas/sitemap/0.9'
             })
 
-        metadata = self.__metadata
+        metadata = self.__site.metadata
         now = datetime.datetime.now()
 
         urlset = E.urlset()

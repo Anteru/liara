@@ -14,6 +14,7 @@ from typing import (
     Callable
 )
 import re
+import dateparser
 
 
 T = TypeVar('T')
@@ -215,7 +216,6 @@ def fixup_relative_links(document: 'DocumentNode'):
 def fixup_date(document: 'DocumentNode'):
     """If the date in the document is a string, try to parse it to produce a
     datetime object."""
-    import dateparser
     if 'date' in document.metadata:
         date = document.metadata['date']
         if isinstance(date, str):

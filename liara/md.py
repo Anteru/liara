@@ -33,7 +33,7 @@ class HeadingLevelFixupProcessor(Treeprocessor):
             element.set('class', 'demoted')
 
         for e in element:
-            self.demote_header(e)
+            self._demote_header(e)
 
 
 class HeadingLevelFixupExtension(Extension):

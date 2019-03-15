@@ -18,7 +18,7 @@ import logging
 from . import config
 
 
-__version__ = '2.0a5'
+__version__ = '2.0a6'
 __all__ = [
     'actions',
     'cache',

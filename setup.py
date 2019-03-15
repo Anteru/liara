@@ -1,10 +1,10 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import liara
 
 setup(
     name='Liara',
     version=liara.__version__,
-    py_modules=['liara'],
+    packages=find_packages(exclude=['*.test', 'test.*', '*.test.*']),
     install_requires=open('requirements.txt', 'r').readlines(),
     python_requires='>=3.6',
 

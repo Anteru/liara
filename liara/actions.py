@@ -6,7 +6,11 @@ from enum import Enum, auto
 from collections import defaultdict
 
 
-def extract_links(document: DocumentNode):
+def _extract_links(document: DocumentNode):
+    """Extract all links from ``<a>`` and ``<img>`` tags in a document.
+
+    This assumes the document has been already processed into valid Html.
+    """
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(document.content, 'lxml')
 
@@ -25,7 +29,12 @@ class LinkType(Enum):
     External = auto()
 
 
-def is_internal_link(link: str) -> bool:
+def _is_internal_link(link: str) -> bool:
+    """Check if a link is internal.
+
+    A link is considered internal if it starts with a single slash (not two,
+    as this indicates a link using the same protocol.)
+    """
     if len(link) >= 2:
         return link[0] == '/' and link[1] != '/'
     else:
@@ -34,14 +43,19 @@ def is_internal_link(link: str) -> bool:
 
 def gather_links(documents, link_type: LinkType) \
         -> Dict[str, List[pathlib.PurePosixPath]]:
+    """Gather links across documents.
+
+    :return: A dictionary containing a link, and the list of document paths
+             in which this link was found.
+    """
     result = defaultdict(list)
 
     for document in documents:
-        links = extract_links(document)
+        links = _extract_links(document)
         for link in links:
-            if link_type == LinkType.Internal and not is_internal_link(link):
+            if link_type == LinkType.Internal and not _is_internal_link(link):
                 continue
-            elif link_type == LinkType.External and is_internal_link(link):
+            elif link_type == LinkType.External and _is_internal_link(link):
                 continue
 
             result[link].append(document.path)
@@ -51,7 +65,10 @@ def gather_links(documents, link_type: LinkType) \
 
 def validate_internal_links(links: Dict[str, List[pathlib.PurePosixPath]],
                             site: Site):
-    """Validate internal links."""
+    """Validate internal links.
+
+    For each link, check if it exists inside the provided site. If not, an
+    error is printed indicating the link and the documents referencing it."""
 
     for link, sources in links.items():
         link = pathlib.PurePosixPath(link)
@@ -70,6 +87,8 @@ def validate_internal_links(links: Dict[str, List[pathlib.PurePosixPath]],
 
 
 def _check_external_link(url):
+    """Issue a request to the external URL and check for a valid response.
+    """
     import requests
     ok = False
     try:
@@ -96,7 +115,11 @@ def _check_external_link(url):
 
 
 def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]):
-    """Validate external links."""
+    """Validate external links.
+
+    This issues a request for each link, and checks if it connects correctly.
+    If not, an error is printed indicating the link and the documents
+    referencing it."""
     import multiprocessing
 
     with multiprocessing.Pool() as pool:

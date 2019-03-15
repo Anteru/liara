@@ -4,11 +4,16 @@ from .template import Page
 
 
 class SelectionFilter:
+    """Base class for query selection filters."""
     def match(self, node: Node) -> bool:
+        """Return ``True`` if the node should be kept, else ``False``."""
         pass
 
 
 class MetadataFilter(SelectionFilter):
+    """Filter items which contain a specific metadata field and optionally
+    check if that field matches the provided value.
+    """
     def __init__(self, name, value=None):
         self.__name = name
         self.__value = value
@@ -23,6 +28,9 @@ class MetadataFilter(SelectionFilter):
 
 
 class TagFilter(SelectionFilter):
+    """Filter items by a specific tag, this expects a metadata field named
+    ``tags`` to be present, and that field must support checks for containment
+    using ``in``."""
     def __init__(self, name):
         self.__name = name
 
@@ -34,10 +42,12 @@ class TagFilter(SelectionFilter):
 
 
 class Sorter:
+    """Base class for query sorters."""
     def __init__(self, reverse=False):
         self._reverse = reverse
 
     def get_key(self, item):
+        """Return the key to be used for sorting."""
         pass
 
     @property
@@ -46,6 +56,7 @@ class Sorter:
 
 
 class MetadataSorter(Sorter):
+    """Sort nodes by metadata."""
     def __init__(self, item: str, reverse=False, case_sensitive=False):
         super().__init__(reverse)
         self.__item = item
@@ -59,6 +70,9 @@ class MetadataSorter(Sorter):
 
 
 class Query(Iterable[Node]):
+    """A query modifies a list of nodes, by sorting and filtering entries.
+    """
+
     __filters: List[SelectionFilter]
     __nodes: List[Node]
     __sorters: List[Sorter]
@@ -75,29 +89,43 @@ class Query(Iterable[Node]):
         self.__result = None
 
     def limit(self, limit) -> 'Query':
+        """Limit this query to return at most ``limit`` results."""
         self.__limit = limit
         return self
 
     def with_metadata(self, name, value=None) -> 'Query':
+        """Limit this query to only include nodes which contain the specific
+        metadata field.
+
+        :param value: If ``value`` is provided, the field must exist and match
+                      the provided value.
+        """
         self.__filters.append(MetadataFilter(name, value))
         return self
 
     def with_tag(self, name) -> 'Query':
+        """Limit this query to only include nodes with a metadata field named
+        ``tags`` which contains the specified tag name.
+        """
         self.__filters.append(TagFilter(name))
         return self
 
     def sorted_by_title(self, *, reverse=False) -> 'Query':
+        """Sort the entries in this query by the metadata field ``title``."""
         return self.sorted_by_metadata('title', reverse=reverse)
 
     def sorted_by_date(self, *, reverse=False) -> 'Query':
+        """Sort the entries in this query by the metadata field ``data``."""
         return self.sorted_by_metadata('date', reverse=reverse)
 
     def sorted_by_metadata(self, tag: str, *,
                            reverse=False, case_sensitive=False) -> 'Query':
+        """Sort the entries in this query by the specified metadata field."""
         self.__sorters.append(MetadataSorter(tag, reverse, case_sensitive))
         return self
 
     def reversed(self) -> 'Query':
+        """Return the results of this query in reversed order."""
         self.__reversed = True
         return self
 

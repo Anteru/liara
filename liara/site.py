@@ -37,7 +37,17 @@ def _create_metadata_accessor(field_name):
 
 
 class Collection:
+    """A collection is a set of nodes which is optionally ordered.
+    """
+
     def __init__(self, site, pattern, order_by=[]):
+        """
+        :param pattern: The pattern to select nodes which belong to this
+                        collection.
+        :param order_by: A list of accessors for fields to order by. If
+                         multiple entries are provided, the result will be
+                         sorted by each in order using a stable sort.
+        """
         self.__site = site
         self.__filter = pattern
         # We accept a string as well to simplify configuration files
@@ -71,12 +81,17 @@ class Collection:
 
     @property
     def nodes(self):
+        """Get the (sorted) nodes in this collection."""
         return self.__nodes.values()
 
     def get_next(self, node):
+        """Get the next node in this collection with regard to the specified
+        order, or ``None`` if this is the last node."""
         return self.__next.get(node.path)
 
     def get_previous(self, node):
+        """Get the previous node in this collection with regard to the specified
+        order, or ``None`` if this is the first node."""
         return self.__previous.get(node.path)
 
 
@@ -115,6 +130,9 @@ def _group_recursive(iterable, group_keys: List[str]):
 
 
 class Index:
+    """An index provides an index for a collection, by generating index nodes
+    for the collection.
+    """
     def __init__(self, site, collection: Collection,
                  path: str, group_by=[], *,
                  create_top_level_index=False):
@@ -125,6 +143,7 @@ class Index:
         self.__create_top_level_index = create_top_level_index
 
     def create_nodes(self, site):
+        """Create the index nodes inside the specified site."""
         self._create_nodes_recursive(site, self.__path,
                                      self.__groups, 1)
 

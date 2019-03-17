@@ -302,11 +302,15 @@ class Liara:
 
         if 'collections' in configuration:
             collections = pathlib.Path(configuration['collections'])
-            self.__site.create_collections(load_yaml(collections.read_text()))
+            if collections.exists():
+                self.__site.create_collections(
+                    load_yaml(collections.read_text()))
 
         if 'indices' in configuration:
             indices = pathlib.Path(configuration['indices'])
-            self.__site.create_indices(load_yaml(indices.read_text()))
+            if indices.exists():
+                self.__site.create_indices(
+                    load_yaml(indices.read_text()))
 
         self.__site.create_links()
 

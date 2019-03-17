@@ -23,7 +23,7 @@ def create_default_configuration() -> Dict[str, Any]:
             'static': 'static_routes.yaml'
         },
         'base_url': 'http://localhost:8000',
-        'collections': {},
+        'collections': 'collections.yaml',
         'relaxed_date_parsing': False,
         'allow_relative_links': True,
         'feeds': 'feeds.yaml',

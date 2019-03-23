@@ -1,4 +1,4 @@
-from liara.util import add_suffix, flatten_dictionary
+from liara.util import add_suffix, flatten_dictionary, pairwise
 
 
 def test_flatten_dictionary():
@@ -13,3 +13,15 @@ def test_add_suffix():
     p = add_suffix(p, 'baz')
 
     assert str(p) == 'foo.baz.bar'
+
+
+def test_pairwise():
+    assert list(pairwise([1, 2, 3])) == [(1, 2,), (2, 3,)]
+
+
+def test_pairwise_one_element_list():
+    assert list(pairwise([1])) == []
+
+
+def test_pairwise_empty_list():
+    assert list(pairwise([])) == []

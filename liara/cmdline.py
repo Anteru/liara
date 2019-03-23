@@ -161,7 +161,9 @@ def find_by_tag(options):
 
 
 def create_config(options):
-    """Create a default configuration."""
+    """Create a default configuration.
+    
+    .. option:: create-config -o <output>"""
     dump_yaml(create_default_configuration(), options.output)
 
 

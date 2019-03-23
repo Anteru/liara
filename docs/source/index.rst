@@ -11,6 +11,13 @@ Welcome to Liara's documentation!
    :caption: Contents:
 
    quickstart
+   configuration
+   collections
+   indices
+   metadata
+   templates
+   static-routes
+   url-patterns
    modules
 
 

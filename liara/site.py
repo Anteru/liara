@@ -48,8 +48,11 @@ def _create_metadata_accessor(field_name):
 
 
 class Collection:
-    """A collection is a set of nodes which is optionally ordered.
+    """A collection is a set of nodes. Collections can be ordered, which allows
+    for next/previous queries.
     """
+
+    __log = logging.getLogger('liara.Collection')
 
     def __init__(self, site, pattern, order_by=[]):
         """
@@ -58,6 +61,10 @@ class Collection:
         :param order_by: A list of accessors for fields to order by. If
                          multiple entries are provided, the result will be
                          sorted by each in order using a stable sort.
+
+        If an ordering is specified, and a particular node cannot support that
+        ordering (for instance, as it's missing the field that is used to order
+        by), the node will be *removed* from the collection.
         """
         self.__site = site
         self.__filter = pattern
@@ -76,6 +83,9 @@ class Collection:
         # cannot be ordered
         def filter_fun(o):
             for ordering in self.__order_by:
+                # we need to match the metadata accessor logic below
+                if '.' in ordering:
+                    ordering = ordering.split('.')[0]
                 if ordering not in o.metadata:
                     return False
             return True
@@ -98,11 +108,17 @@ class Collection:
     def get_next(self, node):
         """Get the next node in this collection with regard to the specified
         order, or ``None`` if this is the last node."""
+        if not self.__order_by:
+            self.__log.warn('Using get_next() on an unordered collection has '
+                            'undefined results')
         return self.__next.get(node.path)
 
     def get_previous(self, node):
         """Get the previous node in this collection with regard to the specified
         order, or ``None`` if this is the first node."""
+        if not self.__order_by:
+            self.__log.warn('Using get_next() on an unordered collection has '
+                            'undefined results')
         return self.__previous.get(node.path)
 
 
@@ -185,11 +201,18 @@ class Index:
 
 
 class ContentFilter:
+    """Content filters can filter out nodes based on various criteria."""
     def apply(self, node: Node) -> bool:
+        """Return ``True`` if the node should be kept, and ``False``
+        otherwise.
+        """
         pass
 
 
 class DateContentFilter(ContentFilter):
+    """Filter content based on the metadata field ``date``.
+
+    If the date is in the future, the node will be filtered."""
     def __init__(self):
         import tzlocal
         self.__tz = tzlocal.get_localzone()
@@ -210,6 +233,11 @@ class DateContentFilter(ContentFilter):
 
 
 class StatusFilter(ContentFilter):
+    """Filter content based on the metadata field ``status``.
+
+    If ``status`` is set to ``private``, the node will be filtered. The
+    comparison is case-insensitive.
+    """
     def apply(self, node: Node) -> bool:
         return node.metadata.get('status', '').lower() != 'private'
 
@@ -231,13 +259,29 @@ class ContentFilterFactory:
 
 
 class Site:
+    """This class manages to all site content."""
+
     data: List[DataNode]
+    """The list of all data nodes in this site."""
+
     indices: List[IndexNode]
+    """The list of all index nodes in this site."""
+
     documents: List[DocumentNode]
+    """The list of all document nodes in this site."""
+
     resources: List[ResourceNode]
+    """The list of all resources nodes in this site."""
+
     static: List[StaticNode]
+    """The list of all static nodes in this site."""
+
     generated: List[GeneratedNode]
+    """The list of all generated nodes in this site."""
+    
     metadata: Dict[str, Any]
+    """Metadata describing this site."""
+
     __nodes: Dict[pathlib.PurePosixPath, Node]
     __root = pathlib.PurePosixPath('/')
     __collections: Dict[str, Collection]
@@ -259,9 +303,15 @@ class Site:
         self.__log = logging.getLogger('liara.site')
 
     def register_content_filter(self, content_filter: ContentFilter):
+        """Register a new content filter."""
         self.__content_filters.append(content_filter)
 
     def set_metadata(self, metadata: Dict[str, Any]) -> None:
+        """Set the metadata for this site.
+
+        This overrides any previously set metadata. Metadata is accessible
+        via the :py:attr:`metadata` attribute.
+        """
         self.metadata = metadata
 
     def __is_content_filtered(self, node: Node) -> bool:
@@ -272,14 +322,17 @@ class Site:
         return False
 
     def add_data(self, node: DataNode) -> None:
+        "Add a data node to this site."""
         self.data.append(node)
         self.__register_node(node)
 
     def add_index(self, node: IndexNode) -> None:
+        """Add an index node to this site."""
         self.indices.append(node)
         self.__register_node(node)
 
     def add_document(self, node: DocumentNode) -> None:
+        """Add a document to this site."""
         if self.__is_content_filtered(node):
             return
 
@@ -287,6 +340,7 @@ class Site:
         self.__register_node(node)
 
     def add_resource(self, node: ResourceNode) -> None:
+        """Add a resource to this site."""
         if self.__is_content_filtered(node):
             return
 
@@ -294,6 +348,7 @@ class Site:
         self.__register_node(node)
 
     def add_static(self, node: StaticNode) -> None:
+        """Add a static node to this site."""
         if self.__is_content_filtered(node):
             return
 
@@ -301,6 +356,7 @@ class Site:
         self.__register_node(node)
 
     def add_generated(self, node: GeneratedNode) -> None:
+        "Add a generated node to this site."""
         self.generated.append(node)
         self.__register_node(node)
 
@@ -311,18 +367,26 @@ class Site:
 
     @property
     def nodes(self) -> Iterable[Node]:
+        """The list of all nodes in this site."""
         return self.__nodes.values()
 
     @property
     def urls(self) -> Iterable[pathlib.PurePosixPath]:
+        """The list of all registered URLs."""
         return self.__nodes.keys()
 
     def create_links(self):
         """This creates links between parents/children.
 
-        We have to do this in a separate step, as we merge static/resource
-        nodes from themes etc."""
+        This is a separate step so it can be executed after merging nodes
+        from multiple sources, for instance themes. It is safe to call this
+        function multiple times to create new links; nodes which already
+        have a parent are automatically skipped."""
         for key, node in self.__nodes.items():
+            if node.parent:
+                # The parent is already set, so there's nothing to do
+                continue
+
             parent_path = key.parent
             parent_node = self.__nodes.get(parent_path)
             # The parent_node != node check is required so the root node
@@ -331,12 +395,14 @@ class Site:
                 parent_node.add_child(node)
 
     def create_collections(self, collections):
+        """Create collections."""
         for name, collection in collections.items():
             order_by = collection.get('order_by', [])
             self.__collections[name] = Collection(self, collection['filter'],
                                                   order_by)
 
     def create_indices(self, indices):
+        """Create indices."""
         for index_definition in indices:
             collection = self.get_collection(index_definition['collection'])
             del index_definition['collection']
@@ -346,10 +412,17 @@ class Site:
         for index in self.__indices:
             index.create_nodes(self)
 
-        # Indices may add new nodes that need linking
+        # Indices may have been added, so we need to update the links
         self.create_links()
 
     def create_thumbnails(self, thumbnail_definition):
+        """Create thumbnails.
+
+        Based on the thumbnail definition -- which is assumed to be a
+        dictionary containing the suffix and the desired size -- this function
+        iterates over all static nodes that contain images, and creates new
+        thumbnail nodes as required.
+        """
         from .util import add_suffix
         new_static = []
         for static in self.static:
@@ -374,24 +447,37 @@ class Site:
         for static in new_static:
             self.add_static(static)
 
-        # New nodes have been created, need linking
+        # Static nodes may have been created, so we need to update the links
         self.create_links()
 
-    def get_next_in_collection(self, collection, node) -> Optional[Node]:
+    def get_next_in_collection(self, 
+                               collection: str,
+                               node: Node) -> Optional[Node]:
+        """Get the next node in a collection."""
         next_node = self.__collections[collection].get_next(node)
         return next_node
 
-    def get_previous_in_collection(self, collection, node) -> Optional[Node]:
+    def get_previous_in_collection(self,
+                                   collection: str,
+                                   node: Node) -> Optional[Node]:
+        """Get the previous node in a collection."""
         previous_node = self.__collections[collection].get_previous(node)
         return previous_node
 
-    def get_collection(self, collection) -> Collection:
+    def get_collection(self, collection: str) -> Collection:
+        """Get a collection."""
         return self.__collections[collection]
 
     def get_node(self, path: pathlib.PurePosixPath) -> Optional[Node]:
+        """Get a node based on the URL, or ``None`` if no such node exists."""
         return self.__nodes.get(path)
 
-    def select(self, query: str) -> List[Node]:
+    def select(self, query: str) -> Iterable[Node]:
+        """Select nodes from this site.
+        
+        The query string may contain ``*`` to list all direct children of a
+        node, and ``**`` to recursively enumerate nodes. Partial matches
+        using ``*foo`` are not supported."""
         parts = query.split('/')
         # A valid query must start with /
         assert parts[0] == ''

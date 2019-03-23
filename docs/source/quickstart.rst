@@ -40,6 +40,4 @@ The quickstart produces a bunch of folders and files:
 
 * ``content`` holds the content. A file in the content at path ``content/foo.md`` will produce an URL ``/foo`` (or rather, ``/foo/index.html``.) ``_index.md`` is a special name which gets attached to the path of the current directory. For example, ``content/foo/_index.md`` will get routed to ``/foo``.
 * ``templates`` holds the template files. The quickstart sample uses jinja2 for its templates. ``default.yaml`` in that folder contains the default routes for the templates.
-* ``config.yaml`` contains a bare-bones configuration. Values which are not explicitly set use defaults, so this file is quite bare-bones.
-* ``indices.yaml`` defines the indices we're using to index content -- the quickstart template has two indices, one for blog posts by year, one for blog posts by tag.
-* ``collectiony.yaml`` defines the collections -- a collection groups content, and is used for back/forward navigation, as well as for indices.
+* A few :ref:`configuration files <configuration>`.

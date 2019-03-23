@@ -1,4 +1,9 @@
 def load_yaml(s):
+    """Load a Yaml document.
+
+    This is a helper function which tries to use the fast ``CLoader``
+    implementation and falls back to the native Python version on failure.
+    """
     import yaml
     try:
         from yaml import CLoader as Loader
@@ -8,6 +13,11 @@ def load_yaml(s):
 
 
 def dump_yaml(data, stream=None):
+    """Dump an object to Yaml.
+
+    This is a helper function which tries to use the fast ``CDumper``
+    implementation and falls back to the native Python version on failure.
+    """
     import yaml
     try:
         from yaml import CDumper as Dumper

@@ -5,13 +5,15 @@ import toml
 from .cache import Cache
 from typing import (
     Any,
+    Callable,
     Dict,
     Generic,
+    Iterable,
     List,
     Optional,
     Type,
     TypeVar,
-    Callable
+    Union,
 )
 import re
 import dateparser
@@ -65,7 +67,7 @@ class Node:
     path: pathlib.PurePosixPath
     """The output path, relative to the page root.
 
-    All of these paths *must* start with ``/``.
+    All paths *must* start with ``/``.
     """
 
     metadata: Dict[str, Any]
@@ -77,7 +79,9 @@ class Node:
     __nodes: Dict[str, 'Node']
     """A dictionary containing all child nodes.
 
-    The key is the path to the child node, to enable fast traversal."""
+    The key is the path to the child node relative to this node. I.e. if the
+    path of this node is ``/foo``, and it has a child at ``/foo/bar``, the
+    key for that child would be ``bar``."""
 
     @property
     def children(self):
@@ -93,7 +97,7 @@ class Node:
         """Add a new child to this node.
 
         The path of the child node must be a sub-path of the current node
-        path, with exactly one component more. I.e. if the current node path is
+        path, with exactly one more component. I.e. if the current node path is
         ``/foo/bar``, a node with path ``/foo/bar/baz`` can be added as a
         child, but ``/baz/`` or ``/foo/bar/boo/baz`` would be invalid."""
         assert self.path != child.path
@@ -105,7 +109,8 @@ class Node:
         return f'{self.__class__.__name__}({self.path})'
 
     def select_children(self):
-        """Select all children of this node."""
+        """Select all children of this node and return them as a 
+        :py:class:`~liara.query.Query`."""
         from .query import Query
         return Query(self.children)
 
@@ -115,19 +120,32 @@ class Node:
         :return: The child node or ``None`` if no such child exists."""
         return self.__nodes.get(name)
 
-    def get_children(self, *, recursive=False):
+    def get_children(self, *, recursive=False) -> Iterable['Node']:
         """Get all children of this node.
 
         This function differs from :py:meth:`select_children` in two important
         ways:
 
-        * It returns :py:class:`Node` instances, not :py:class:`Query`
+        * It returns a list of :py:class:`Node` instances and does not wrap it
+          in a :py:class:`~liara.query.Query`
         * It can enumerate all children recursively.
         """
         for child in self.children:
             yield child
             if recursive:
                 yield from child.get_children(recursive=True)
+
+    
+    def process(self, cache: Cache) -> None:
+        """Some nodes -- resources, documents, etc. need to be processed. As
+        this can be a resource-intense process (for instance, it may require
+        generating images), processing can cache results and has to be
+        called separately instead of being executed as part of some other
+        operation.
+
+        By convention this method should populate ``self.content``.
+        """
+        pass
 
 
 _metadata_marker = re.compile(r'(---|\+\+\+)\n')
@@ -261,10 +279,11 @@ class DocumentNode(Node):
 
     def set_fixups(self, *, load_fixups, process_fixups) -> None:
         """Set the fixups that should be applied to this document node.
+        The fixups should be set *before* calling :py:meth:`load`.
 
         :param load_fixups: These functions will be executed before
                             :py:meth:`load` returns.
-        :paramm process_fixups: These functions will be executed before
+        :param process_fixups: These functions will be executed before
                             :py:meth:`process` returns.
         """
         self._load_fixups = load_fixups
@@ -363,7 +382,10 @@ class MarkdownDocumentNode(DocumentNode):
 class DataNode(Node):
     """A data node.
 
-    Data nodes consist of a dictionary."""
+    Data nodes consist of a dictionary. This can be used to store arbitrary
+    data as part of a :py:class:`liara.site.Site`, and make it available to
+    templates (for instance, a menu structure could go into a data node.)
+    """
     def __init__(self, src, path):
         super().__init__()
         self.kind = NodeKind.Data
@@ -373,9 +395,20 @@ class DataNode(Node):
 
 
 class IndexNode(Node):
-    # Stores all nodes referenced by this index, which allows linking to
-    # children which are not direct descendants
+    """An index node.
+
+    Index nodes are created for every folder if there is no ``_index`` node
+    present, and from indices. An index node can optionally contain a list of
+    references, in case the referenced nodes by this index are not direct
+    children of this node.
+    """
+
     references: List[Node]
+    """Referenced nodes by this index.
+
+    An index can not rely on using ``children`` as those have to be below the
+    path of the parent node. The ``references`` list allows to reference nodes
+    elsewhere in the site."""
 
     def __init__(self, path, metadata={}):
         super().__init__()
@@ -386,6 +419,7 @@ class IndexNode(Node):
         self.references = []
 
     def add_reference(self, node):
+        """Add a reference to an arbitrary node in the site."""
         self.references.append(node)
 
     def publish(self, publisher) -> pathlib.Path:
@@ -432,7 +466,16 @@ _REDIRECTION_TEMPLATE = """<!DOCTYPE HTML>
 
 
 class RedirectionNode(GeneratedNode):
-    def __init__(self, path, dst):
+    """A redirection node triggers a redirection to another page.
+
+    This node gets processed into a simple web site which tries to redirect
+    using both ``<meta http-equiv="refresh">`` and Javascript code setting
+    ``window.location``.
+    """
+
+    def __init__(self,
+                 path: pathlib.PurePosixPath,
+                 dst: pathlib.PurePosixPath):
         super().__init__(path)
         self.dst = dst
 
@@ -443,6 +486,12 @@ class RedirectionNode(GeneratedNode):
 
 
 class ResourceNode(Node):
+    """A resource node applies some process when creating the output.
+
+    This is useful if you have content where the source cannot be interpreted,
+    and requires some process first before it becomes usable -- for instance,
+    ``SASS`` to ``CSS`` compilation.
+    """
     def __init__(self, src, path, metadata_path=None):
         super().__init__()
         self.kind = NodeKind.Resource
@@ -451,13 +500,6 @@ class ResourceNode(Node):
         self.content = None
         if metadata_path:
             self.metadata = load_yaml(open(metadata_path, 'r'))
-
-    def process(self, cache: Cache) -> None:
-        """Process the content of this node.
-
-        After this function has finished, ``self.content`` must be populated
-        with the processed content."""
-        pass
 
     def reload(self) -> None:
         pass
@@ -468,6 +510,10 @@ class ResourceNode(Node):
 
 
 class SassResourceNode(ResourceNode):
+    """This resource node compiles ``.sass`` and ``.scss`` files to CSS
+    when built.
+    """
+
     def __init__(self, src, path, metadata_path=None):
         super().__init__(src, path, metadata_path)
         if src.suffix not in {'.scss', '.sass'}:
@@ -487,6 +533,8 @@ class SassResourceNode(ResourceNode):
 
 
 class NodeFactory(Generic[T]):
+    """A generic factory for nodes, which builds nodes based on the file
+    type."""
     __known_types: Dict[str, Type]
 
     def __init__(self):
@@ -496,7 +544,17 @@ class NodeFactory(Generic[T]):
     def known_types(self):
         return self.__known_types.keys()
 
-    def register_type(self, suffixes, node_type) -> None:
+    def register_type(self,
+                      suffixes: Union[str, Iterable[str]],
+                      node_type: type) -> None:
+        """Register a new node type.
+
+        :param suffixes: Either one suffix, or a list of suffixes to be
+                         registered for this type. For instance, a node
+                         representing an image could be registered to
+                         ``[.jpg, .png]``.
+        :param node_type: The type of the node to be created.
+        """
         if isinstance(suffixes, str):
             suffixes = [suffixes]
 
@@ -504,20 +562,36 @@ class NodeFactory(Generic[T]):
             self.__known_types[suffix] = node_type
 
     def _create_node(self, cls, src, path, metadata_path) -> T:
+        """This is the actual creation function.
+
+        :param cls: The class of the node to instantiate.
+        :param src: The source file path.
+        :param path: The output path.
+        :param metadata_path: The path to a metadata file.
+        :return: An instance of ``cls``.
+
+        Derived classes can use this function to customize the node creation.
+        """
         return cls(src, path, metadata_path)
 
-    def create_node(self, suffix, src, path, metadata_path=None) -> T:
+    def create_node(self, suffix: str,
+                    src: pathlib.Path,
+                    path: pathlib.PurePosixPath,
+                    metadata_path: Optional[pathlib.Path]=None) -> T:
+        """Create a node using the provided parameters."""
         cls = self.__known_types[suffix]
         return self._create_node(cls, src, path, metadata_path)
 
 
 class ResourceNodeFactory(NodeFactory[ResourceNode]):
+    """A factory for resource nodes."""
     def __init__(self):
         super().__init__()
         self.register_type(['.sass', '.scss'], SassResourceNode)
 
 
 class DocumentNodeFactory(NodeFactory[DocumentNode]):
+    """A factory for document nodes."""
     def __setup_fixups(self, configuration):
         if configuration['relaxed_date_parsing']:
             # This is tricky, as fixup_date_timezone depends on this running
@@ -547,6 +621,11 @@ class DocumentNodeFactory(NodeFactory[DocumentNode]):
 
 
 class StaticNode(Node):
+    """A static data node.
+
+    Static nodes are suitable for large static data which never changes, for
+    instance, binary files, videos, images etc.
+    """
     def __init__(self, src, path, metadata_path=None):
         super().__init__()
         self.kind = NodeKind.Static
@@ -556,8 +635,13 @@ class StaticNode(Node):
             self.metadata = load_yaml(open(metadata_path, 'r'))
 
     def update_metadata(self) -> None:
+        """Update metadata by deriving some metadata from the source file,
+        if possible.
+
+        For static nodes pointing to images, this will create a new metadata
+        field ``image_size`` and populate it with the image resolution."""
         from PIL import Image
-        if self.src.suffix in {'.jpg', '.png'}:
+        if self.is_image:
             image = Image.open(self.src)
             self.metadata.update({
                 'image_size': image.size
@@ -565,6 +649,7 @@ class StaticNode(Node):
 
     @property
     def is_image(self):
+        """Return ``True`` if this static file is pointing to an image."""
         return self.src.suffix in {'.jpg', '.png'}
 
     def publish(self, publisher: Publisher) -> pathlib.Path:

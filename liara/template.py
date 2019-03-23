@@ -2,6 +2,7 @@ from typing import Dict
 from . import Site
 import pathlib
 from typing import (
+    Optional,
     Tuple,
 )
 
@@ -14,12 +15,7 @@ def _match_url(url: pathlib.PurePosixPath, pattern: str, site: Site) \
     The second entry is the hit score, where 0 is a perfect match, and higher
     numbers are worse matches (this allows to use sorted() and pick the
     first hit.)
-
-    This function is really expensive, hence we force caching to ensure it runs
-    efficiently even if a template calls it repeatedly (and thus we'd enumerate
-    all pages per page -- eventually, we want some smarter matching which
-    traverses a prefix tree or something similar to limit the subset of pages
-    we visit, but that's an upstream optimization."""
+    """
     import fnmatch
     import urllib.parse
     from .nodes import NodeKind
@@ -157,16 +153,22 @@ class Page:
 
     @property
     def content(self):
+        """Provides the content of this page.
+        """
         return self.__node.content
 
     @property
     def url(self):
-        # Path is a PosixPath object, but inside a template we want to use a
-        # basic string
+        """Provides the current path of this page.
+        """
+        # __node.path is a PosixPath object, but inside a template we want to 
+        # use a basic string
         return str(self.__node.path)
 
     @property
     def meta(self):
+        """Provides the metadata associated with this page.
+        """
         return self.__node.metadata
 
     @property
@@ -178,6 +180,14 @@ class Page:
 
     @property
     def references(self):
+        """Provides the list of referenced nodes by this page.
+
+        This can be only used if the current page is an
+        :py:class:`~liara.nodes.IndexNode`, in all other cases this will fail.
+        For index nodes, this will return the list of references as a
+        :py:class:`~liara.query.Query` instance.
+        """
+
         from .nodes import NodeKind
         from .query import Query
         assert self.__node.kind == NodeKind.Index
@@ -186,7 +196,8 @@ class Page:
 
 
 class SiteTemplateProxy:
-    """A wrapper around :py:class:`Site` for use inside templates."""
+    """A wrapper around :py:class:`Site` for use inside templates.
+    """
     __site: Site
 
     def __init__(self, site: Site):
@@ -197,13 +208,28 @@ class SiteTemplateProxy:
 
     @property
     def data(self):
+        """Get the union of all :py:class:`liara.nodes.DataNode`
+        instances in this site.
+        """ 
         return self.__data
 
+    @property
+    def metadata(self):
+        """Provide access to the metadata of this site.
+        """
+        return self.__site.metadata
+
     def select(self, query):
+        """Run a query on this site.
+        """
         from .query import Query
         return Query(self.__site.select(query))
 
-    def get_previous_in_collection(self, collection: str, page: Page):
+    def get_previous_in_collection(self, collection: str, page: Page) \
+            -> Optional[Page]:
+        """Given a collection and a page, return the next page in this
+        collection or ``None`` if this is the last page.
+        """
         next_node = self.__site.get_previous_in_collection(collection,
                                                            page._node)
         if next_node is not None:
@@ -211,7 +237,11 @@ class SiteTemplateProxy:
         else:
             return None
 
-    def get_next_in_collection(self, collection: str, page: Page):
+    def get_next_in_collection(self, collection: str, page: Page) \
+            -> Optional[Page]:
+        """Given a collection and a page, return the previous page in this
+        collection or ``None`` if this is the first page.
+        """
         previous_node = self.__site.get_next_in_collection(collection,
                                                            page._node)
         if previous_node is not None:
@@ -220,6 +250,9 @@ class SiteTemplateProxy:
             return None
 
     def get_collection(self, collection: str):
+        """Get a collection in form of a :py:class:`liara.query.Query` for 
+        further filtering/sorting.
+        """
         from .query import Query
         # We need to turn this into a list as nodes is of type dict_values
         # and can't be sorted/reversed otherwise

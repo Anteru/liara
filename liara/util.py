@@ -1,5 +1,5 @@
 import pathlib
-import collections
+import collections.abc
 
 
 def pairwise(iterable):
@@ -40,7 +40,7 @@ def flatten_dictionary(d, sep='.', parent_key=None):
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
-        if isinstance(v, collections.Mapping):
+        if isinstance(v, collections.abc.Mapping):
             items.extend(flatten_dictionary(v, sep=sep,
                                             parent_key=new_key).items())
         else:

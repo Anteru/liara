@@ -10,8 +10,6 @@ def default_site():
 
 
 def test_match_url(default_site):
-    match, score = _match_url('/blog/post/23', '/blog/post/*', default_site)
-    assert match
     match, score0 = _match_url('/blog/post/23', '/blog/post/*', default_site)
     assert match
     match, score1 = _match_url('/blog/post/235', '/blog/post/*', default_site)
@@ -23,6 +21,9 @@ def test_match_url_exact(default_site):
     match, score = _match_url('/blog', '/blog', default_site)
     assert match
     assert score == 0
+    match, score = _match_url('/blog/', '/blog/*', default_site)
+    assert match
+    assert score > 0
 
 
 def test_match_fail(default_site):

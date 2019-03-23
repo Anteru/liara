@@ -22,13 +22,24 @@ import logging
 
 
 def _create_metadata_accessor(field_name):
+    """Create an accessor for nested metadata fields.
+
+    This allows accessing attributes or dictionary entries recursively, i.e.
+    an accessor ``foo.bar.baz`` will access ``foo['bar']['baz]`` and
+    ``foo.bar.baz``, and any combination thereof. Attributes will be preferred
+    over dictionary access.
+    """
     import operator
     if '.' in field_name:
         def key_fun(o):
             field = field_name.split('.')
-            accessor = operator.attrgetter('.'.join(field[1:]))
-            metadata = o.metadata[field[0]]
-            return accessor(metadata)
+            o = o.metadata[field[0]]
+            for f in field[1:]:
+                if hasattr(o, f):
+                    o = getattr(o, f)
+                else:
+                    o = o[f]
+            return o
         return key_fun
     else:
         def key_fun(o):

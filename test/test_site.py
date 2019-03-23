@@ -1,6 +1,5 @@
 from liara import site, nodes
 from collections import namedtuple
-import pathlib
 
 item = namedtuple('item', ['metadata', 'name'])
 
@@ -76,3 +75,21 @@ def test_content_filters():
 
     assert len(s.nodes) == 1
     assert '/public' in s.urls
+
+
+class MockObject:
+    def __init__(self, metadata):
+        self.metadata = metadata
+
+
+class NestedMockObject:
+    def __init__(self, nested):
+        self.nested = nested
+
+
+def test_metadata_accessor():
+    n = NestedMockObject({'bar': 23})
+    t = MockObject({'o': n})
+
+    c = site._create_metadata_accessor('o.nested.bar')
+    assert c(t) == 23

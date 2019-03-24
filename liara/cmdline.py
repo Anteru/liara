@@ -38,6 +38,8 @@ def cli():
     find_by_tag_cmd.set_defaults(func=find_by_tag)
 
     serve_cmd = subparsers.add_parser('serve', help='Start a web server')
+    serve_cmd.add_argument('--no-browser', action='store_true',
+                           help='Do not open a browser window automatically')
     serve_cmd.set_defaults(func=serve)
 
     quickstart_cmd = subparsers.add_parser('quickstart',
@@ -231,4 +233,4 @@ def list_content(options):
 def serve(options):
     """Run a local development server."""
     liara = _create_liara(options)
-    liara.serve()
+    liara.serve(open_browser=not options.no_browser)

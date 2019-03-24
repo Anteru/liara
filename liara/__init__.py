@@ -392,7 +392,7 @@ class Liara:
         self.__log.info('Build finished')
         self.__cache.persist()
 
-    def serve(self):
+    def serve(self, *, open_browser=True):
         from .server import HttpServer
         if self.__configuration['build.clean_output']:
             self.__clean_output()
@@ -403,5 +403,6 @@ class Liara:
             document.validate_metadata()
 
         server = HttpServer(site, self.__template_repository,
-                            self.__configuration)
+                            self.__configuration,
+                            open_browser=open_browser)
         server.serve()

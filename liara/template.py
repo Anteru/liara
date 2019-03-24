@@ -2,19 +2,20 @@ from typing import Dict
 from . import Site
 import pathlib
 from typing import (
+    Any,
+    Dict,
     Optional,
     Tuple,
 )
 
 
 def _match_url(url: pathlib.PurePosixPath, pattern: str, site: Site) \
-        -> Tuple[bool, int]:
+        -> Optional[int]:
     """Match an url against a pattern.
 
-    Returns a tuple, the first entry indicates if the url matches the pattern.
-    The second entry is the hit score, where 0 is a perfect match, and higher
-    numbers are worse matches (this allows to use sorted() and pick the
-    first hit.)
+    :return: An integer indicating the match score, with 0 being a perfect
+             match and higher values being increasingly bad. ``None`` is
+             returned if no match was found.
     """
     import fnmatch
     import urllib.parse
@@ -35,19 +36,19 @@ def _match_url(url: pathlib.PurePosixPath, pattern: str, site: Site) \
                     if node.kind == NodeKind.Index:
                         break
             else:
-                return False, -1
+                return None
 
     # Exact matches always win
     if pattern == str(url):
-        return True, 0
+        return 0
     # If not exact, we'll look for the longest matching pattern,
     # assuming it is the most specific
     if fnmatch.fnmatch(url, pattern):
         # abs is required, if our pattern is /*, and the url we match against
         # is /, then the pattern is longer than the URL
-        return True, abs(len(str(url)) - len(pattern))
+        return abs(len(str(url)) - len(pattern))
 
-    return False, -1
+    return None
 
 
 class Template:
@@ -68,19 +69,22 @@ class TemplateRepository:
         pass
 
     def _match_template(self, url: str, site: Site) -> str:
-        matches = []
+        best_match = None
+        best_score = None
         for pattern, template in self.__paths.items():
-            match, score = _match_url(url, pattern, site)
-            if match:
-                matches.append((score, template,))
+            score = _match_url(url, pattern, site)
+            if score is None:
+                continue
 
-        matches = list(sorted(matches, key=lambda x: x[0]))
+            if best_score is None or score < best_score:
+                best_score = score
+                best_match = template
 
-        if not matches:
+        if not best_match:
             raise Exception(f'Could not find matching template for path: '
                             f'"{url}"')
 
-        return matches[0][1]
+        return best_match
 
 
 class MakoTemplate(Template):
@@ -152,13 +156,13 @@ class Page:
         self.__node = node
 
     @property
-    def content(self):
+    def content(self) -> str:
         """Provides the content of this page.
         """
         return self.__node.content
 
     @property
-    def url(self):
+    def url(self) -> str:
         """Provides the current path of this page.
         """
         # __node.path is a PosixPath object, but inside a template we want to 
@@ -166,7 +170,7 @@ class Page:
         return str(self.__node.path)
 
     @property
-    def meta(self):
+    def meta(self) -> Dict[str, Any]:
         """Provides the metadata associated with this page.
         """
         return self.__node.metadata
@@ -179,7 +183,7 @@ class Page:
         return f'Page({self.url})'
 
     @property
-    def references(self):
+    def references(self) -> 'query.Query':
         """Provides the list of referenced nodes by this page.
 
         This can be only used if the current page is an
@@ -207,19 +211,19 @@ class SiteTemplateProxy:
             self.__data.update(data.content)
 
     @property
-    def data(self):
+    def data(self) -> Dict[str, Any]:
         """Get the union of all :py:class:`liara.nodes.DataNode`
         instances in this site.
         """ 
         return self.__data
 
     @property
-    def metadata(self):
+    def metadata(self) -> Dict[str, Any]:
         """Provide access to the metadata of this site.
         """
         return self.__site.metadata
 
-    def select(self, query):
+    def select(self, query) -> 'query.Query':
         """Run a query on this site.
         """
         from .query import Query
@@ -249,7 +253,7 @@ class SiteTemplateProxy:
         else:
             return None
 
-    def get_collection(self, collection: str):
+    def get_collection(self, collection: str) -> 'query.Query':
         """Get a collection in form of a :py:class:`liara.query.Query` for 
         further filtering/sorting.
         """

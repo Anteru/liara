@@ -20,9 +20,9 @@ For example:
      group_by: ['date.year']
      path: '/blog/archive/%1'
 
-This snippet defines a new index which groups based on the metadata field ``date.year``, and produces paths of the form ``/blog/archive/2017`` etc.
+This snippet defines a new index which groups based on the metadata field ``date.year``, and produces paths of the form ``/blog/archive/2017`` etc. Multiple group-by fields can be used, in which case the collection will process them in turn. I.e. if grouped by year, month, first, all entries would get grouped by year, and then the entries in each separate year would get grouped by month. This requires two path components ``%1`` and ``%2`` to work, which will be consumed by each group in order.
 
-A special syntax can be used for set-like fields, for instance tags. By adding a leading ``*``, the group gets *splatted* into individual keys. For instance, an object with a metadata field ``tags`` with the value ``a, b`` using a path ``/tags/%1`` will get sorted into both ``/tags/a`` and ``/tags/b``.
+A special syntax can be used for set-like fields, for instance tags. By adding a leading ``*``, the group gets *splatted* into separate keys. For example, a page with a metadata field ``tags`` with the value ``a, b``, grouped by ``['*tags']`` and using a path ``/tags/%1`` will be available under *both* ``/tags/a`` and ``/tags/b``.
 
 Usage
 -----

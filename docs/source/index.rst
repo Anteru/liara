@@ -12,10 +12,11 @@ Welcome to Liara's documentation!
 
    quickstart
    configuration
+   templates
+   changelog
    collections
    indices
    metadata
-   templates
    static-routes
    url-patterns
    modules

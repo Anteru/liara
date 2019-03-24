@@ -9,7 +9,7 @@ Definition
 Templates are defined using a template definition, which must contain at least two fields:
 
 * ``backend`` chose the template engine, the default is ``jinja2``.
-* ``paths`` provides a dictionary of :any:`url-patterns` and which template file to apply.
+* ``paths`` provides a dictionary containing key-value pairs. The key must be a :any:`url-patterns`, the value the template file that should get applied for this pattern.
 
 A very basic template could be defined as following:
 
@@ -17,7 +17,7 @@ A very basic template could be defined as following:
 
    backend: jinja2
    paths:
-   "/*": "default.jinja" 
+     "/*": "default.jinja" 
 
 This would process any page using the ``default.jinja`` template.
 
@@ -32,7 +32,11 @@ Template definitions also support the following fields:
      image_thumbnail_sizes:
        thumbnail: {width: 640}
 
-  This will resize any static image file (from the template or the site itself) to a maximum width of 640 pixels, and produce a file with the ``thumbnail`` suffix for that. For instance, an input file named ``foo.png`` with width 800 would be resized to ``foo.thumbnail.png`` with a width of 640. Files which are below the size will get copied, so it's always safe to use the ``.thumbnail`` suffix.
+  This will resize any static image file (from the template or the site itself) to a maximum width of 640 pixels. The thumbnail will be stored using the same file path as the original, but with  ``thumbnail`` added to the suffix. For instance, an input file named ``foo.png`` with width 800 would be resized to ``foo.thumbnail.png`` with a width of 640. Files which are below the size will get copied, so it's always safe to use the ``.thumbnail`` suffix.
+
+.. note::
+
+   There is nothing special about ``thumbnail`` in the example above -- any suffix can be used, and multiple suffixes are support.
 
 Authoring Templates
 -------------------

@@ -9,6 +9,7 @@ import os
 
 def cli():
     """Entry point for the command line."""
+    from .nodes import NodeKind
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--config', default='config.yaml')
@@ -61,6 +62,9 @@ def cli():
                                              help='Show all tracked content')
     list_content_cmd.add_argument('-f', '--format', choices=['tree', 'list'],
                                   default='tree')
+    list_content_cmd.add_argument('-t', '--type', action='append',
+                                  choices=list(map(str.lower,
+                                               NodeKind.__members__.keys())))
     list_content_cmd.set_defaults(func=list_content)
 
     args = parser.parse_args()
@@ -194,20 +198,27 @@ def list_content(options):
 
     # We sort by path name, which makes it trivial to sort it later into a tree
     # as children always come after their parent
-    sorted_nodes = sorted(content.nodes, key=lambda x: x.path)
-    if not sorted_nodes:
+    nodes = sorted(content.nodes, key=lambda x: x.path)
+    if not nodes:
         return
+
+    def filter_nodes(node):
+        if node.kind.name.lower() not in options.type:
+            return False
+        return True
+
+    nodes = list(filter(filter_nodes, nodes))
 
     if options.format == 'tree':
         tree = treelib.Tree()
         tree.create_node('Site', ('/',))
-        if sorted_nodes[0].path.parts == ('/',):
+        if nodes[0].path.parts == ('/',):
             tree.create_node('_index', parent=('/',),
-                             data=sorted_nodes[0].path)
+                             data=nodes[0].path)
 
         known_paths = {('/',)}
 
-        for node in sorted_nodes:
+        for node in nodes:
             path = node.path
             if len(path.parts) == 1:
                 continue
@@ -232,7 +243,7 @@ def list_content(options):
             known_paths.add(tuple(node.path.parts))
         tree.show(key=lambda n: str(n.data).casefold())
     elif options.format == 'list':
-        for node in sorted_nodes:
+        for node in nodes:
             print(str(node.path))
 
 

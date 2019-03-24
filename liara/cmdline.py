@@ -68,6 +68,12 @@ def cli():
     if args.debug:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s %(name)s %(message)s')
+
+        # Unfortunately PIL writes a lot of debug output, so we're disabling it
+        # manually here to make debug output useful
+        # This doesn't remove critical debug output -- PIL writes things like
+        # PNG header data here
+        logging.getLogger('PIL').setLevel(logging.INFO)
     elif args.verbose:
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(name)s %(message)s')

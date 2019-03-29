@@ -11,6 +11,7 @@ Welcome to Liara's documentation!
    :caption: Contents:
 
    quickstart
+   content
    configuration
    templates
    changelog

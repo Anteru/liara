@@ -209,7 +209,7 @@ class ContentFilter:
         pass
 
 
-class DateContentFilter(ContentFilter):
+class DateFilter(ContentFilter):
     """Filter content based on the metadata field ``date``.
 
     If the date is in the future, the node will be filtered."""
@@ -249,7 +249,7 @@ class StatusFilter(ContentFilter):
 class ContentFilterFactory:
     def __init__(self):
         self.__filters = {
-            'date': DateContentFilter,
+            'date': DateFilter,
             'status': StatusFilter
         }
 

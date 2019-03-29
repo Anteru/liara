@@ -22,7 +22,7 @@ Build settings
 Content settings
 ----------------
 
-* ``content.filters``: Filters that will be applied while discovering content.
+* ``content.filters``: Specifies which :any:`content filters <content-filters>`  will be applied while discovering content.
 * ``template``: The :any:`template <templates>` definition to apply to the content.
 * ``collections``: Points to the file containing the :any:`collection <collections>` definitions.
 * ``feeds``: Points to the file containing the feed definitions.

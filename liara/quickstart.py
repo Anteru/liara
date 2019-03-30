@@ -53,7 +53,9 @@ __TEMPLATES = {
               <ul class="tags">
                 {% for tag in page.meta.tags|sort %}
                   <li>
-                    <a href="/archive/by-tag/{{ tag }}">{{ tag|capitalize }}</a>
+                    <a href="/archive/by-tag/{{ tag }}">
+                        {{ tag|capitalize }}
+                    </a>
                    </li>
                 {% endfor %}
               </ul>

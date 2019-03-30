@@ -7,3 +7,6 @@ __pycache__/**
 docs/build/**
 *.egg-info/**
 build/sphinx/**
+build/**
+dist/**
+.vscode/**

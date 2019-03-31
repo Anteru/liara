@@ -1,5 +1,7 @@
 import pathlib
 import collections.abc
+import datetime
+import tzlocal
 
 
 def pairwise(iterable):
@@ -46,3 +48,15 @@ def flatten_dictionary(d, sep='.', parent_key=None):
         else:
             items.append((new_key, v,))
     return dict(items)
+
+
+def create_slug(s: str) -> str:
+    import slugify
+    return slugify.slugify(s)
+
+
+_TZ = tzlocal.get_localzone()
+
+
+def local_now() -> datetime.datetime:
+    return _TZ.localize(datetime.datetime.now())

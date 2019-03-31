@@ -1,0 +1,4 @@
+Generators
+==========
+
+Generators are used to create documents from the command line. Typically, they simplify the creation of metadata fields like the date. To create a generator, you need to use Python code. Place a new file into the generator directory as specified in the documentation which has the same name as the document type you want to create. The script must export a single function ``generate(site: Site, configuration: Dict[Any, str]) -> pathlib.Path``. Invoking ``liara create <type>`` will first build the site, and then call the ``generate`` script to produce a new document. The function *must* return the location it stored the document to.

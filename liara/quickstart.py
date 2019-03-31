@@ -153,6 +153,39 @@ __THEME_CONFIG = {
     'resource_directory': 'resources'
 }
 
+__BLOG_POST_GENERATOR = r"""
+import liara
+import pathlib
+import datetime
+
+
+def generate(site: liara.site.Site, configuration) -> pathlib.Path:
+    title = input("Blog title: ")
+    slug = liara.util.create_slug(title)
+    tags = input("Tags (comma separated): ")
+    # need list to avoid YAML containing special tags
+    tags = list(set(map(str.strip, tags.split(','))))
+    now = liara.util.local_now()
+
+    metadata = liara.yaml.dump_yaml({
+        'title': title,
+        'tags': tags,
+        'date': now
+    })
+
+    content = '---\n'
+    content += metadata
+    content += '---\n'
+    content += '\n'
+    content += 'Blog post content goes here!'
+
+    content_directory = configuration['content_directory']
+    output_file = pathlib.Path(f"{content_directory}/blog/{now.year}/{slug}.md")
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    output_file.write_text(content)
+    return output_file
+"""
+
 
 def generate_templates():
     for k, v in __TEMPLATES.items():
@@ -269,7 +302,15 @@ def generate_configs():
     dump_yaml(__DEFAULT_INDICES, open('indices.yaml', 'w'))
 
 
+def generate_generator():
+    import os
+    os.makedirs('generators', exist_ok=True)
+    output_file = os.path.join('generators', 'blog-post.py')
+    open(output_file, 'w').write(__BLOG_POST_GENERATOR)
+
+
 def generate():
     generate_theme()
     generate_content()
     generate_configs()
+    generate_generator()

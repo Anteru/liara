@@ -272,6 +272,8 @@ class Liara:
         site.set_metadata(load_yaml(metadata.open()))
 
     def discover_content(self) -> Site:
+        """Discover all content and build the :py:class:`liara.site.Site`
+        instance."""
         self.__log.info('Discovering content ...')
         configuration = self.__configuration
 
@@ -331,6 +333,9 @@ class Liara:
         self.__log.info('Output directory cleaned')
 
     def build(self):
+        """Build the site.
+
+        This function can be only called after :py:meth:`discover_content`."""
         from .publish import TemplatePublisher
         self.__log.info('Build started')
         if self.__configuration['build.clean_output']:
@@ -393,6 +398,7 @@ class Liara:
         self.__cache.persist()
 
     def serve(self, *, open_browser=True):
+        """Serve the current site using a local webserver."""
         from .server import HttpServer
         if self.__configuration['build.clean_output']:
             self.__clean_output()
@@ -406,3 +412,15 @@ class Liara:
                             self.__configuration,
                             open_browser=open_browser)
         server.serve()
+
+    def create_document(self, t):
+        """Create a new document using a generator."""
+        import importlib
+
+        source_path = os.path.join(self.__configuration['generator_directory'],
+                                   t + '.py')
+        spec = importlib.util.spec_from_file_location(t, source_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        path = module.generate(self.__site, self.__configuration)
+        self.__log.info(f'Generated "{path}"')

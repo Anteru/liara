@@ -3,7 +3,7 @@ Configuration
 
 .. _configuration:
 
-liara is driven through configuration files. The main file is ``config.yaml``, which can reference other configuration files. To get the full default configuration, use :option:`create-config` command line option.
+liara is driven through configuration files. The main file is ``config.yaml``, which can reference other configuration files. To get the full default configuration, use ``liara create-config``.
 
 Directory settings
 ------------------
@@ -12,12 +12,13 @@ Directory settings
 * ``resource_directory``: The folder containing resources, i.e. ``SASS`` or other files that need to get processed before they can be written to the output.
 * ``static_directory``: The folder containing static files, for instance downloads, images, videos etc.
 * ``output_directory``: The output directory.
+* ``generator_directory``: The folder containing :any:`generators`.
 
 Build settings
 --------------
 
 * ``build.clean_output``: If set to ``True``, the output directory will be deleted on every build.
-* ``build.cache_directory``: The directoy where the cache will be stored.
+* ``build.cache_directory``: The directory where the cache will be stored.
 
 Content settings
 ----------------

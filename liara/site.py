@@ -214,9 +214,8 @@ class DateFilter(ContentFilter):
 
     If the date is in the future, the node will be filtered."""
     def __init__(self):
-        import tzlocal
-        self.__tz = tzlocal.get_localzone()
-        self.__now = self.__tz.localize(datetime.datetime.now())
+        from .util import local_now
+        self.__now = local_now()
 
     def apply(self, node: Node) -> bool:
         date = node.metadata.get('date', None)

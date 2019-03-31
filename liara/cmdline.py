@@ -27,6 +27,10 @@ def cli():
     build_cmd.add_argument('--profile-file', default='build.prof')
     build_cmd.set_defaults(func=build)
 
+    create_cmd = subparsers.add_parser('create', help='Create a document')
+    create_cmd.add_argument('type')
+    create_cmd.set_defaults(func=create)
+
     validate_links_cmd = subparsers.add_parser('validate-links',
                                                help='Validate links')
     validate_links_cmd.add_argument('--type', choices=['external', 'internal'],
@@ -172,10 +176,15 @@ def find_by_tag(options):
                 break
 
 
+def create(options):
+    """Create a document."""
+    liara = _create_liara(options)
+    liara.discover_content()
+    liara.create_document(options.type)
+
+
 def create_config(options):
-    """Create a default configuration.
-    
-    .. option:: create-config -o <output>"""
+    """Create a default configuration."""
     dump_yaml(create_default_configuration(), options.output)
 
 

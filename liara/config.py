@@ -11,6 +11,7 @@ def create_default_configuration() -> Dict[str, Any]:
         'resource_directory': 'resources',
         'static_directory': 'static',
         'output_directory': 'output',
+        'generator_directory': 'generators',
         'build': {
             'clean_output': True,
             'cache_directory': 'cache'

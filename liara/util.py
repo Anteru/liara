@@ -55,8 +55,8 @@ def create_slug(s: str) -> str:
     return slugify.slugify(s)
 
 
-_TZ = tzlocal.get_localzone()
+__TZ = tzlocal.get_localzone()
 
 
 def local_now() -> datetime.datetime:
-    return _TZ.localize(datetime.datetime.now())
+    return __TZ.localize(datetime.datetime.now())

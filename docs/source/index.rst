@@ -18,6 +18,8 @@ Welcome to Liara's documentation!
    collections
    indices
    metadata
+   generators
+   feeds
    static-routes
    url-patterns
    modules

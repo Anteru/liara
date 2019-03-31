@@ -26,7 +26,7 @@ Content settings
 * ``content.filters``: Specifies which :any:`content filters <content-filters>`  will be applied while discovering content.
 * ``template``: The :any:`template <templates>` definition to apply to the content.
 * ``collections``: Points to the file containing the :any:`collection <collections>` definitions.
-* ``feeds``: Points to the file containing the feed definitions.
+* ``feeds``: Points to the file containing the :doc:`feed definitions <feeds>`.
 * ``indices``: Points to the file containing the :doc:`index definitions <indices>`.
 * ``metadata``: Points to the file containing the :doc:`site metadata <metadata>`.
 * ``relaxed_date_parsing``: If enabled, metadata fields named ``date`` will be processed twice. By default, liara assumes that ``date`` contains a markup-specific date field. If this option is on, and the ``date`` field is pointing at a string, liara will try to parse that string into a timestamp.

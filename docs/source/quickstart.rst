@@ -38,6 +38,7 @@ Exploring the quick-start template
 
 The quickstart produces a bunch of folders and files:
 
-* ``content`` holds the content. A file in the content at path ``content/foo.md`` will produce an URL ``/foo`` (or rather, ``/foo/index.html``.) ``_index.md`` is a special name which gets attached to the path of the current directory. For example, ``content/foo/_index.md`` will get routed to ``/foo``.
-* ``templates`` holds the template files. The quickstart sample uses jinja2 for its templates. ``default.yaml`` in that folder contains the default routes for the templates.
+* ``content`` holds the content, which for the quickstart sample consists of a few blog posts. See :doc:`content` for more details on how to structure the content.
+* ``templates`` holds the template files. The quickstart sample uses jinja2 for its templates. ``default.yaml`` in that folder contains the default routes for the templates. See :doc:`templates` for more information on how to use templates.
+* ``generators`` contains a sample generator to create new blog posts. See :doc:`generators` for more information.
 * A few :ref:`configuration files <configuration>`.

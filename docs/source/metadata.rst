@@ -1,7 +1,7 @@
 Metadata
 ========
 
-The default page metadata consists of:
+The default site metadata consists of:
 
 * ``title``: The site title.
 * ``description``: A description of the site.
@@ -10,4 +10,4 @@ The default page metadata consists of:
 * ``language``: The language, provided as a language code of the form ``en-US``.
 * ``copyright``: The default content copyright.
 
-Metadata is used throughout liara, for instance, :any:`feeds` may use the metadata. It is available through :py:attr:`~liara.site.Site.metadata` within liara, and via :py:attr:`~liara.template.SiteTemplateProxy.metadata` to templates.
+Metadata is used throughout liara, for instance, :doc:`feeds` may use the metadata. It is available through :py:attr:`~liara.site.Site.metadata` within liara, and via :py:attr:`~liara.template.SiteTemplateProxy.metadata` to templates.

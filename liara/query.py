@@ -52,6 +52,7 @@ class Sorter:
 
     @property
     def reverse(self):
+        """Returns ``True`` if the sort order should be reversed."""
         return self._reverse
 
 
@@ -115,7 +116,7 @@ class Query(Iterable[Node]):
         return self.sorted_by_metadata('title', reverse=reverse)
 
     def sorted_by_date(self, *, reverse=False) -> 'Query':
-        """Sort the entries in this query by the metadata field ``data``."""
+        """Sort the entries in this query by the metadata field ``date``."""
         return self.sorted_by_metadata('date', reverse=reverse)
 
     def sorted_by_metadata(self, tag: str, *,

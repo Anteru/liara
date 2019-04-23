@@ -11,7 +11,7 @@ The bulk of the content are document nodes -- Markdown or Html files which get p
 Metadata
 --------
 
-**Every** document in liara is expected to start with a metadata header. A metadata header *must* contain at least the document title. Metadata can be provided as YAML or TOML. For YAML, use ``---`` as the delimiter, for TOML, use ``+++``. Documents can be empty as long as the metadata is present, so this is a valid document with YAML metadata:
+**Every** document in liara **must** start with a metadata header. A metadata header *must* contain at least the document title. Metadata can be provided as YAML or TOML. For YAML, use ``---`` as the delimiter, for TOML, use ``+++``. Documents can be empty as long as the metadata is present, so this is a valid document with YAML metadata:
 
 .. code:: yaml
 
@@ -26,7 +26,7 @@ Content filters
 
 .. _content-filters:
 
-liara has some metadata which gets extra handling through content filters: ``date`` and ``status``. ``date`` expects a timestamp, for example:
+Some metadata fields in liara are processed by a :py:class:`~liara.site.ContentFilter`: ``date`` and ``status``. ``date`` expects a timestamp, for example:
 
 .. code:: yaml
 
@@ -35,4 +35,4 @@ liara has some metadata which gets extra handling through content filters: ``dat
    date: 2096-11-22 19:30:56+01:00
    ---
 
-Documents with dates beyond the current time the build is invoked will by default get filtered by the :py:class:`~liara.site.DateFilter`. ``status`` can be used to hide content by setting it to ``private`` -- which in turn will make the :py:class:`~liara.site.StatusFilter` filter out the page. The filters can be set in the :doc:`configuration`.
+Documents with a date that lies in the future relative to the time the build is invoked will get filtered by the :py:class:`~liara.site.DateFilter`. ``status`` can be used to hide content by setting it to ``private`` -- which in turn will make the :py:class:`~liara.site.StatusFilter` filter out the page. The filters can be set up in the :doc:`configuration`.

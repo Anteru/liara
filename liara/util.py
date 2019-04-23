@@ -51,6 +51,11 @@ def flatten_dictionary(d, sep='.', parent_key=None):
 
 
 def create_slug(s: str) -> str:
+    """Convert a plain string into a slug.
+
+    A slug is suitable for use as a URL. For instance, passing ``A new world``
+    to this function will return ``a-new-world``.
+    """
     import slugify
     return slugify.slugify(s)
 
@@ -59,4 +64,9 @@ __TZ = tzlocal.get_localzone()
 
 
 def local_now() -> datetime.datetime:
+    """Get a timezone aware timestamp.
+
+    This is equivalent to ``datetime.datetime.now()``, except it returns a
+    timestamp which has ``tzinfo`` set to the local timezone.
+    """
     return __TZ.localize(datetime.datetime.now())

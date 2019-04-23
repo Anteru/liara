@@ -25,6 +25,4 @@ Defines a collection named ``blog``, which contains all elements under ``/blog``
 Usage
 -----
 
-Collections can be obtained from the :py:class:`~liara.site.Site` object using :py:meth:`~liara.template.SiteTemplateProxy.get_collection`. If ordered, :py:meth:`~liara.template.SiteTemplateProxy.get_next_in_collection` and :py:meth:`~liara.template.SiteTemplateProxy.get_previous_in_collection` can be used to provide next/previous links.
-
-The other use of collections are :doc:`indices`.
+Collections can be obtained from the :py:class:`~liara.site.Site` object using :py:meth:`~liara.template.SiteTemplateProxy.get_collection`. If ordered, :py:meth:`~liara.template.SiteTemplateProxy.get_next_in_collection` and :py:meth:`~liara.template.SiteTemplateProxy.get_previous_in_collection` can be used to provide next/previous links. The other use of collections are :doc:`indices`.

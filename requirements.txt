@@ -2,10 +2,10 @@ beautifulsoup4~=4.7
 Jinja2~=2.10
 libsass~=0.18
 lxml~=4.3
-Mako==1.0.7
-Markdown~=3.0
-Pillow~=5.4
-PyYAML~=5.0
+Mako~=1.0.7
+Markdown~=3.1
+Pillow~=6.0
+PyYAML~=5.1
 treelib~=1.5
 pymdown-extensions~=6.0
 Pygments~=2.3

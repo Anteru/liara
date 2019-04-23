@@ -216,7 +216,8 @@ def list_content(options):
             return False
         return True
 
-    nodes = list(filter(filter_nodes, nodes))
+    if options.type:
+        nodes = list(filter(filter_nodes, nodes))
 
     if options.format == 'tree':
         tree = treelib.Tree()
@@ -253,7 +254,7 @@ def list_content(options):
         tree.show(key=lambda n: str(n.data).casefold())
     elif options.format == 'list':
         for node in nodes:
-            print(str(node.path))
+            print(str(node.path), f'({node.kind.name})')
 
 
 def serve(options):

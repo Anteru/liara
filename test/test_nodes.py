@@ -54,3 +54,14 @@ content
 content
 """
     assert metadata is None
+
+
+def test_extract_metadata_no_trailing_newline():
+    document = """---
+a: "b"
+---"""
+
+    metadata, content = extract_metadata_content(document)
+    assert 'a' in metadata
+    assert metadata['a'] == 'b'
+    assert content == ''

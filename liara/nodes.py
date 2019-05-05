@@ -135,7 +135,6 @@ class Node:
             if recursive:
                 yield from child.get_children(recursive=True)
 
-    
     def process(self, cache: Cache) -> None:
         """Some nodes -- resources, documents, etc. need to be processed. As
         this can be a resource-intense process (for instance, it may require
@@ -174,6 +173,11 @@ def extract_metadata_content(text: str):
     meta_start, meta_end = 0, 0
     content_start, content_end = 0, 0
     metadata_kind = MetadataKind.Unknown
+
+    # If the document doesn't end with a trailing new-line, the metadata regex
+    # will get confused. We'll thus add a new-line to make sure this works
+    if text[-1] != '\n':
+        text += '\n'
 
     for match in _metadata_marker.finditer(text):
         if meta_start == 0:

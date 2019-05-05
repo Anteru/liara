@@ -73,6 +73,13 @@ class Liara:
             project_configuration = load_yaml(open(configuration))
         else:
             project_configuration = load_yaml(configuration)
+
+        # It's none of the YAML file is empty, for instance, when creating a new
+        # site from scratch. In this case, set it to an empty dict as
+        # flatten_dictionary cannot handle None
+        if project_configuration is None:
+            project_configuration = dict()
+
         self.__configuration = collections.ChainMap(
             # Must be flattened already
             configuration_overrides,

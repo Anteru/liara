@@ -2,6 +2,8 @@ from typing import Iterable, List, Iterator
 from .nodes import Node
 from .template import Page
 
+import re
+
 
 class SelectionFilter:
     """Base class for query selection filters."""
@@ -39,6 +41,17 @@ class TagFilter(SelectionFilter):
         if tags is not None:
             return self.__name in tags
         return False
+
+
+class ExcludeFilter(SelectionFilter):
+    """Filter items by a provided pattern. The pattern is matched against the
+    path. If it matches, the item will be ignored."""
+    def __init__(self, pattern):
+        self.__pattern = re.compile(pattern)
+
+    def match(self, node: Node) -> bool:
+        path = str(node.path)
+        return self.__pattern.search(path) is None
 
 
 class Sorter:
@@ -109,6 +122,12 @@ class Query(Iterable[Node]):
         ``tags`` which contains the specified tag name.
         """
         self.__filters.append(TagFilter(name))
+        return self
+
+    def exclude(self, pattern) -> 'Query':
+        """Exclude nodes matching the provided regex pattern. The pattern will
+        be applied to the full path."""
+        self.__filters.append(ExcludeFilter(pattern))
         return self
 
     def sorted_by_title(self, *, reverse=False) -> 'Query':

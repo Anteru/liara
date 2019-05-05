@@ -100,12 +100,17 @@ class HttpServer:
             def log_message(self, f, *args):
                 self.server.log.info(f, *args)
 
-        server_address = ('', 8080)
+        port = 8080
+        server_address = ('', port)
         server = http.server.HTTPServer(server_address, RequestHandler)
         server.http_server = self
         server.log = self.__log
         server.cache = {}
-        print('Listening on http://127.0.0.1:8080')
+        url = f'http://127.0.0.1:{port}'
+        print(f'Listening on {url}')
+
+        self.__site.set_metadata_item('base_url', url)
+
         if self.__open_browser:
-            webbrowser.open('http://127.0.0.1:8080')
+            webbrowser.open(url)
         server.serve_forever()

@@ -313,6 +313,13 @@ class Site:
         """
         self.metadata = metadata
 
+    def set_metadata_item(self, key: str, value: Any) -> None:
+        """Set a single entry in the metadata for this site.
+
+        This can be used to override individual metadata items.
+        """
+        self.metadata[key] = value
+
     def __is_content_filtered(self, node: Node) -> bool:
         for f in self.__content_filters:
             if not f.apply(node):

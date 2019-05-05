@@ -74,8 +74,8 @@ class Liara:
         else:
             project_configuration = load_yaml(configuration)
 
-        # It's none of the YAML file is empty, for instance, when creating a new
-        # site from scratch. In this case, set it to an empty dict as
+        # It's none of the YAML file is empty, for instance, when creating a
+        # new site from scratch. In this case, set it to an empty dict as
         # flatten_dictionary cannot handle None
         if project_configuration is None:
             project_configuration = dict()

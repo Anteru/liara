@@ -1,11 +1,9 @@
-from typing import Dict
 from . import Site
 import pathlib
 from typing import (
     Any,
     Dict,
     Optional,
-    Tuple,
 )
 
 
@@ -165,7 +163,7 @@ class Page:
     def url(self) -> str:
         """Provides the current path of this page.
         """
-        # __node.path is a PosixPath object, but inside a template we want to 
+        # __node.path is a PosixPath object, but inside a template we want to
         # use a basic string
         return str(self.__node.path)
 
@@ -214,7 +212,7 @@ class SiteTemplateProxy:
     def data(self) -> Dict[str, Any]:
         """Get the union of all :py:class:`liara.nodes.DataNode`
         instances in this site.
-        """ 
+        """
         return self.__data
 
     @property
@@ -254,7 +252,7 @@ class SiteTemplateProxy:
             return None
 
     def get_collection(self, collection: str) -> 'query.Query':
-        """Get a collection in form of a :py:class:`liara.query.Query` for 
+        """Get a collection in form of a :py:class:`liara.query.Query` for
         further filtering/sorting.
         """
         from .query import Query

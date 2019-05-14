@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2.0.1
+-----
+
+* Improved document handling: Documents without a trailing newline no longer result in a failure.
+* Improved configuration: Empty configuration files no longer cause an error.
+* Fixed ``list-files`` requiring a type to be specified.
+* Added :py:meth:`~liara.query.Query.exclude`.
+* Override ``base_url`` when serving locally. This was previously documented to work, but not implemented. As part of this change, added :py:meth:`~liara.site.Site.set_metadata_item`.
+
 2.0
 ---
 

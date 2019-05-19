@@ -22,7 +22,7 @@ setup(
         [console_scripts]
         liara=liara.cmdline:cli
     ''',
-    setup_requires=['pytest-runner', 'sphinx'],
+    setup_requires=['pytest-runner', 'sphinx', 'wheel'],
     tests_require=['pytest'],
     extras_require={
         'dev': [

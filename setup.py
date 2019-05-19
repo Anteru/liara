@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
-import liara
+import liara.version
 
 setup(
     name='Liara',
-    version=liara.__version__,
+    version=liara.version,
     packages=find_packages(exclude=['*.test', 'test.*', '*.test.*']),
     install_requires=open('requirements.txt', 'r').readlines(),
     python_requires='>=3.6',

@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.0.2
+-----
+
+* Fix a packaging issue.
+
 2.0.1
 -----
 

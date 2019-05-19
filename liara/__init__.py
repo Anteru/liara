@@ -16,9 +16,9 @@ from .cache import Cache, FilesystemCache
 from .util import flatten_dictionary
 import logging
 from . import config
+from .version import version
 
-
-__version__ = '2.0.1'
+__version__ = version
 __all__ = [
     'actions',
     'cache',

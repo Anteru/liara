@@ -17,7 +17,6 @@ from typing import (
     Optional,
 )
 from .util import pairwise
-import datetime
 import logging
 
 
@@ -29,7 +28,6 @@ def _create_metadata_accessor(field_name):
     ``foo.bar.baz``, and any combination thereof. Attributes will be preferred
     over dictionary access.
     """
-    import operator
     if '.' in field_name:
         def key_fun(o):
             field = field_name.split('.')
@@ -222,8 +220,6 @@ class DateFilter(ContentFilter):
         if date is None:
             return True
 
-        if date.tzinfo is None:
-            date = self.__tz.localize(date)
         return date <= self.__now
 
     @property
@@ -277,7 +273,7 @@ class Site:
 
     generated: List[GeneratedNode]
     """The list of all generated nodes in this site."""
-    
+
     metadata: Dict[str, Any]
     """Metadata describing this site."""
 
@@ -456,7 +452,7 @@ class Site:
         # Static nodes may have been created, so we need to update the links
         self.create_links()
 
-    def get_next_in_collection(self, 
+    def get_next_in_collection(self,
                                collection: str,
                                node: Node) -> Optional[Node]:
         """Get the next node in a collection."""
@@ -480,7 +476,7 @@ class Site:
 
     def select(self, query: str) -> Iterable[Node]:
         """Select nodes from this site.
-        
+
         The query string may contain ``*`` to list all direct children of a
         node, and ``**`` to recursively enumerate nodes. Partial matches
         using ``*foo`` are not supported."""

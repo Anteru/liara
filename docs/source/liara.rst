@@ -128,7 +128,5 @@ liara.yaml module
 Module contents
 ---------------
 
-.. automodule:: liara
+.. autoclass:: liara.Liara
     :members:
-    :undoc-members:
-    :show-inheritance:

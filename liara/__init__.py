@@ -38,13 +38,17 @@ __all__ = [
 ]
 
 
+# We cache it here as it's used a lot during _create_relative_path and shows up
+# in profiles otherwise
 __ROOT_PATH = pathlib.PurePosixPath('/')
 
 
-# Create the path from the full path as discovered during walk
-# This turns something like 'directory/foo/bar' into '/foo/bar'
 def _create_relative_path(path: pathlib.Path, root: pathlib.Path) \
         -> pathlib.PurePosixPath:
+    """"Make a root-relative path.
+
+    This turns `directory/foo/bar` into `/foo/bar`. Both `root` and `path`
+    can be relative or absolute paths."""
     # Extra check, as with_name would fail on an empty path
     if path == root:
         return __ROOT_PATH
@@ -54,6 +58,8 @@ def _create_relative_path(path: pathlib.Path, root: pathlib.Path) \
 
 
 class Liara:
+    """Main entry point for Liara. This class handles all the state required
+    to process and build a site."""
     __site: Site
     __resource_node_factory: ResourceNodeFactory
     __document_node_factory: DocumentNodeFactory
@@ -339,16 +345,21 @@ class Liara:
             shutil.rmtree(output_directory)
         self.__log.info('Output directory cleaned')
 
-    def build(self):
+    def build(self, discover_content=True):
         """Build the site.
 
-        This function can be only called after :py:meth:`discover_content`."""
+        :param bool discover_content: If `True`, :py:meth:`discover_content`
+                                      will be called first.
+        """
         from .publish import TemplatePublisher
         self.__log.info('Build started')
         if self.__configuration['build.clean_output']:
             self.__clean_output()
 
-        site = self.discover_content()
+        if discover_content:
+            site = self.discover_content()
+        else:
+            site = self.__site
 
         for document in site.documents:
             document.validate_metadata()

@@ -138,4 +138,3 @@ class SitemapXmlFeedNode(FeedNode):
                 url.append(E.priority('0'))
             urlset.append(url)
         self.content = etree.tostring(urlset)
-

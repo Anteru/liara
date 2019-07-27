@@ -109,7 +109,7 @@ class Node:
         return f'{self.__class__.__name__}({self.path})'
 
     def select_children(self):
-        """Select all children of this node and return them as a 
+        """Select all children of this node and return them as a
         :py:class:`~liara.query.Query`."""
         from .query import Query
         return Query(self.children)
@@ -581,7 +581,7 @@ class NodeFactory(Generic[T]):
     def create_node(self, suffix: str,
                     src: pathlib.Path,
                     path: pathlib.PurePosixPath,
-                    metadata_path: Optional[pathlib.Path]=None) -> T:
+                    metadata_path: Optional[pathlib.Path] = None) -> T:
         """Create a node using the provided parameters."""
         cls = self.__known_types[suffix]
         return self._create_node(cls, src, path, metadata_path)
@@ -598,7 +598,7 @@ class DocumentNodeFactory(NodeFactory[DocumentNode]):
     """A factory for document nodes."""
     def __setup_fixups(self, configuration):
         if configuration['relaxed_date_parsing']:
-            # This is tricky, as fixup_date_timezone depends on this running
+            # This is tricky, as fixup_date depends on this running
             # first. We thus prepend this before any other fixup and hope this
             # is the only one with ordering issues.
             self.__load_fixups.insert(0, fixup_date)

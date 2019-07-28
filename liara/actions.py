@@ -86,32 +86,39 @@ def validate_internal_links(links: Dict[str, List[pathlib.PurePosixPath]],
                 print(f'"{link}" referenced in "{source}" does not exist')
 
 
-def _check_external_link(url):
+def _check_external_link(url: str):
     """Issue a request to the external URL and check for a valid response.
     """
     import requests
-    ok = False
     try:
-        r = requests.get(url, timeout=1)
-        if r.status_code == 200:
-            ok = True
-        else:
-            error = f'got {r.status_code}, expected 200'
-    except requests.exceptions.ConnectionError:
-        error = "connection error"
-    except requests.exceptions.ConnectTimeout:
-        error = "connection timeout"
-    except requests.exceptions.ReadTimeout:
-        error = "read timeout"
-    except requests.exceptions.TooManyRedirects:
-        error = "too many redirects"
-    except Exception as e:
-        error = str(e)
+        ok = False
 
-    if not ok:
-        return (False, url, error,)
-    else:
-        return (True, url, None,)
+        if url.startswith('mailto'):
+            return (True, url, None,)
+
+        try:
+            r = requests.get(url, timeout=5)
+            if r.status_code == 200:
+                ok = True
+            else:
+                error = f'got {r.status_code}, expected 200'
+        except requests.exceptions.ConnectionError:
+            error = "connection error"
+        except requests.exceptions.ConnectTimeout:
+            error = "connection timeout"
+        except requests.exceptions.ReadTimeout:
+            error = "read timeout"
+        except requests.exceptions.TooManyRedirects:
+            error = "too many redirects"
+        except Exception as e:
+            error = str(e)
+
+        if not ok:
+            return (False, url, error,)
+        else:
+            return (True, url, None,)
+    except (KeyboardInterrupt, SystemExit):
+        return None
 
 
 def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]):
@@ -122,11 +129,18 @@ def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]):
     referencing it."""
     import multiprocessing
 
-    with multiprocessing.Pool() as pool:
-        result = pool.imap_unordered(_check_external_link, links.keys())
+    try:
+        with multiprocessing.Pool() as pool:
+            result = pool.imap_unordered(_check_external_link, links.keys())
 
-        for r in result:
-            if not r[0]:
-                for source in links[r[1]]:
-                    print(f'Link "{r[1]}", referenced in "{source}" failed '
-                          f'with: {r[2]}')
+            for r in result:
+                # Only returned when aborting
+                if r is None:
+                    break
+
+                if not r[0]:
+                    for source in links[r[1]]:
+                        print(f'Link "{r[1]}", referenced in "{source}" failed '
+                              f'with: {r[2]}')
+    except (KeyboardInterrupt, SystemExit):
+        return

@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.0.3
+-----
+
+* Added :py:meth:`~liara.template.SiteTemplateProxy.get_page_by_url`.
+
 2.0.2
 -----
 

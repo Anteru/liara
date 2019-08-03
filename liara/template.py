@@ -227,6 +227,15 @@ class SiteTemplateProxy:
         from .query import Query
         return Query(self.__site.select(query))
 
+    def get_page_by_url(self, url) -> Optional[Page]:
+        """Return a page by URL. If the page cannot be found, return `None`."""
+        node = self.__site.get_node(pathlib.PurePosixPath(url))
+
+        if node:
+            return Page(node)
+        else:
+            return None
+
     def get_previous_in_collection(self, collection: str, page: Page) \
             -> Optional[Page]:
         """Given a collection and a page, return the next page in this

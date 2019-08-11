@@ -155,8 +155,10 @@ def _group_recursive(iterable, group_keys: List[str]):
 
 
 class Index:
-    """An index provides an index for a collection, by generating index nodes
-    for the collection.
+    """An index into a collection, which provides an index structure.
+
+    The index structure requires a grouping schema -- for instance, all nodes
+    containing some tag can get grouped under one index node.
     """
     def __init__(self, site, collection: Collection,
                  path: str, group_by=[], *,

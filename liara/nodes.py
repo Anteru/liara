@@ -408,7 +408,7 @@ class IndexNode(Node):
     """
 
     references: List[Node]
-    """Referenced nodes by this index.
+    """Nodes referenced by this index node.
 
     An index can not rely on using ``children`` as those have to be below the
     path of the parent node. The ``references`` list allows to reference nodes

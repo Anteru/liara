@@ -12,7 +12,7 @@ from .nodes import (
     RedirectionNode,
     ResourceNodeFactory,
 )
-from .cache import Cache, FilesystemCache
+from .cache import Cache, FilesystemCache, Sqlite3Cache
 from .util import flatten_dictionary
 import logging
 from . import config
@@ -102,7 +102,12 @@ class Liara:
 
         cache_directory = pathlib.Path(
             self.__configuration['build.cache_directory'])
-        self.__cache = FilesystemCache(cache_directory)
+        if self.__configuration['build.cache_type'] == 'db':
+            self.__log.debug('Using Sqlite3Cache')
+            self.__cache = Sqlite3Cache(cache_directory)
+        elif self.__configuration['build.cache_type'] == 'fs':
+            self.__log.debug('Using FilesystemCache')
+            self.__cache = FilesystemCache(cache_directory)
 
         self.__setup_content_filters(self.__configuration['content.filters'])
 

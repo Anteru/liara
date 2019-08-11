@@ -19,6 +19,7 @@ Build settings
 
 * ``build.clean_output``: If set to ``True``, the output directory will be deleted on every build.
 * ``build.cache_directory``: The directory where the cache will be stored.
+* ``build.cache_type``: The cache type that should be used. ``db`` uses a database cache, which stores everything in a single file, while ``fs`` uses one file per cache entry.
 
 Content settings
 ----------------

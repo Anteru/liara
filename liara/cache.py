@@ -3,6 +3,7 @@ import hashlib
 import pickle
 from typing import Dict
 import os
+import sqlite3
 
 
 class Cache:
@@ -81,6 +82,74 @@ class FilesystemCache(Cache):
     def get(self, key: bytes) -> object:
         cache_object_path = self.__index[key]
         return pickle.load(cache_object_path.open('rb'))
+
+
+class Sqlite3Cache(Cache):
+    """A :py:class:`Cache` implementation which uses SQLite to store the data.
+    This is mostly useful if creating many files is slow, for instance due to
+    anti-virus software.
+
+    This cache tries to load a previously generated index. Use
+    :py:meth:`persist` to write the cache index to disk.
+    """
+
+    def __init__(self, path: pathlib.Path):
+        self.__path = path
+        os.makedirs(self.__path, exist_ok=True)
+        self.__db_file = self.__path / 'cache.db'
+        self.__connection = sqlite3.connect(self.__db_file)
+        self.__cursor = self.__connection.cursor()
+        self.__cursor.execute("""CREATE TABLE IF NOT EXISTS cache
+            (key BLOB PRIMARY KEY NOT NULL,
+                data BLOB NOT NULL,
+                object_type VARCHAR NOT NULL);""")
+
+    def persist(self):
+        """Persists this cache to disk.
+
+        This function should be called after the cache has been populated. On
+        the next run, the constructor will then pick up the index and return
+        cached data.
+        """
+        self.__connection.commit()
+
+    def put(self, key: bytes, value: object) -> bool:
+        # The semantics are such that inserting the same key twice should not
+        # cause a failure, so we ignore failures here
+        q = 'INSERT INTO cache VALUES(?, ?, ?) ON CONFLICT IGNORE;'
+
+        # We check for byte(array), image nodes for instance store binary data
+        # directly, and there's no need to send it through pickle. It doesn't
+        # seem to make much of measurable difference though
+        if isinstance(value, bytes) or isinstance(value, bytearray):
+            object_type = 'BINARY'
+        else:
+            object_type = 'OBJECT'
+            value = pickle.dumps(value)
+
+        r = self.__cursor.execute(q, (key, value, object_type,))
+
+        return r.lastrowid != 0
+
+    def contains(self, key: bytes) -> bool:
+        q = 'SELECT 1 FROM cache WHERE key=?'
+        self.__cursor.execute(q, (key,))
+        r = self.__cursor.fetchone()
+
+        return r is not None
+
+    def get(self, key: bytes) -> object:
+        q = 'SELECT data, object_type FROM cache WHERE key=?'
+        self.__cursor.execute(q, (key,))
+        r = self.__cursor.fetchone()
+
+        if r:
+            if r[1] == 'OBJECT':
+                return pickle.loads(r[0])
+            else:
+                return r[0]
+        else:
+            return None
 
 
 class MemoryCache(Cache):

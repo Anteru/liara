@@ -14,7 +14,8 @@ def create_default_configuration() -> Dict[str, Any]:
         'generator_directory': 'generators',
         'build': {
             'clean_output': True,
-            'cache_directory': 'cache'
+            'cache_directory': 'cache',
+            'cache_type': 'fs'
         },
         'content': {
             'filters': ['date', 'status']

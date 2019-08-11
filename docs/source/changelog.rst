@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.0.4
+-----
+
+* Add :py:class:`~liara.cache.Sqlite3Cache`, which allows caching everything into a single file instead of one file per entry.
+
 2.0.3
 -----
 

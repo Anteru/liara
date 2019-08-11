@@ -17,6 +17,7 @@ from .util import flatten_dictionary
 import logging
 from . import config
 from .version import version
+import time
 
 __version__ = version
 __all__ = [
@@ -358,6 +359,7 @@ class Liara:
         """
         from .publish import TemplatePublisher
         self.__log.info('Build started')
+        start_time = time.time()
         if self.__configuration['build.clean_output']:
             self.__clean_output()
 
@@ -417,7 +419,8 @@ class Liara:
                                  f'{str(node.dst)}\n')
             self.__log.info(f'Wrote {len(self.__redirections)} redirections')
 
-        self.__log.info('Build finished')
+        end_time = time.time()
+        self.__log.info(f'Build finished ({end_time - start_time:.2f} sec)')
         self.__cache.persist()
 
     def serve(self, *, open_browser=True):

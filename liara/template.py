@@ -228,7 +228,8 @@ class SiteTemplateProxy:
         return Query(self.__site.select(query))
 
     def get_page_by_url(self, url) -> Optional[Page]:
-        """Return a page by URL. If the page cannot be found, return `None`."""
+        """Return a page by URL. If the page cannot be found, return
+        ``None``."""
         node = self.__site.get_node(pathlib.PurePosixPath(url))
 
         if node:

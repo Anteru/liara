@@ -116,7 +116,7 @@ class Sqlite3Cache(Cache):
     def put(self, key: bytes, value: object) -> bool:
         # The semantics are such that inserting the same key twice should not
         # cause a failure, so we ignore failures here
-        q = 'INSERT INTO cache VALUES(?, ?, ?) ON CONFLICT IGNORE;'
+        q = 'INSERT OR IGNORE INTO cache VALUES(?, ?, ?);'
 
         # We check for byte(array), image nodes for instance store binary data
         # directly, and there's no need to send it through pickle. It doesn't

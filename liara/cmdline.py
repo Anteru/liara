@@ -82,6 +82,9 @@ def cli():
         # This doesn't remove critical debug output -- PIL writes things like
         # PNG header data here
         logging.getLogger('PIL').setLevel(logging.INFO)
+        # Markdown writes a lot of debug output as well, mostly what extensions
+        # were loaded and such, which is not important for debugging
+        logging.getLogger('MARKDOWN').setLevel(logging.INFO)
     elif args.verbose:
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(name)s %(message)s')

@@ -98,9 +98,7 @@ class Liara:
             self.__configuration
         )
 
-        template_configuration = pathlib.Path(self.__configuration['template'])
-        self.__setup_template_backend(template_configuration)
-
+        # Must come before the template backend, as those can use caches
         cache_directory = pathlib.Path(
             self.__configuration['build.cache_directory'])
         if self.__configuration['build.cache_type'] == 'db':
@@ -109,6 +107,9 @@ class Liara:
         elif self.__configuration['build.cache_type'] == 'fs':
             self.__log.debug('Using FilesystemCache')
             self.__cache = FilesystemCache(cache_directory)
+
+        template_configuration = pathlib.Path(self.__configuration['template'])
+        self.__setup_template_backend(template_configuration)
 
         self.__setup_content_filters(self.__configuration['content.filters'])
 
@@ -133,7 +134,7 @@ class Liara:
 
         if backend == 'jinja2':
             self.__template_repository = Jinja2TemplateRepository(
-                paths, template_path)
+                paths, template_path, self.__cache)
         elif backend == 'mako':
             self.__template_repository = MakoTemplateRepository(
                 paths, template_path)

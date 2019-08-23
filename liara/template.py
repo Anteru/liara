@@ -1,4 +1,5 @@
 from . import Site
+from .cache import Cache
 import pathlib
 from typing import (
     Any,
@@ -113,29 +114,50 @@ class Jinja2Template(Template):
 
 
 class Jinja2TemplateRepository(TemplateRepository):
-    """Jinja2 based template repository.
-
-    This class has extra magic internally to allow it to be pickled/unpickled,
-    which is necessary for multiprocessing."""
-    def __init__(self, paths: Dict[str, str], path: pathlib.Path):
+    """Jinja2 based template repository."""
+    def __init__(self, paths: Dict[str, str], path: pathlib.Path,
+                 cache: Cache = None):
         super().__init__(paths)
         self.__path = path
+        self.__cache = cache
         self.__create_environment()
 
     def __create_environment(self):
-        from jinja2 import FileSystemLoader, Environment
+        from jinja2 import FileSystemLoader, Environment, BytecodeCache
         from .util import readtime
-        self.__env = Environment(loader=FileSystemLoader(str(self.__path)))
+        import io
+
+        class Jinja2BytecodeCache(BytecodeCache):
+            def __init__(self, cache: Cache):
+                self.__cache = cache
+
+            def clear(self):
+                pass
+
+            def load_bytecode(self, bucket):
+                key = bucket.key.encode('utf-8')
+                if self.__cache.contains(key):
+                    s = io.BytesIO(self.__cache.get(key))
+                    bucket.load_bytecode(s)
+
+            def dump_bytecode(self, bucket):
+                key = bucket.key.encode('utf-8')
+                s = io.BytesIO()
+                bucket.write_bytecode(s)
+
+                # Caches pickle under the hood, and a memoryview cannot be
+                # pickled -- we thus convert to bytes here
+                self.__cache.put(key, s.getbuffer().tobytes())
+
+        if self.__cache:
+            cache = Jinja2BytecodeCache(self.__cache)
+        else:
+            cache = None
+
+        self.__env = Environment(
+            loader=FileSystemLoader(str(self.__path)),
+            bytecode_cache=cache)
         self.__env.filters['readtime'] = readtime
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        del state['_Jinja2TemplateRepository__env']
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.__create_environment()
 
     def find_template(self, url, site: Site) -> Template:
         template = self._match_template(url, site)

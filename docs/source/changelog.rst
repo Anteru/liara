@@ -5,6 +5,7 @@ Changelog
 -----
 
 * Add :py:class:`~liara.cache.Sqlite3Cache`, which allows caching everything into a single file instead of one file per entry.
+* Add a bytecode cache for the :py:class:`~liara.template.Jinja2TemplateRepository`.
 
 2.0.3
 -----

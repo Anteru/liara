@@ -57,6 +57,9 @@ class HttpServer:
             node.reload()
             node.process(self.__cache)
             cache = False
+        elif node.kind in {NodeKind.Generated}:
+            node.generate()
+            cache = False
         # We don't cache index nodes so templates get re-applied
         elif node.kind == NodeKind.Index:
             cache = False

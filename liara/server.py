@@ -12,6 +12,11 @@ import webbrowser
 
 class HttpServer:
     __log = logging.getLogger('liara.HttpServer')
+    port = 8080
+
+    @staticmethod
+    def get_url():
+        return f'http://127.0.0.1:{HttpServer.port}'
 
     def __init__(self, site: Site, template_repository: TemplateRepository,
                  configuration, *, open_browser=True):
@@ -84,6 +89,10 @@ class HttpServer:
         class RequestHandler(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
                 path = pathlib.PurePosixPath(self.path)
+
+                if path.name == 'index.html':
+                    path = path.parent
+
                 if path not in self.server.cache:
                     node_path, cache = \
                         self.server.http_server._build_single_node(path)
@@ -103,16 +112,13 @@ class HttpServer:
             def log_message(self, f, *args):
                 self.server.log.info(f, *args)
 
-        port = 8080
-        server_address = ('', port)
+        server_address = ('', self.port)
         server = http.server.HTTPServer(server_address, RequestHandler)
         server.http_server = self
         server.log = self.__log
         server.cache = {}
-        url = f'http://127.0.0.1:{port}'
+        url = self.get_url()
         print(f'Listening on {url}')
-
-        self.__site.set_metadata_item('base_url', url)
 
         if self.__open_browser:
             webbrowser.open(url)

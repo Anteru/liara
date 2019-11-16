@@ -479,13 +479,16 @@ class RedirectionNode(GeneratedNode):
 
     def __init__(self,
                  path: pathlib.PurePosixPath,
-                 dst: pathlib.PurePosixPath):
+                 dst: pathlib.PurePosixPath,
+                 *,
+                 base_url = ''):
         super().__init__(path)
         self.dst = dst
+        self.__base_url = base_url
 
     def generate(self):
         text = _REDIRECTION_TEMPLATE.replace('{{NEW_URL}}',
-                                             self.dst.as_posix())
+                                             self.__base_url + self.dst.as_posix())
         self.content = text
 
 

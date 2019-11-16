@@ -68,6 +68,8 @@ class Liara:
     __log = logging.getLogger('liara')
     __cache: Cache
     __document_post_processors = List[Callable]
+    # When running using 'serve', this will be set to the local URL
+    __base_url_override: str = None
 
     def __init__(self, configuration=None, *, configuration_overrides={}):
         self.__site = Site()
@@ -160,11 +162,14 @@ class Liara:
         if not static_routes.exists():
             return
 
+        base_url = site.metadata['base_url']
+
         routes = load_yaml(static_routes.open())
         for route in routes:
             node = RedirectionNode(
                     pathlib.PurePosixPath(route['src']),
-                    pathlib.PurePosixPath(route['dst']))
+                    pathlib.PurePosixPath(route['dst']),
+                    base_url = base_url)
             self.__redirections.append(node)
             site.add_generated(node)
 
@@ -291,6 +296,9 @@ class Liara:
 
         site.set_metadata(load_yaml(metadata.open()))
 
+        if self.__base_url_override:
+            site.set_metadata_item('base_url', self.__base_url_override)
+
     def discover_content(self) -> Site:
         """Discover all content and build the :py:class:`liara.site.Site`
         instance."""
@@ -415,9 +423,10 @@ class Liara:
         if self.__redirections:
             self.__log.info('Writing redirection file ...')
             with (output_path / '.htaccess').open('w') as output:
+                base_url = site.metadata['base_url']
                 for node in self.__redirections:
                     output.write(f'RedirectPermanent {str(node.path)} '
-                                 f'{str(node.dst)}\n')
+                                 f'{base_url}{str(node.dst)}\n')
             self.__log.info(f'Wrote {len(self.__redirections)} redirections')
 
         end_time = time.time()
@@ -430,14 +439,17 @@ class Liara:
         if self.__configuration['build.clean_output']:
             self.__clean_output()
 
+        self.__base_url_override = HttpServer.get_url()
+        
         site = self.discover_content()
+        
+        server = HttpServer(site, self.__template_repository,
+                            self.__configuration,
+                            open_browser=open_browser)
 
         for document in site.documents:
             document.validate_metadata()
 
-        server = HttpServer(site, self.__template_repository,
-                            self.__configuration,
-                            open_browser=open_browser)
         server.serve()
 
     def create_document(self, t):

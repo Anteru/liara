@@ -6,6 +6,8 @@ Changelog
 
 * Add :py:class:`~liara.cache.Sqlite3Cache`, which allows caching everything into a single file instead of one file per entry.
 * Add a bytecode cache for the :py:class:`~liara.template.Jinja2TemplateRepository`.
+* Fixed generated nodes not getting generated when using ``liara serve``.
+* Reduce debug spew when stopping ``liara serve`` using ``^C``.
 
 2.0.3
 -----

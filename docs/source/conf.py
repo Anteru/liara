@@ -22,7 +22,7 @@ import liara
 # -- Project information -----------------------------------------------------
 
 project = 'Liara'
-copyright = '2019, Matthäus G. Chajdas'
+copyright = '2019-2020, Matthäus G. Chajdas'
 author = 'Matthäus G. Chajdas'
 
 # The short X.Y version

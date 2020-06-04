@@ -6,6 +6,7 @@ from .site import Site
 from .template import TemplateRepository
 from .publish import TemplatePublisher
 from .cache import FilesystemCache
+import sys
 import logging
 import webbrowser
 
@@ -122,4 +123,7 @@ class HttpServer:
 
         if self.__open_browser:
             webbrowser.open(url)
-        server.serve_forever()
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            sys.exit(0)

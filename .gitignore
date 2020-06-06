@@ -1,5 +1,4 @@
-syntax: glob
-__pycache__/**
+__pycache__
 .pytest_vcache/**
 .idea/**
 .pytest_cache/**

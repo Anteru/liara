@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.0.5
+-----
+
+* Fixed ``liara create-config`` not working.
+
 2.0.4
 -----
 

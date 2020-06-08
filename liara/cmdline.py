@@ -54,7 +54,8 @@ def cli():
     create_config_cmd = subparsers.add_parser('create-config',
                                               help='Create a default '
                                                    'configuration')
-    create_config_cmd.add_argument('-o', '--output', default='config.yaml')
+    create_config_cmd.add_argument('-o', '--output', default='config.yaml',
+                                   type=argparse.FileType('w'))
     create_config_cmd.set_defaults(func=create_config)
 
     list_tags_cmd = subparsers.add_parser('list-tags',

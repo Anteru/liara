@@ -208,6 +208,15 @@ class ContentFilter:
         """
         pass
 
+    @property
+    def reason(self) -> str:
+        """Return a reason why this filter applied."""
+        return ''
+
+    @property
+    def name(self) -> str:
+        return self.__class__.__name__
+
 
 class DateFilter(ContentFilter):
     """Filter content based on the metadata field ``date``.
@@ -228,6 +237,10 @@ class DateFilter(ContentFilter):
     def reason(self):
         return 'date <= now()'
 
+    @property
+    def name(self):
+        return 'date-filter'
+
 
 class StatusFilter(ContentFilter):
     """Filter content based on the metadata field ``status``.
@@ -241,6 +254,10 @@ class StatusFilter(ContentFilter):
     @property
     def reason(self):
         return 'status set to "private"'
+
+    @property
+    def name(self):
+        return 'status-filter'
 
 
 class ContentFilterFactory:
@@ -284,6 +301,7 @@ class Site:
     __collections: Dict[str, Collection]
     __indices: List[Index]
     __content_filters: List[ContentFilter]
+    __filtered_content: Dict[pathlib.PurePosixPath, str]
 
     def __init__(self):
         self.data = []
@@ -298,6 +316,9 @@ class Site:
         self.__indices = []
         self.__content_filters = []
         self.__log = logging.getLogger('liara.site')
+
+        # Stores the paths of filtered nodes, and the filter that filtered them
+        self.__filtered_content = {}
 
     def register_content_filter(self, content_filter: ContentFilter):
         """Register a new content filter."""
@@ -322,8 +343,14 @@ class Site:
         for f in self.__content_filters:
             if not f.apply(node):
                 self.__log.info(f'Filtered node {node.path} due to {f.reason}')
+                self.__filtered_content[node.path] = f.name
                 return True
         return False
+
+    @property
+    def filtered_content(self) -> Dict[pathlib.PurePosixPath, str]:
+        """Return which node paths got filtered and due to which filter."""
+        return self.__filtered_content
 
     def add_data(self, node: DataNode) -> None:
         "Add a data node to this site."""

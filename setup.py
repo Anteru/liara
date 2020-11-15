@@ -28,7 +28,7 @@ setup(
             'flake8',
             'flake8-mypy',
         ],
-        'mako' : [
+        'mako': [
             'Mako~=1.0.7'
         ]
     },

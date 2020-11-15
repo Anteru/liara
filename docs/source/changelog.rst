@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.0.6
+-----
+
+* Add ``has-pending-document`` to the command line. This will check if there is any content which is filtered by the :py:class:`~liara.site.DateFilter`. This is useful for cron-based deploys which try to not rebuild if there are no content changes, as there is no other way to find out if all content in a given revision has been published.
+
 2.0.5
 -----
 

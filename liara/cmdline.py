@@ -5,6 +5,7 @@ from .config import create_default_configuration
 from .yaml import dump_yaml
 import logging
 import os
+import sys
 
 
 def cli():
@@ -26,6 +27,12 @@ def cli():
     build_cmd.add_argument('--profile', action='store_true')
     build_cmd.add_argument('--profile-file', default='build.prof')
     build_cmd.set_defaults(func=build)
+
+    has_pending_documents_cmd = subparsers.add_parser(
+        'has-pending-document',
+        help='Check if the site has pending document. If yes, the exit code '
+             'will be 1.')
+    has_pending_documents_cmd.set_defaults(func=has_pending_documents)
 
     create_cmd = subparsers.add_parser('create', help='Create a document')
     create_cmd.add_argument('type')
@@ -94,7 +101,7 @@ def cli():
                             format='%(asctime)s %(name)s %(message)s')
 
     if hasattr(args, 'func'):
-        args.func(args)
+        sys.exit(args.func(args))
     else:
         parser.print_help()
 
@@ -259,6 +266,15 @@ def list_content(options):
     elif options.format == 'list':
         for node in nodes:
             print(str(node.path), f'({node.kind.name})')
+
+
+def has_pending_documents(options):
+    """Return 1 if there is at least one document which was date filtered."""
+    liara = _create_liara(options)
+    content = liara.discover_content()
+    for v in content.filtered_content.values():
+        if v == 'date-filter':
+            return 1
 
 
 def serve(options):

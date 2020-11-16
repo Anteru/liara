@@ -6,6 +6,7 @@ from typing import (
     )
 import collections
 from .yaml import load_yaml
+from . import config, signals
 from .site import Site, ContentFilterFactory
 from .nodes import (
     DocumentNodeFactory,
@@ -15,7 +16,6 @@ from .nodes import (
 from .cache import Cache, FilesystemCache, Sqlite3Cache
 from .util import flatten_dictionary
 import logging
-from . import config
 from .version import version
 import time
 
@@ -67,7 +67,7 @@ class Liara:
     __redirections: List[RedirectionNode]
     __log = logging.getLogger('liara')
     __cache: Cache
-    __document_post_processors = List[Callable]
+    __document_post_processors: List[Callable]
     # When running using 'serve', this will be set to the local URL
     __base_url_override: str = None
 

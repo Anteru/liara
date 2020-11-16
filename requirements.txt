@@ -13,3 +13,4 @@ dateparser~=0.7
 requests~=2.21
 tzlocal~=1.5
 python-slugify~=3.0
+blinker~=1.4

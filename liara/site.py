@@ -17,6 +17,7 @@ from typing import (
     Optional,
 )
 from .util import pairwise
+from . import signals
 import logging
 
 
@@ -239,7 +240,7 @@ class DateFilter(ContentFilter):
 
     @property
     def name(self):
-        return 'date-filter'
+        return 'date'
 
 
 class StatusFilter(ContentFilter):
@@ -257,7 +258,7 @@ class StatusFilter(ContentFilter):
 
     @property
     def name(self):
-        return 'status-filter'
+        return 'status'
 
 
 class ContentFilterFactory:
@@ -344,6 +345,7 @@ class Site:
             if not f.apply(node):
                 self.__log.info(f'Filtered node {node.path} due to {f.reason}')
                 self.__filtered_content[node.path] = f.name
+                signals.content_filtered.send(self, node=node, filter=f)
                 return True
         return False
 
@@ -394,6 +396,8 @@ class Site:
     def __register_node(self, node: Node) -> None:
         if node.path in self.__nodes:
             raise Exception(f'"{node.path}" already exists, cannot overwrite.')
+
+        signals.content_added.send(self, node=node)
         self.__nodes[node.path] = node
 
     @property

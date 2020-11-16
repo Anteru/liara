@@ -270,11 +270,23 @@ def list_content(options):
 
 def has_pending_documents(options):
     """Return 1 if there is at least one document which was date filtered."""
+    from . import signals
+
+    documents_filtered_by_date = 0
+
+    def on_content_filtered(sender, **kw):
+        nonlocal documents_filtered_by_date
+        if kw['filter'].name == 'date':
+            documents_filtered_by_date += 1
+
+    signals.content_filtered.connect(on_content_filtered)
+
     liara = _create_liara(options)
-    content = liara.discover_content()
-    for v in content.filtered_content.values():
-        if v == 'date-filter':
-            return 1
+    liara.discover_content()
+
+    if documents_filtered_by_date > 0:
+        print(f'{documents_filtered_by_date} document(s) pending')
+        return 1
 
 
 def serve(options):

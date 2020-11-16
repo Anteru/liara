@@ -3,6 +3,8 @@ import pathlib
 from typing import (
         List,
         Callable,
+        Set,
+        Dict
     )
 import collections
 from .yaml import load_yaml
@@ -70,6 +72,7 @@ class Liara:
     __document_post_processors: List[Callable]
     # When running using 'serve', this will be set to the local URL
     __base_url_override: str = None
+    __registered_plugins: Set[str] = set()
 
     def __init__(self, configuration=None, *, configuration_overrides={}):
         self.__site = Site()
@@ -95,6 +98,8 @@ class Liara:
             flatten_dictionary(project_configuration),
             flatten_dictionary(default_configuration))
 
+        Liara.setup_plugins()
+
         self.__resource_node_factory = ResourceNodeFactory()
         self.__document_node_factory = DocumentNodeFactory(
             self.__configuration
@@ -114,6 +119,27 @@ class Liara:
         self.__setup_template_backend(template_configuration)
 
         self.__setup_content_filters(self.__configuration['content.filters'])
+
+    @classmethod
+    def setup_plugins(self) -> None:
+        import liara.plugins
+        import pkgutil, importlib
+
+        def iter_namespace(ns_pkg):
+            return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
+            
+        plugins = {
+            name: importlib.import_module(name)
+            for _, name, _ in iter_namespace(liara.plugins)
+        }
+
+        for name, module in plugins.items():
+            if name  in self.__registered_plugins:
+                continue
+
+            self.__log.debug(f'Initializing plugin: {name}')
+            module.register()
+            self.__registered_plugins.add(name)
 
     def __setup_content_filters(self, filters: List[str]) -> None:
         content_filter_factory = ContentFilterFactory()

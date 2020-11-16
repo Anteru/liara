@@ -7,10 +7,18 @@ import logging
 import os
 import sys
 
+class Command:
+    def configure(self, parser):
+        pass
+
+    def execute(self, liara, options):
+        pass
+
 
 def cli():
     """Entry point for the command line."""
     from .nodes import NodeKind
+    from .signals import commandline_prepared
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--config', default='config.yaml')
@@ -19,20 +27,12 @@ def cli():
     parser.add_argument('--version', action='version',
                         version=f'%(prog)s {__version__}')
 
-    subparsers = parser.add_subparsers(title='Commands',
-                                       metavar='COMMAND',
-                                       help='The command to invoke')
+    subparsers = parser.add_subparsers(title='Commands')
 
     build_cmd = subparsers.add_parser('build', help='Build the site')
     build_cmd.add_argument('--profile', action='store_true')
     build_cmd.add_argument('--profile-file', default='build.prof')
     build_cmd.set_defaults(func=build)
-
-    has_pending_documents_cmd = subparsers.add_parser(
-        'has-pending-document',
-        help='Check if the site has pending document. If yes, the exit code '
-             'will be 1.')
-    has_pending_documents_cmd.set_defaults(func=has_pending_documents)
 
     create_cmd = subparsers.add_parser('create', help='Create a document')
     create_cmd.add_argument('type')
@@ -78,6 +78,20 @@ def cli():
                                   choices=list(map(str.lower,
                                                NodeKind.__members__.keys())))
     list_content_cmd.set_defaults(func=list_content)
+
+    Liara.setup_plugins()
+
+    plugin_commands = []
+    commandline_prepared.send(cli, command_registry=plugin_commands)
+
+    for command in plugin_commands:
+        p = command.configure(subparsers)
+
+        def execute_plugin(options):
+            liara = _create_liara(options)
+            command.execute(liara, options)
+
+        p.set_defaults(func=execute_plugin)
 
     args = parser.parse_args()
 
@@ -266,27 +280,6 @@ def list_content(options):
     elif options.format == 'list':
         for node in nodes:
             print(str(node.path), f'({node.kind.name})')
-
-
-def has_pending_documents(options):
-    """Return 1 if there is at least one document which was date filtered."""
-    from . import signals
-
-    documents_filtered_by_date = 0
-
-    def on_content_filtered(sender, **kw):
-        nonlocal documents_filtered_by_date
-        if kw['filter'].name == 'date':
-            documents_filtered_by_date += 1
-
-    signals.content_filtered.connect(on_content_filtered)
-
-    liara = _create_liara(options)
-    liara.discover_content()
-
-    if documents_filtered_by_date > 0:
-        print(f'{documents_filtered_by_date} document(s) pending')
-        return 1
 
 
 def serve(options):

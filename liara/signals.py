@@ -10,3 +10,5 @@ content_filtered = signal('content-filtered')
 # Arguments:
 # node: liara.nodes.Node - the node that was created
 content_added = signal('content-added')
+
+commandline_prepared = signal('commandline-prepared')

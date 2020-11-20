@@ -20,7 +20,7 @@ setup(
 
     entry_points='''
         [console_scripts]
-        liara=liara.cmdline:cli
+        liara=liara.cmdline:main
     ''',
     tests_require=['pytest'],
     extras_require={

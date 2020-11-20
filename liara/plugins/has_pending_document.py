@@ -1,16 +1,21 @@
 from liara import signals
-from liara.cmdline import Command
 
 
-class HasPendingDocuments(Command):
-    def configure(self, parser):
-        return parser.add_parser(
-            'has-pending-document',
-            help='Check if the site has pending document. '
-                 'If yes, the exit code will be 1.')
+def register():
+    signals.commandline_prepared.connect(_register_cli)
 
-    def execute(self, liara, options):
-        """Return 1 if there is at least one document which was date filtered."""
+
+def _register_cli(cli):
+    from liara.cmdline import pass_environment
+    import sys
+
+    @cli.command()
+    @pass_environment
+    def has_pending_document(env):
+        """Check if there is a pending document.
+
+        If a pending document is found, the return code from the application
+        will be 1."""
         documents_filtered_by_date = 0
 
         def on_content_filtered(sender, **kw):
@@ -20,16 +25,8 @@ class HasPendingDocuments(Command):
 
         signals.content_filtered.connect(on_content_filtered)
 
-        liara.discover_content()
+        env.liara.discover_content()
 
         if documents_filtered_by_date > 0:
             print(f'{documents_filtered_by_date} document(s) pending')
-            return 1
-
-
-def _on_commandline_prepared(sender, command_registry):
-    command_registry.append(HasPendingDocuments())
-
-
-def register():
-    signals.commandline_prepared.connect(_on_commandline_prepared)
+            sys.exit(1)

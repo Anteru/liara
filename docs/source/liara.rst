@@ -92,6 +92,20 @@ liara.server module
     :undoc-members:
     :show-inheritance:
 
+liara.signals module
+--------------------
+
+.. automodule:: liara.signals
+
+    .. autodata:: content_filtered
+        :annotation:
+
+    .. autodata:: content_added
+        :annotation:
+
+    .. autodata:: commandline_prepared
+        :annotation:
+
 liara.site module
 -----------------
 

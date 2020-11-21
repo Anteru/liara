@@ -22,6 +22,7 @@ Welcome to Liara's documentation!
    feeds
    static-routes
    url-patterns
+   plugins
    modules
 
 

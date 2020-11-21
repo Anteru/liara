@@ -9,6 +9,10 @@ from .nodes import NodeKind
 
 
 class Environment:
+    """The command line environment.
+
+    This provides access to global variables that are useful for command line
+    commands, as well as a global liara instance."""
     def __init__(self):
         self.verbose = False
         self.debug = False

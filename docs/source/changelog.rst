@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.1.0
+-----
+
+* Introduce a new plugin system. This moves the ``has-pending-document`` command into a new plugin and adds signals to interact with liara's processing. See :doc:`plugins` for details.
+
 2.0.6
 -----
 

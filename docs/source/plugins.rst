@@ -19,7 +19,7 @@ Of course, a completely empty plugin doesn't provide any functionality. To hook 
 Extending the command line
 --------------------------
 
-The command line is special as it needs to get extended at a very early stage -- before it's shown to the user for the first time. To extend the command line, you must use the :py:data:`~liara.signals.commandline_prepared` signal. liara uses Click as the command line parser, but you cannot import liara's command line module directly in  your module as that would lead to circular includes. The recommendation is to put the commands directly into the registration method as following:
+The command line is special as it needs to get extended at a very early stage -- before it's shown to the user for the first time. To extend the command line, you must use the :py:data:`~liara.signals.commandline_prepared` signal. liara uses `Click <https://click.palletsprojects.com/>`_ as the command line parser, but you cannot import liara's command line module directly in  your module as that would lead to circular includes. The recommendation is to put the commands directly into the registration method as following:
 
 .. code:: python
 

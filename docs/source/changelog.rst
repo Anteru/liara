@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.0.7
+-----
+
+* Add a ``server_rule_only`` option to prevent the creation of redirection nodes and use the redirection paths verbatim.
+
 2.0.6
 -----
 

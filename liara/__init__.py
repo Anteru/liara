@@ -3,9 +3,12 @@ import pathlib
 from typing import (
         List,
         Callable,
+        Set,
+        Dict
     )
 import collections
 from .yaml import load_yaml
+from . import config
 from .site import Site, ContentFilterFactory
 from .nodes import (
     DocumentNodeFactory,
@@ -15,7 +18,6 @@ from .nodes import (
 from .cache import Cache, FilesystemCache, Sqlite3Cache
 from .util import flatten_dictionary
 import logging
-from . import config
 from .version import version
 import time
 
@@ -67,10 +69,10 @@ class Liara:
     __redirections: List[RedirectionNode]
     __log = logging.getLogger('liara')
     __cache: Cache
-    __document_post_processors = List[Callable]
+    __document_post_processors: List[Callable]
     # When running using 'serve', this will be set to the local URL
     __base_url_override: str = None
-
+    
     def __init__(self, configuration=None, *, configuration_overrides={}):
         self.__site = Site()
         self.__redirections = []
@@ -170,8 +172,17 @@ class Liara:
                     pathlib.PurePosixPath(route['src']),
                     pathlib.PurePosixPath(route['dst']),
                     base_url = base_url)
-            self.__redirections.append(node)
-            site.add_generated(node)
+            if route.get('server_rule_only', False):
+                self.__redirections.append({
+                    'src': route['src'],
+                    'dst': base_url + route['dst']
+                })
+            else:
+                self.__redirections.append({
+                    'src': str(node.path),
+                    'dst': base_url + str(node.dst)
+                })
+                site.add_generated(node)
 
     def __discover_content(self, site: Site, content_root: pathlib.Path) \
             -> None:
@@ -424,9 +435,10 @@ class Liara:
             self.__log.info('Writing redirection file ...')
             with (output_path / '.htaccess').open('w') as output:
                 base_url = site.metadata['base_url']
+                output.write('RewriteEngine on\n')
                 for node in self.__redirections:
-                    output.write(f'RedirectPermanent {str(node.path)} '
-                                 f'{base_url}{str(node.dst)}\n')
+                    output.write(f'RedirectPermanent {node["src"]} '
+                                 f'{node["dst"]}\n')
             self.__log.info(f'Wrote {len(self.__redirections)} redirections')
 
         end_time = time.time()

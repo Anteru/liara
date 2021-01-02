@@ -6,6 +6,11 @@ Changelog
 
 * Introduce a new plugin system. This moves the ``has-pending-document`` command into a new plugin and adds signals to interact with liara's processing. See :doc:`plugins` for details.
 
+2.0.7
+-----
+
+* Add a ``server_rule_only`` option to prevent the creation of redirection nodes and use the redirection paths verbatim.
+
 2.0.6
 -----
 

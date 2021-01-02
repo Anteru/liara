@@ -196,8 +196,17 @@ class Liara:
                     pathlib.PurePosixPath(route['src']),
                     pathlib.PurePosixPath(route['dst']),
                     base_url = base_url)
-            self.__redirections.append(node)
-            site.add_generated(node)
+            if route.get('server_rule_only', False):
+                self.__redirections.append({
+                    'src': route['src'],
+                    'dst': base_url + route['dst']
+                })
+            else:
+                self.__redirections.append({
+                    'src': str(node.path),
+                    'dst': base_url + str(node.dst)
+                })
+                site.add_generated(node)
 
     def __discover_content(self, site: Site, content_root: pathlib.Path) \
             -> None:
@@ -450,9 +459,10 @@ class Liara:
             self.__log.info('Writing redirection file ...')
             with (output_path / '.htaccess').open('w') as output:
                 base_url = site.metadata['base_url']
+                output.write('RewriteEngine on\n')
                 for node in self.__redirections:
-                    output.write(f'RedirectPermanent {str(node.path)} '
-                                 f'{base_url}{str(node.dst)}\n')
+                    output.write(f'RedirectPermanent {node["src"]} '
+                                 f'{node["dst"]}\n')
             self.__log.info(f'Wrote {len(self.__redirections)} redirections')
 
         end_time = time.time()

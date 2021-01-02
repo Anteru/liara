@@ -2,10 +2,10 @@ from blinker import signal
 
 
 content_filtered = signal('content-filtered')
-"""Raised when content has been discovered.
+"""Raised when content has been removed due to a filter.
 
-  :param liara.nodes.Node node: the node that was filtered
-  :param liara.site.ContentFilter filter: the filter that applied
+  :param liara.nodes.Node node: the node that was removed
+  :param liara.site.ContentFilter filter: the filter that matched
 """
 
 content_added = signal('content-added')

@@ -1,13 +1,17 @@
 import os
 import pathlib
+import logging
+import time
+
 from typing import (
         List,
         Callable,
         Set,
         Dict
     )
+
 import collections
-from .yaml import load_yaml
+
 from . import config, signals
 from .site import Site, ContentFilterFactory
 from .nodes import (
@@ -15,13 +19,12 @@ from .nodes import (
     RedirectionNode,
     ResourceNodeFactory,
 )
+
 from .cache import Cache, FilesystemCache, Sqlite3Cache
 from .util import flatten_dictionary
-import logging
-from .version import version
-import time
+from .yaml import load_yaml
 
-__version__ = version
+__version__ = '2.1.0'
 __all__ = [
     'actions',
     'cache',

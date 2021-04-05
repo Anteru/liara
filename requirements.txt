@@ -14,3 +14,4 @@ requests~=2.25
 tzlocal~=2.1
 python-slugify~=4.0
 blinker~=1.4
+click~=7.0

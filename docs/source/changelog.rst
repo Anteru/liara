@@ -5,6 +5,7 @@ Changelog
 -----
 
 * Introduce a new plugin system. This moves the ``has-pending-document`` command into a new plugin and adds signals to interact with liara's processing. See :doc:`plugins` for details.
+* Remove ``liara.version.version`` in favor of the more standard ``liara.__version__`` variable.
 
 2.0.7
 -----

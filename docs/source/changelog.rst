@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.1.1
+-----
+
+* Fix plugins not being packaged.
+
 2.1.0
 -----
 

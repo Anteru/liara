@@ -1,9 +1,6 @@
 liara package
 =============
 
-Submodules
-----------
-
 liara.actions module
 --------------------
 

@@ -11,18 +11,20 @@ Welcome to Liara's documentation!
    :caption: Contents:
 
    quickstart
-   content
-   configuration
-   templates
    changelog
+
    collections
+   configuration
+   content
+   feeds
+   generators
    indices
    metadata
-   generators
-   feeds
-   static-routes
-   url-patterns
    plugins
+   static-routes
+   templates
+   url-patterns
+
    modules
 
 

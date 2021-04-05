@@ -5,7 +5,7 @@ Changelog
 -----
 
 * Introduce a new plugin system. This moves the ``has-pending-document`` command into a new plugin and adds signals to interact with liara's processing. See :doc:`plugins` for details.
-* Remove ``liara.version.version`` in favor of the more standard ``liara.__version__`` variable.
+* Remove ``liara.version.version``. Use the standard ``liara.__version__`` variable instead, which was already present in earlier versions.
 
 2.0.7
 -----
@@ -20,33 +20,33 @@ Changelog
 2.0.5
 -----
 
-* Fixed ``liara create-config`` not working.
+* Fix ``liara create-config`` not working.
 
 2.0.4
 -----
 
-* Added :py:class:`~liara.cache.Sqlite3Cache`, which allows caching everything into a single file instead of one file per entry.
-* Added a bytecode cache for the :py:class:`~liara.template.Jinja2TemplateRepository`.
-* Fixed generated nodes not getting generated when using ``liara serve``.
-* Reduced debug spew when stopping ``liara serve`` using ``^C``.
+* Add :py:class:`~liara.cache.Sqlite3Cache`, which allows caching everything into a single file instead of one file per entry.
+* Add a bytecode cache for the :py:class:`~liara.template.Jinja2TemplateRepository`.
+* Fix generated nodes not getting generated when using ``liara serve``.
+* Reduce debug spew when stopping ``liara serve`` using ``^C``.
 
 2.0.3
 -----
 
-* Added :py:meth:`~liara.template.SiteTemplateProxy.get_page_by_url`.
+* Add :py:meth:`~liara.template.SiteTemplateProxy.get_page_by_url`.
 
 2.0.2
 -----
 
-* Fixed a packaging issue.
+* Fix a packaging issue.
 
 2.0.1
 -----
 
-* Improved document handling: Documents without a trailing newline are now supported, previously they would cause an error.
-* Improved configuration: Empty configuration files are now supported.
-* Fixed ``list-files`` requiring a type to be specified.
-* Added :py:meth:`~liara.query.Query.exclude`.
+* Improve document handling: Documents without a trailing newline are now supported, previously they would cause an error.
+* Improve configuration: Empty configuration files are now supported.
+* Fix ``list-files`` requiring a type to be specified.
+* Add :py:meth:`~liara.query.Query.exclude`.
 * Override ``base_url`` when serving locally. This was previously documented to work, but not implemented. As part of this change, :py:meth:`~liara.site.Site.set_metadata_item` was added.
 
 2.0

@@ -6,7 +6,7 @@ liara supports plugins to extend the functionality. Plugins are discovered by be
 * https://packaging.python.org/guides/packaging-namespace-packages/
 * https://packaging.python.org/guides/creating-and-discovering-plugins/#using-namespace-packages
 
-In practice this means you can provide a plugin by placing it in the ``liara.plugins`` namespace. A plugin _must_ export at least one method named `register`, with no parameters. Here's an example of a minimal plugin:
+In practice this means you can provide a plugin by placing it in the ``liara.plugins`` namespace. A plugin *must* export at least one method named ``register``, with no parameters. Here's an example of a minimal plugin:
 
 .. code:: python
 

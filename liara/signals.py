@@ -19,3 +19,24 @@ commandline_prepared = signal('commandline-prepared')
 
   :param click.group cli: The command line group to add commands to.
 """
+
+content_discovered = signal('content-discovered')
+"""Raised after all content has been discovered.
+
+  :param liara.site site: the site instance
+"""
+
+documents_processed = signal('documents-processed')
+"""Raised after all documents have been processed. Processing includes for
+instance converting the content from markdown to HTML.
+
+  :param liara.site site: the site instance
+"""
+
+document_loaded = signal('document-loaded')
+"""Raised after a document has been loaded, before any templates etc. have been
+applied.
+
+  :param liara.nodes.DocumentNode document: the document node
+  :param str content: the raw document contents
+"""

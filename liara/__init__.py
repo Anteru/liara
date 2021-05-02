@@ -43,6 +43,9 @@ __all__ = [
     'yaml'
 ]
 
+# Required to allow plugins to participate
+from pkgutil import extend_path
+__path__ = extend_path(__path__, __name__)
 
 # We cache it here as it's used a lot during _create_relative_path and shows up
 # in profiles otherwise
@@ -139,7 +142,7 @@ class Liara:
         for name, module in plugins.items():
             if name  in self.__registered_plugins:
                 continue
-
+            
             self.__log.debug(f'Initializing plugin: {name}')
             module.register()
             self.__registered_plugins.add(name)
@@ -384,6 +387,8 @@ class Liara:
 
         self.__log.info(f'Discovered {len(self.__site.nodes)} items')
 
+        signals.content_discovered.send(self, site = self.__site)
+
         return self.__site
 
     @property
@@ -422,6 +427,7 @@ class Liara:
         for document in site.documents:
             document.process(self.__cache)
         self.__log.info(f'Processed {len(site.documents)} documents')
+        signals.documents_processed.send(self, site = self.__site)
 
         self.__log.info('Processing resources ...')
         for resource in site.resources:

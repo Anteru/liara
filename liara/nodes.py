@@ -3,6 +3,7 @@ import pathlib
 from .yaml import load_yaml
 import toml
 from .cache import Cache
+from .signals import document_loaded
 from typing import (
     Any,
     Callable,
@@ -297,6 +298,7 @@ class DocumentNode(Node):
         """Load the content of this node."""
         self._load()
         self._apply_load_fixups()
+        document_loaded.send(self, document=self, content=self._raw_content)
 
     def validate_metadata(self):
         if self.metadata is None:

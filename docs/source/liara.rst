@@ -103,6 +103,15 @@ liara.signals module
     .. autodata:: commandline_prepared
         :annotation:
 
+    .. autodata:: content_discovered
+        :annotation:
+
+    .. autodata:: documents_processed
+        :annotation:
+
+    .. autodata:: document_loaded
+        :annotation:
+
 liara.site module
 -----------------
 

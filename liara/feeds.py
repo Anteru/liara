@@ -2,7 +2,7 @@ from .nodes import GeneratedNode, NodeKind
 from .site import Site
 from . import __version__
 import datetime
-import email
+import email.utils
 
 
 class FeedNode(GeneratedNode):

@@ -56,8 +56,6 @@ class Template:
 
 
 class TemplateRepository:
-    __definition = Dict[str, str]
-
     def __init__(self, paths: Dict[str, str]):
         self.__paths = paths
 
@@ -192,6 +190,17 @@ class Page:
     @property
     def meta(self) -> Dict[str, Any]:
         """Provides the metadata associated with this page.
+
+        .. deprecated:: 2.1.2
+           Use :py:attr:`~liara.template.Page.metadata` instead.
+        """
+        return self.__node.metadata
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        """Provides the metadata associated with this page.
+        
+        .. versionadded:: 2.1.2
         """
         return self.__node.metadata
 

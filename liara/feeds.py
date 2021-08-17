@@ -1,6 +1,7 @@
 from .nodes import GeneratedNode, NodeKind
 from .site import Site
 from . import __version__
+from .util import local_now
 import datetime
 import email.utils
 
@@ -22,13 +23,11 @@ class RSSFeedNode(FeedNode):
     def generate(self):
         from lxml.builder import ElementMaker
         from lxml import etree
-        import tzlocal
 
         items = reversed(list(self.__site.get_collection(
             self.__collection).nodes)[-self.__limit:])
 
         meta = self.__site.metadata
-        tz = tzlocal.get_localzone()
 
         E = ElementMaker(nsmap={
             'atom': "http://www.w3.org/2005/Atom"
@@ -47,7 +46,7 @@ class RSSFeedNode(FeedNode):
             E.language(meta['language']),
             E.copyright(meta['copyright']),
             E.lastBuildDate(email.utils.format_datetime(
-                tz.localize(datetime.datetime.now()))),
+                local_now())),
         )
 
         for item in items:

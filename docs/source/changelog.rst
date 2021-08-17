@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.1.2
+-----
+
+* Update ``jinja2`` dependency to `3.0 <https://jinja.palletsprojects.com/en/3.0.x/changes/#version-3-0-0>`_. This provides access to new Jinja2 features like required blocks.
+* Update ``click`` dependency to `8.0 <https://click.palletsprojects.com/en/8.0.x/changes/#version-8-0-0>`_.
+
 2.1.1
 -----
 

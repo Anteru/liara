@@ -69,4 +69,4 @@ def local_now() -> datetime.datetime:
     This is equivalent to ``datetime.datetime.now()``, except it returns a
     timestamp which has ``tzinfo`` set to the local timezone.
     """
-    return __TZ.localize(datetime.datetime.now())
+    return datetime.datetime.now(tz=__TZ)

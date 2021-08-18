@@ -9,3 +9,4 @@ build/sphinx/**
 build/**
 dist/**
 .vscode/**
+.tox/**

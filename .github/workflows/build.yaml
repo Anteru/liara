@@ -1,0 +1,26 @@
+name: Liara
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: [3.7, 3.8, 3.9]
+      max-parallel: 4
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Setup environment
+      run: |
+        python -m pip install --upgrade pip
+        pip install wheel
+        pip install tox
+    - name: Test package
+      run: tox

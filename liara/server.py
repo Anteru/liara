@@ -9,6 +9,7 @@ from .cache import FilesystemCache
 import sys
 import logging
 import webbrowser
+import mimetypes
 
 
 class HttpServer:
@@ -55,7 +56,7 @@ class HttpServer:
         node = self.__site.get_node(path)
 
         if node is None:
-            print(f'Could not find node for path: "{path}"')
+            self.__log.warn(f'Could not find node for path: "{path}"')
             return (None, None,)
 
         # We always regenerate the content
@@ -107,6 +108,10 @@ class HttpServer:
                     node_path = self.server.cache[path]
 
                 self.send_response(200)
+
+                content_type, _ = mimetypes.guess_type(path.name)
+                if content_type:
+                    self.send_header('Content-Type', content_type)
                 self.end_headers()
                 self.wfile.write(node_path.open('rb').read())
 
@@ -119,10 +124,13 @@ class HttpServer:
         server.log = self.__log
         server.cache = {}
         url = self.get_url()
-        print(f'Listening on {url}')
+        self.__log.info(f'Listening on {url}')
 
         if self.__open_browser:
             webbrowser.open(url)
+        else:
+            print(f'Listening on {url}')
+
         try:
             server.serve_forever()
         except KeyboardInterrupt:

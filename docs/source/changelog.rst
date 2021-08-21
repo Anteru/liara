@@ -5,6 +5,8 @@ Changelog
 -----
 
 * Deprecate :py:attr:`liara.template.Page.meta` in favor of :py:attr:`liara.template.Page.metadata` (which was newly added in this version) for consistency with :py:attr:`liara.template.SiteTemplateProxy.metadata`.
+* Use the logger in ``liara serve`` instead of printing directly to the console for log messages. The default listen URL will be still printed if showing the browser is disabled.
+* Set the ``Content-Type`` header in ``liara serve``. This fixes an issue with Chrome/Edge where SVG images whould not work as they were served without a content type.
 * Update ``jinja2`` dependency to `3.0 <https://jinja.palletsprojects.com/en/3.0.x/changes/#version-3-0-0>`_. This provides access to new Jinja2 features like required blocks.
 * Update ``click`` dependency to `8.0 <https://click.palletsprojects.com/en/8.0.x/changes/#version-8-0-0>`_.
 

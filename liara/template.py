@@ -270,25 +270,25 @@ class SiteTemplateProxy:
 
     def get_previous_in_collection(self, collection: str, page: Page) \
             -> Optional[Page]:
-        """Given a collection and a page, return the next page in this
-        collection or ``None`` if this is the last page.
+        """Given a collection and a page, return the previous page in this
+        collection or ``None`` if this is the first page.
         """
-        next_node = self.__site.get_previous_in_collection(collection,
+        previous_node = self.__site.get_previous_in_collection(collection,
                                                            page._node)
-        if next_node is not None:
-            return Page(next_node)
+        if previous_node:
+            return Page(previous_node)
         else:
             return None
 
     def get_next_in_collection(self, collection: str, page: Page) \
             -> Optional[Page]:
-        """Given a collection and a page, return the previous page in this
-        collection or ``None`` if this is the first page.
+        """Given a collection and a page, return the next page in this
+        collection or ``None`` if this is the last page.
         """
-        previous_node = self.__site.get_next_in_collection(collection,
+        next_node = self.__site.get_next_in_collection(collection,
                                                            page._node)
-        if previous_node is not None:
-            return Page(previous_node)
+        if next_node:
+            return Page(next_node)
         else:
             return None
 

@@ -16,7 +16,14 @@ class Environment:
     def __init__(self):
         self.verbose = False
         self.debug = False
-        self.liara = None
+        self.config =  None
+        self.__liara = None
+
+    @property
+    def liara(self):
+        if not self.__liara:
+            self.__liara = _create_liara(self.config)
+        return self.__liara
 
 
 pass_environment = click.make_pass_decorator(Environment, ensure=True)
@@ -47,7 +54,7 @@ def cli(env, debug, verbose, config):
         logging.basicConfig(level=logging.WARN,
                             format='%(asctime)s %(name)s %(message)s')
 
-    env.liara = _create_liara(config)
+    env.config = config
 
 
 def main():

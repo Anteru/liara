@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.1.3
+-----
+
+* Fix ``liara quickstart`` not working.
+* Fix a bug when fixing up timezones while using the ``zoneinfo`` package for timezone data.
+
 2.1.2
 -----
 

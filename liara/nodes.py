@@ -258,7 +258,7 @@ class FixupDateTimezone:
         if 'date' in document.metadata:
             date = document.metadata['date']
             if date.tzinfo is None:
-                document.metadata['date'] = self.__tz.localize(date)
+                document.metadata['date'] = date.replace(tzinfo=self.__tz)
 
 
 class DocumentNode(Node):

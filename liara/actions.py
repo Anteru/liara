@@ -140,7 +140,7 @@ def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]):
 
                 if not r[0]:
                     for source in links[r[1]]:
-                        print(f'Link "{r[1]}", referenced in "{source}" failed '
-                              f'with: {r[2]}')
+                        print(f'Link "{r[1]}", referenced in "{source}" '
+                              f'failed with: {r[2]}')
     except (KeyboardInterrupt, SystemExit):
         return

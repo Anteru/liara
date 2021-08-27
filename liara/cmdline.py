@@ -16,7 +16,7 @@ class Environment:
     def __init__(self):
         self.verbose = False
         self.debug = False
-        self.config =  None
+        self.config = None
         self.__liara = None
 
     @property

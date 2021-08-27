@@ -7,7 +7,6 @@ from typing import (
         List,
         Callable,
         Set,
-        Dict
     )
 
 import collections
@@ -129,7 +128,8 @@ class Liara:
     @classmethod
     def setup_plugins(self) -> None:
         import liara.plugins
-        import pkgutil, importlib
+        import pkgutil
+        import importlib
 
         def iter_namespace(ns_pkg):
             return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
@@ -140,7 +140,7 @@ class Liara:
         }
 
         for name, module in plugins.items():
-            if name  in self.__registered_plugins:
+            if name in self.__registered_plugins:
                 continue
             
             self.__log.debug(f'Initializing plugin: {name}')
@@ -201,7 +201,7 @@ class Liara:
             node = RedirectionNode(
                     pathlib.PurePosixPath(route['src']),
                     pathlib.PurePosixPath(route['dst']),
-                    base_url = base_url)
+                    base_url=base_url)
             if route.get('server_rule_only', False):
                 self.__redirections.append({
                     'src': route['src'],
@@ -387,7 +387,7 @@ class Liara:
 
         self.__log.info(f'Discovered {len(self.__site.nodes)} items')
 
-        signals.content_discovered.send(self, site = self.__site)
+        signals.content_discovered.send(self, site=self.__site)
 
         return self.__site
 
@@ -427,7 +427,7 @@ class Liara:
         for document in site.documents:
             document.process(self.__cache)
         self.__log.info(f'Processed {len(site.documents)} documents')
-        signals.documents_processed.send(self, site = self.__site)
+        signals.documents_processed.send(self, site=self.__site)
 
         self.__log.info('Processing resources ...')
         for resource in site.resources:
@@ -467,7 +467,6 @@ class Liara:
         if self.__redirections:
             self.__log.info('Writing redirection file ...')
             with (output_path / '.htaccess').open('w') as output:
-                base_url = site.metadata['base_url']
                 output.write('RewriteEngine on\n')
                 for node in self.__redirections:
                     output.write(f'RedirectPermanent {node["src"]} '
@@ -485,9 +484,9 @@ class Liara:
             self.__clean_output()
 
         self.__base_url_override = HttpServer.get_url()
-        
+
         site = self.discover_content()
-        
+
         server = HttpServer(site, self.__template_repository,
                             self.__configuration,
                             open_browser=open_browser)

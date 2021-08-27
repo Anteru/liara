@@ -274,7 +274,7 @@ class SiteTemplateProxy:
         collection or ``None`` if this is the first page.
         """
         previous_node = self.__site.get_previous_in_collection(collection,
-                                                           page._node)
+                                                               page._node)
         if previous_node:
             return Page(previous_node)
         else:
@@ -285,8 +285,7 @@ class SiteTemplateProxy:
         """Given a collection and a page, return the next page in this
         collection or ``None`` if this is the last page.
         """
-        next_node = self.__site.get_next_in_collection(collection,
-                                                           page._node)
+        next_node = self.__site.get_next_in_collection(collection, page._node)
         if next_node:
             return Page(next_node)
         else:

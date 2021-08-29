@@ -71,7 +71,7 @@ class DefaultPublisher(Publisher):
             try:
                 os.symlink(source_path, file_path)
             # If we can't symlink for some reason (for instance,
-            # Windows does not support symlinks by default, we try to
+            # Windows does not support symlinks by default), we try to
             # copy instead.
             except OSError:
                 shutil.copyfile(source_path, file_path)

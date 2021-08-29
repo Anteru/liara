@@ -23,20 +23,23 @@ commandline_prepared = signal('commandline-prepared')
 content_discovered = signal('content-discovered')
 """Raised after all content has been discovered.
 
-  :param liara.site site: the site instance
+  :param liara.site.Site site: the site instance
 """
 
 documents_processed = signal('documents-processed')
-"""Raised after all documents have been processed. Processing includes for
-instance converting the content from markdown to HTML.
+"""Raised after all documents have been processed.
 
-  :param liara.site site: the site instance
+  :param liara.site.Site site: the site instance
+
+  Processing includes the conversion from Markdown to HTML.
 """
 
 document_loaded = signal('document-loaded')
-"""Raised after a document has been loaded, before any templates etc. have been
-applied.
+"""Raised after a document has been loaded.
 
   :param liara.nodes.DocumentNode document: the document node
   :param str content: the raw document contents
+
+  This signal is raised after loading, but before processing starts. Templates
+  etc. have thus not been applied to the document yet.
 """

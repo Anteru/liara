@@ -134,8 +134,8 @@ class Jinja2TemplateRepository(TemplateRepository):
 
             def load_bytecode(self, bucket):
                 key = bucket.key.encode('utf-8')
-                if self.__cache.contains(key):
-                    s = io.BytesIO(self.__cache.get(key))
+                if content := self.__cache.get(key):
+                    s = io.BytesIO(content)
                     bucket.load_bytecode(s)
 
             def dump_bytecode(self, bucket):

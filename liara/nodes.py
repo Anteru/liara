@@ -355,8 +355,8 @@ class MarkdownDocumentNode(DocumentNode):
 
         byte_content = self._raw_content.encode('utf-8')
         content_hash = hashlib.sha256(byte_content).digest()
-        if cache.contains(content_hash):
-            self.content = cache.get(content_hash)
+        if content := cache.get(content_hash):
+            self.content = content
             return
 
         extensions = [
@@ -693,8 +693,8 @@ class ThumbnailNode(ResourceNode):
         import io
 
         hash_key = self.__get_hash_key()
-        if cache.contains(hash_key):
-            self.content = cache.get(hash_key)
+        if content := cache.get(hash_key):
+            self.content = content
             return
 
         image = Image.open(self.src)

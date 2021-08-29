@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.2.0
+-----
+
+* Bump minimal required Python version to 3.8.
+
 2.1.3
 -----
 

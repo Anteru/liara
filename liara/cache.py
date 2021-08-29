@@ -1,7 +1,7 @@
 import pathlib
 import hashlib
 import pickle
-from typing import Dict
+from typing import Dict, Optional
 import os
 import sqlite3
 
@@ -18,20 +18,20 @@ class Cache:
         """
         return True
 
-    def contains(self, key: bytes) -> bool:
-        """Check if an object is stored.
-
-        :param key: The key to check.
-        :return: ``True`` if such an object exists, else ``False``.
-        """
-        return False
-
-    def get(self, key: bytes) -> object:
+    def get(self, key: bytes) -> Optional[object]:
         """Get a stored object.
 
         :param key: The object key.
-        :return: An object if one exists. Otherwise, the behavior is undefined.
-                 Use :py:meth:`contains` to check if an object exists.
+        :return: An object if one exists. Otherwise, return ``None``.
+        """
+        return None
+
+    def persist(self) -> None:
+        """Persists this cache to disk/persistent storage.
+
+        This function should be called after the cache has been populated. On
+        the next run, the constructor will then pick up the index and return
+        cached data.
         """
         return None
 
@@ -58,12 +58,6 @@ class FilesystemCache(Cache):
                 pass
 
     def persist(self):
-        """Persists this cache to disk.
-
-        This function should be called after the cache has been populated. On
-        the next run, the constructor will then pick up the index and return
-        cached data.
-        """
         pickle.dump(self.__index, self.__index_file.open('wb'))
 
     def put(self, key: bytes, value: object) -> bool:
@@ -76,10 +70,10 @@ class FilesystemCache(Cache):
         self.__index[key] = cache_object_path
         return True
 
-    def contains(self, key: bytes) -> bool:
-        return key in self.__index
+    def get(self, key: bytes) -> Optional[object]:
+        if key not in self.__index:
+            return None
 
-    def get(self, key: bytes) -> object:
         cache_object_path = self.__index[key]
         return pickle.load(cache_object_path.open('rb'))
 
@@ -131,14 +125,7 @@ class Sqlite3Cache(Cache):
 
         return r.lastrowid != 0
 
-    def contains(self, key: bytes) -> bool:
-        q = 'SELECT 1 FROM cache WHERE key=?'
-        self.__cursor.execute(q, (key,))
-        r = self.__cursor.fetchone()
-
-        return r is not None
-
-    def get(self, key: bytes) -> object:
+    def get(self, key: bytes) -> Optional[object]:
         q = 'SELECT data, object_type FROM cache WHERE key=?'
         self.__cursor.execute(q, (key,))
         r = self.__cursor.fetchone()
@@ -148,8 +135,8 @@ class Sqlite3Cache(Cache):
                 return pickle.loads(r[0])
             else:
                 return r[0]
-        else:
-            return None
+
+        return None
 
 
 class MemoryCache(Cache):
@@ -162,9 +149,6 @@ class MemoryCache(Cache):
     def __init__(self):
         self.__index = {}
 
-    def contains(self, key: bytes) -> bool:
-        return key in self.__index
-
     def put(self, key: bytes, value: object) -> bool:
         if key in self.__index:
             return False
@@ -172,5 +156,7 @@ class MemoryCache(Cache):
         self.__index[key] = object
         return True
 
-    def get(self, key: bytes) -> object:
-        return self.__index[key]
+    def get(self, key: bytes) -> Optional[object]:
+        return self.__index.get(key, None)
+
+

@@ -3,7 +3,7 @@ URL patterns
 
 .. _url-patterns:
 
-In various places liara allows matching content by URL pattern. This is very similar to matching files using a glob pattern, the syntax is as following:
+In various places Liara allows matching content by URL pattern. This is very similar to matching files using a glob pattern, the syntax is as following:
 
 * ``*`` matches anything but a subpath (i.e., ``/foo/*`` will match ``/foo/bar``, but not ``/foo/bar/baz``)
 * ``**`` matches anything recursively (i.e. ``/foo/**`` will match any path starting with ``/foo/``)

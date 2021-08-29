@@ -14,8 +14,13 @@ def create_default_configuration() -> Dict[str, Any]:
         'generator_directory': 'generators',
         'build': {
             'clean_output': True,
-            'cache_directory': 'cache',
-            'cache_type': 'fs'
+            'cache.fs.directory': 'cache',
+            'cache.db.directory': 'cache',
+            'cache.redis.host': 'localhost',
+            'cache.redis.port': 6379,
+            'cache.redis.db': 0,
+            'cache.redis.expiration_time': 60,
+            'cache.type': 'fs'
         },
         'content': {
             'filters': ['date', 'status']

@@ -1,7 +1,7 @@
 Plugins
 =======
 
-liara supports plugins to extend the functionality. Plugins are discovered by being available in the ``liara.plugins`` namespace. For more details, see:
+Liara supports plugins to extend the functionality. Plugins are discovered by being available in the ``liara.plugins`` namespace. For more details, see:
 
 * https://packaging.python.org/guides/packaging-namespace-packages/
 * https://packaging.python.org/guides/creating-and-discovering-plugins/#using-namespace-packages
@@ -14,7 +14,7 @@ In practice this means you can provide a plugin by placing it in the ``liara.plu
         pass
 
 
-Of course, a completely empty plugin doesn't provide any functionality. To hook into liara, you can connect event handlers to signals. The signals are defined in the :py:mod:`liara.signals` module.
+Of course, a completely empty plugin doesn't provide any functionality. To hook into Liara, you can connect event handlers to signals. The signals are defined in the :py:mod:`liara.signals` module.
 
 Extending the command line
 --------------------------
@@ -37,4 +37,4 @@ The command line is special as it needs to get extended at a very early stage --
         def my_new_command(env):
             print(env.liara)
 
-Note the use of ``@pass_environment``. This requests Click to pass the liara command line environment as the first parameter, which contains the liara instance. See :py:class:`~liara.cmdline.Environment` for more details.
+Note the use of ``@pass_environment``. This requests Click to pass the Liara command line environment as the first parameter, which contains the Liara instance. See :py:class:`~liara.cmdline.Environment` for more details.

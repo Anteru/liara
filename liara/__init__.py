@@ -1,6 +1,7 @@
+import datetime
+import logging
 import os
 import pathlib
-import logging
 import time
 
 from typing import (
@@ -19,7 +20,7 @@ from .nodes import (
     ResourceNodeFactory,
 )
 
-from .cache import Cache, FilesystemCache, Sqlite3Cache
+from .cache import Cache, FilesystemCache, Sqlite3Cache, RedisCache
 from .util import flatten_dictionary
 from .yaml import load_yaml
 
@@ -111,14 +112,52 @@ class Liara:
         )
 
         # Must come before the template backend, as those can use caches
-        cache_directory = pathlib.Path(
-            self.__configuration['build.cache_directory'])
-        if self.__configuration['build.cache_type'] == 'db':
+        
+        # Deprecated since version 2.2
+        cache_directory = self.__configuration.get('build.cache_directory')
+        if cache_directory:
+            self.__log.warn("'build.cache_directory' is deprecated. Please use "
+                            "'build.cache.<cache_type>.directory' instead.")
+            cache_directory = pathlib.Path(cache_directory)
+
+        # Deprecated since version 2.2
+        cache_type = self.__configuration.get('build.cache_type')
+        if cache_type:
+            self.__log.warn("'build.cache_type' is deprecated. Please use "
+                            "'build.cache.type' instead.")
+
+        # Official value since 2.2
+        if cache_type is None:
+            # We need to check first because this is part of the default
+            # config and it would overwrite the user setting if they were using
+            # the deprecated value
+            cache_type = self.__configuration.get('build.cache.type')
+
+        if cache_type == 'db':
             self.__log.debug('Using Sqlite3Cache')
+            if dir := self.__configuration.get('build.cache.db.directory') and\
+                    cache_directory is None:
+                cache_directory = pathlib.Path(dir)
             self.__cache = Sqlite3Cache(cache_directory)
-        elif self.__configuration['build.cache_type'] == 'fs':
+        elif cache_type == 'fs':
             self.__log.debug('Using FilesystemCache')
+            if dir := self.__configuration.get('build.cache.fs.directory') and\
+                    cache_directory is None:
+                cache_directory = pathlib.Path(dir)
             self.__cache = FilesystemCache(cache_directory)
+        elif cache_type == 'redis':
+            self.__log.debug('Using RedisCache')
+            self.__cache = RedisCache(
+                self.__configuration['build.cache.redis.host'],
+                self.__configuration['build.cache.redis.port'],
+                self.__configuration['build.cache.redis.db'],
+                datetime.timedelta(minutes=self.__configuration[
+                    'build.cache.redis.expiration_time'])
+            )
+        elif cache_type == 'none':
+            self.__log.debug('Not using any cache')
+        else:
+            self.__log.warn('No cache backend configured')
 
         template_configuration = pathlib.Path(self.__configuration['template'])
         self.__setup_template_backend(template_configuration)

@@ -1,7 +1,7 @@
 Templates
 =========
 
-Templates in liara are used to style content. There are two parts to every template, the first is the definition which describes which template should get applied to which URL, and the template execution environment which provides the content that will be consumed by the template.
+Templates in Liara are used to style content. There are two parts to every template, the first is the definition which describes which template should get applied to which URL, and the template execution environment which provides the content that will be consumed by the template.
 
 Definition
 ----------

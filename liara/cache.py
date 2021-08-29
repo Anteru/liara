@@ -4,6 +4,7 @@ import pickle
 from typing import Dict, Optional
 import os
 import sqlite3
+from datetime import timedelta
 
 
 class Cache:
@@ -160,3 +161,41 @@ class MemoryCache(Cache):
         return self.__index.get(key, None)
 
 
+class RedisCache(Cache):
+    """A cache using Redis as the storage backend."""
+
+    def __init__(self, host: str, port: int, db: int,
+                 expiration_time=timedelta(hours=1)):
+        import redis
+        self.__redis = redis.Redis(host, port, db)
+        self.__expiration_time = expiration_time
+
+    def __make_key(self, key: bytes, suffix: str) -> str:
+        return f'liara/{key.hex()}/{suffix}'
+
+    def put(self, key: bytes, value: object) -> bool:
+        if isinstance(value, bytes) or isinstance(value, bytearray):
+            object_type = 'bin'
+        else:
+            object_type = 'obj'
+            value = pickle.dumps(value)
+
+        self.__redis.set(self.__make_key(key, 'content'),
+                         value, ex=self.__expiration_time)
+        self.__redis.set(self.__make_key(key, 'type'),
+                         object_type, ex=self.__expiration_time)
+
+        return True
+
+    def get(self, key) -> Optional[object]:
+        object_type = self.__redis.get(self.__make_key(key, 'type'))
+        value = self.__redis.get(self.__make_key(key, 'content'))
+
+        # return values from redis are binary
+        # We check for value here just in case the value expired between
+        # reading the object type and the value
+        if object_type == b'obj' and value:
+            return pickle.loads(value)
+
+        # This is safe -- if the key has expired, we'll return None here
+        return value

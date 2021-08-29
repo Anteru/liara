@@ -3,7 +3,21 @@ Configuration
 
 .. _configuration:
 
-liara is driven through configuration files. The main file is ``config.yaml``, which can reference other configuration files. To get the full default configuration, use ``liara create-config``.
+Liara is driven through configuration files. The main file is ``config.yaml``, which can reference other configuration files. To get the full default configuration, use ``liara create-config``. Configuration options with a ``.`` can be either specified as nested dictionaries or in a flat list. For example, the following two configurations are equivalent:
+
+.. code-block:: yaml
+
+  build:
+    cache:
+      type: redis
+      redis:
+        expiration_time: 60
+
+.. code-block:: yaml
+
+  build:
+    cache.type: redis
+    cache.redis.expiration_time: 60
 
 Directory settings
 ------------------
@@ -18,8 +32,38 @@ Build settings
 --------------
 
 * ``build.clean_output``: If set to ``True``, the output directory will be deleted on every build.
-* ``build.cache_directory``: The directory where the cache will be stored.
-* ``build.cache_type``: The cache type that should be used. ``db`` uses a database cache, which stores everything in a single file, while ``fs`` uses one file per cache entry.
+* ``build.cache_directory``: The directory where the cache will be stored. Only used by ``db`` and ``fs`` caches. This option is deprecated as of version 2.2.0, use ``build.cache.db.directory`` and ``build.cache.fs.directory`` instead.
+* ``build.cache_type``: The cache type to use. Deprecated as of version 2.2, use ``build.cache.type`` instead.
+* ``build.cache.type``: The cache type to use. One of:
+
+  - ``db`` uses a local database cache, which stores everything in a single file.
+  - ``fs`` stores files in a directory, using one file per cache entry.
+  - ``redis`` uses Redis as the backend.
+  - ``none`` disables caching
+
+Database cache options
+^^^^^^^^^^^^^^^^^^^^^^
+
+These options are only available when the ``cache_type`` is set to ``db``:
+
+* ``build.cache.db.directory``: The directory where the cache will be stored.
+
+Filesystem cache options
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+These options are only available when the ``cache_type`` is set to ``fs``:
+
+* ``build.cache.fs.directory``: The directory where the cache will be stored.
+
+Redis cache options
+^^^^^^^^^^^^^^^^^^^
+
+These options are only available when the ``cache_type`` is set to ``redis``:
+
+* ``build.cache.redis.host``: The Redis host string (default: ``localhost``)
+* ``build.cache.redis.port``: The Redis port (default: ``6379``)
+* ``build.cache.redis.db``: The Redis DB (default: ``0``)
+* ``build.cache.redis.expiration_time``: The expiration time for cache values in minutes (default: ``60``)
 
 Content settings
 ----------------
@@ -30,7 +74,7 @@ Content settings
 * ``feeds``: Points to the file containing the :doc:`feed definitions <feeds>`.
 * ``indices``: Points to the file containing the :doc:`index definitions <indices>`.
 * ``metadata``: Points to the file containing the :doc:`site metadata <metadata>`.
-* ``relaxed_date_parsing``: If enabled, metadata fields named ``date`` will be processed twice. By default, liara assumes that ``date`` contains a markup-specific date field. If this option is on, and the ``date`` field is pointing at a string, liara will try to parse that string into a timestamp.
+* ``relaxed_date_parsing``: If enabled, metadata fields named ``date`` will be processed twice. By default, Liara assumes that ``date`` contains a markup-specific date field. If this option is on, and the ``date`` field is pointing at a string, Liara will try to parse that string into a timestamp.
 * ``allow_relative_links``: Allow the usage of relative links in content files. This has a negative build time impact on any file containing relative links and is thus recommended to be left off.
 
 Other settings

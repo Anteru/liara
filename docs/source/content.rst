@@ -1,17 +1,17 @@
 Content
 =======
 
-No site would be complete without content. In liara, content is provided in a separate directory, and mirrored into the output. That is, a document placed in ``content-root/foo/bar.md`` will be routed to ``/foo/bar/index.html``. The content root can be set in the :doc:`configuration`.
+No site would be complete without content. In Liara, content is provided in a separate directory, and mirrored into the output. That is, a document placed in ``content-root/foo/bar.md`` will be routed to ``/foo/bar/index.html``. The content root can be set in the :doc:`configuration`.
 
 Documents
 ---------
 
-The bulk of the content are document nodes -- Markdown or Html files which get processed by liara to Html and which get templates applied. liara supports some common Markdown extensions to handle tables and code snippets.
+The bulk of the content are document nodes -- Markdown or Html files which get processed by Liara to Html and which get templates applied. Liara supports some common Markdown extensions to handle tables and code snippets.
 
 Metadata
 --------
 
-**Every** document in liara **must** start with a metadata header. A metadata header *must* contain at least the document title. Metadata can be provided as YAML or TOML. For YAML, use ``---`` as the delimiter, for TOML, use ``+++``. Documents can be empty as long as the metadata is present, so this is a valid document with YAML metadata:
+**Every** document in Liara **must** start with a metadata header. A metadata header *must* contain at least the document title. Metadata can be provided as YAML or TOML. For YAML, use ``---`` as the delimiter, for TOML, use ``+++``. Documents can be empty as long as the metadata is present, so this is a valid document with YAML metadata:
 
 .. code:: yaml
 
@@ -26,7 +26,7 @@ Content filters
 
 .. _content-filters:
 
-Some metadata fields in liara are processed by a :py:class:`~liara.site.ContentFilter`: ``date`` and ``status``. ``date`` expects a timestamp, for example:
+Some metadata fields in Liara are processed by a :py:class:`~liara.site.ContentFilter`: ``date`` and ``status``. ``date`` expects a timestamp, for example:
 
 .. code:: yaml
 

@@ -53,7 +53,7 @@ class Collection:
 
     __log = logging.getLogger('liara.Collection')
 
-    def __init__(self, site, pattern, order_by=[]):
+    def __init__(self, site, pattern, order_by: Optional[List] = None):
         """
         :param pattern: The pattern to select nodes which belong to this
                         collection.
@@ -67,6 +67,9 @@ class Collection:
         """
         self.__site = site
         self.__filter = pattern
+
+        order_by = order_by if order_by else []
+
         # We accept a string as well to simplify configuration files
         if isinstance(order_by, str):
             self.__order_by = [order_by]
@@ -162,9 +165,12 @@ class Index:
     containing some tag can get grouped under one index node.
     """
     def __init__(self, site, collection: Collection,
-                 path: str, group_by=[], *,
+                 path: str, group_by: Optional[List] = None, *,
                  create_top_level_index=False):
         nodes = collection.nodes
+
+        group_by = group_by if group_by else []
+
         self.__groups = _group_recursive(nodes, group_by)
         self.__site = site
         self.__path = path
@@ -528,4 +534,4 @@ class Site:
             node = node.get_child(component)
             if node is None:
                 return []
-        return node
+        return [node]

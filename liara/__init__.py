@@ -5,9 +5,15 @@ import pathlib
 import time
 
 from typing import (
+        IO,
         List,
         Callable,
+        Dict,
+        Optional,
         Set,
+        Text,
+        Tuple,
+        Union,
     )
 
 import collections
@@ -72,17 +78,24 @@ class Liara:
     __site: Site
     __resource_node_factory: ResourceNodeFactory
     __document_node_factory: DocumentNodeFactory
-    __redirections: List[RedirectionNode]
+    __redirections: List[Dict[str, str]]
     __log = logging.getLogger('liara')
     __cache: Cache
     __document_post_processors: List[Callable]
     # When running using 'serve', this will be set to the local URL
-    __base_url_override: str = None
+    __base_url_override: Optional[str] = None
     __registered_plugins: Set[str] = set()
 
-    def __init__(self, configuration=None, *, configuration_overrides={}):
+    def __init__(self,
+                 configuration: Optional[
+                     Union[str, IO, Text, IO[bytes], IO[Text]]] = None,
+                 *,
+                 configuration_overrides: Optional[Dict] = None):
         self.__site = Site()
         self.__redirections = []
+
+        if configuration_overrides is None:
+            configuration_overrides = {}
 
         default_configuration = config.create_default_configuration()
         if configuration is None:
@@ -300,6 +313,7 @@ class Liara:
                     # all documents, instead of having to go through the
                     # children and filter by type
                     if indexNode:
+                        assert isinstance(indexNode, IndexNode)
                         indexNode.add_reference(node)
                 elif src.suffix in {'.yaml'}:
                     node = DataNode(src, path)

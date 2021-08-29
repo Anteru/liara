@@ -27,24 +27,35 @@ class Publisher:
     """A publisher produces the final output files, applying templates etc. as
     needed.
     """
-    def publish_document(self, document: 'DocumentNode'):
-        """Publish a document node."""
+    def publish_document(self, document: 'DocumentNode') -> pathlib.Path:
+        """Publish a document node.
+
+        :return: The path of the generated file.
+        """
         pass
 
-    def publish_index(self, index: 'IndexNode'):
-        """Publish an index node."""
+    def publish_index(self, index: 'IndexNode') -> pathlib.Path:
+        """Publish an index node.
+
+        :return: The path of the generated file."""
         pass
 
-    def publish_resource(self, resource: 'ResourceNode'):
-        """Publish a resource node."""
+    def publish_resource(self, resource: 'ResourceNode') -> pathlib.Path:
+        """Publish a resource node.
+
+        :return: The path of the generated file."""
         pass
 
-    def publish_static(self, static: 'StaticNode'):
-        """Publish a static node."""
+    def publish_static(self, static: 'StaticNode') -> pathlib.Path:
+        """Publish a static node.
+
+        :return: The path of the generated file."""
         pass
 
-    def publish_generated(self, generated: 'GeneratedNode'):
-        """Publish a generated node."""
+    def publish_generated(self, generated: 'GeneratedNode') -> pathlib.Path:
+        """Publish a generated node.
+
+        :return: The path of the generated file."""
         pass
 
 
@@ -60,7 +71,7 @@ class NodeKind(Enum):
 class Node:
     kind: NodeKind
     """The node kind, must be set in the constructor."""
-    src: pathlib.Path
+    src: Optional[pathlib.Path]
     """The full path to the source file.
 
     This is an OS specific path object."""
@@ -416,12 +427,12 @@ class IndexNode(Node):
     path of the parent node. The ``references`` list allows to reference nodes
     elsewhere in the site."""
 
-    def __init__(self, path, metadata={}):
+    def __init__(self, path, metadata: Optional[Dict] = None):
         super().__init__()
         self.kind = NodeKind.Index
         self.src = None
         self.path = path
-        self.metadata = metadata
+        self.metadata = metadata if metadata else {}
         self.references = []
 
     def add_reference(self, node):
@@ -434,12 +445,13 @@ class IndexNode(Node):
 
 
 class GeneratedNode(Node):
-    def __init__(self, path, metadata={}):
+    def __init__(self, path, metadata: Optional[Dict] = None):
         super().__init__()
         self.kind = NodeKind.Generated
         self.src = None
         self.path = path
-        self.metadata = metadata
+        self.metadata = metadata if metadata else {}
+        self.content = None
 
     def generate(self) -> None:
         """Generate the content of this node.
@@ -674,6 +686,7 @@ class ThumbnailNode(ResourceNode):
 
     def __get_hash_key(self) -> bytes:
         import hashlib
+        assert self.src
         hash_key = hashlib.sha256(self.src.open('rb').read()).digest()
 
         if 'height' in self.__size:
@@ -710,6 +723,7 @@ class ThumbnailNode(ResourceNode):
 
         image.thumbnail((width, height,))
         storage = io.BytesIO()
+        assert self.src
         if self.src.suffix == '.jpg':
             image.save(storage, 'JPEG')
             self.content = storage.getbuffer()

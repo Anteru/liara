@@ -23,7 +23,7 @@ def add_suffix(path: pathlib.Path, suffix):
     the extension, i.e. adding ``en`` to ``foo.baz`` will produce
     ``foo.en.baz``."""
     name = path.name
-    name, sep, extension = name.rpartition('.')
+    name, _, extension = name.rpartition('.')
     return path.with_name(name + '.' + suffix + '.' + extension)
 
 

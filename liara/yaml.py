@@ -1,4 +1,12 @@
-def load_yaml(s):
+from typing import (
+    IO,
+    Optional,
+    Text,
+    Union
+)
+
+
+def load_yaml(s: Union[bytes, IO, IO[bytes], Text, IO[Text]]):
     """Load a Yaml document.
 
     This is a helper function which tries to use the fast ``CLoader``
@@ -12,7 +20,7 @@ def load_yaml(s):
     return yaml.load(s, Loader=Loader)
 
 
-def dump_yaml(data, stream=None):
+def dump_yaml(data, stream: Optional[IO] = None):
     """Dump an object to Yaml.
 
     This is a helper function which tries to use the fast ``CDumper``

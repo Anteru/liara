@@ -42,7 +42,7 @@ def _match_url(url: pathlib.PurePosixPath, pattern: str, site: Site) \
         return 0
     # If not exact, we'll look for the longest matching pattern,
     # assuming it is the most specific
-    if fnmatch.fnmatch(url, pattern):
+    if fnmatch.fnmatch(str(url), pattern):
         # abs is required, if our pattern is /*, and the url we match against
         # is /, then the pattern is longer than the URL
         return abs(len(str(url)) - len(pattern))
@@ -62,10 +62,10 @@ class TemplateRepository:
     def update_paths(self, paths: Dict[str, str]):
         self.__paths = paths
 
-    def find_template(self, url: str) -> Template:
+    def find_template(self, url: pathlib.PurePosixPath) -> Template:
         pass
 
-    def _match_template(self, url: str, site: Site) -> str:
+    def _match_template(self, url: pathlib.PurePosixPath, site: Site) -> str:
         best_match = None
         best_score = None
         for pattern, template in self.__paths.items():

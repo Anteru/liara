@@ -164,14 +164,14 @@ class Liara:
 
         if cache_type == 'db':
             self.__log.debug('Using Sqlite3Cache')
-            if dir := self.__configuration.get('build.cache.db.directory') and\
-                    cache_directory is None:
+            dir = self.__configuration.get('build.cache.db.directory')
+            if dir and cache_directory is None:
                 cache_directory = pathlib.Path(dir)
             self.__cache = Sqlite3Cache(cache_directory)
         elif cache_type == 'fs':
             self.__log.debug('Using FilesystemCache')
-            if dir := self.__configuration.get('build.cache.fs.directory') and\
-                    cache_directory is None:
+            dir = self.__configuration.get('build.cache.fs.directory')
+            if dir and cache_directory is None:
                 cache_directory = pathlib.Path(dir)
             self.__cache = FilesystemCache(cache_directory)
         elif cache_type == 'redis':

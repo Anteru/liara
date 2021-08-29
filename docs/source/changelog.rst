@@ -5,6 +5,7 @@ Changelog
 -----
 
 * Bump minimal required Python version to 3.8.
+* ``liara serve`` now uses the cache configuration specified by the user instead of always using a filesystem cache with fixed paths.
 * Add :py:class:`~liara.cache.RedisCache`, which uses `Redis <https://redis.io/>`_ as the storage backend. Using Redis in a shared environment allows multiple clients to benefit from the cache. Additionally, the Redis cache allows for cache entries to expire, so it won't accumulate garbage over time (i.e. draft posts which never get published, etc.) See :doc:`configuration` for more details on how to enable Redis. Redis also requires Liara to be installed with the ``[redis]`` option.
 
 2.1.3

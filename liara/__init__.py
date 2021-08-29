@@ -112,12 +112,41 @@ class Liara:
         )
 
         # Must come before the template backend, as those can use caches
-        
+        self.__setup_cache()
+
+        template_configuration = pathlib.Path(self.__configuration['template'])
+        self.__setup_template_backend(template_configuration)
+
+        self.__setup_content_filters(self.__configuration['content.filters'])
+
+    @classmethod
+    def setup_plugins(self) -> None:
+        import liara.plugins
+        import pkgutil
+        import importlib
+
+        def iter_namespace(ns_pkg):
+            return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
+
+        plugins = {
+            name: importlib.import_module(name)
+            for _, name, _ in iter_namespace(liara.plugins)
+        }
+
+        for name, module in plugins.items():
+            if name in self.__registered_plugins:
+                continue
+
+            self.__log.debug(f'Initializing plugin: {name}')
+            module.register()
+            self.__registered_plugins.add(name)
+
+    def __setup_cache(self) -> None:
         # Deprecated since version 2.2
         cache_directory = self.__configuration.get('build.cache_directory')
         if cache_directory:
-            self.__log.warn("'build.cache_directory' is deprecated. Please use "
-                            "'build.cache.<cache_type>.directory' instead.")
+            self.__log.warn("'build.cache_directory' is deprecated. Please "
+                            "use build.cache.<cache_type>.directory' instead.")
             cache_directory = pathlib.Path(cache_directory)
 
         # Deprecated since version 2.2
@@ -158,33 +187,6 @@ class Liara:
             self.__log.debug('Not using any cache')
         else:
             self.__log.warn('No cache backend configured')
-
-        template_configuration = pathlib.Path(self.__configuration['template'])
-        self.__setup_template_backend(template_configuration)
-
-        self.__setup_content_filters(self.__configuration['content.filters'])
-
-    @classmethod
-    def setup_plugins(self) -> None:
-        import liara.plugins
-        import pkgutil
-        import importlib
-
-        def iter_namespace(ns_pkg):
-            return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
-            
-        plugins = {
-            name: importlib.import_module(name)
-            for _, name, _ in iter_namespace(liara.plugins)
-        }
-
-        for name, module in plugins.items():
-            if name in self.__registered_plugins:
-                continue
-            
-            self.__log.debug(f'Initializing plugin: {name}')
-            module.register()
-            self.__registered_plugins.add(name)
 
     def __setup_content_filters(self, filters: List[str]) -> None:
         content_filter_factory = ContentFilterFactory()
@@ -528,6 +530,7 @@ class Liara:
 
         server = HttpServer(site, self.__template_repository,
                             self.__configuration,
+                            self.__cache,
                             open_browser=open_browser)
 
         for document in site.documents:

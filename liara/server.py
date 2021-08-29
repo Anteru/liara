@@ -5,7 +5,7 @@ import pathlib
 from .site import Site
 from .template import TemplateRepository
 from .publish import TemplatePublisher
-from .cache import FilesystemCache
+from .cache import Cache
 import sys
 import logging
 import webbrowser
@@ -21,13 +21,11 @@ class HttpServer:
         return f'http://127.0.0.1:{HttpServer.port}'
 
     def __init__(self, site: Site, template_repository: TemplateRepository,
-                 configuration, *, open_browser=True):
+                 configuration, cache: Cache, *, open_browser=True):
         self.__site = site
         self.__template_repository = template_repository
         self.__configuration = configuration
-        self.__cache = FilesystemCache(pathlib.Path(
-            self.__configuration['build.cache_directory']
-        ))
+        self.__cache = cache
         output_path = pathlib.Path(
             self.__configuration['output_directory'])
         self.__publisher = TemplatePublisher(output_path, self.__site,

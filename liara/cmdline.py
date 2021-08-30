@@ -192,8 +192,8 @@ def quickstart():
 def list_content(env, format, content_type):
     """List all content.
 
-    If ``options.format`` is set to ``tree``, this will print the content as a
-    tree. If ``options.format`` is set to ``list``, this will produce a
+    If ``format`` is set to ``tree``, this will print the content as a
+    tree. If ``format`` is set to ``list``, this will produce a
     flat list instead.
     """
     import treelib

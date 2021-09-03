@@ -177,10 +177,12 @@ def create_config(output):
 
 
 @cli.command()
-def quickstart():
+@click.option('--template-backend', '-t', type=click.Choice(['jinja2', 'mako']),
+              default='jinja2')
+def quickstart(template_backend):
     """Create a quickstart project."""
     from .quickstart import generate
-    generate()
+    generate(template_backend)
 
 
 @cli.command()

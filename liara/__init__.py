@@ -30,7 +30,7 @@ from .cache import Cache, FilesystemCache, Sqlite3Cache, RedisCache
 from .util import flatten_dictionary
 from .yaml import load_yaml
 
-__version__ = '2.2.0'
+__version__ = '2.2.1'
 __all__ = [
     'actions',
     'cache',

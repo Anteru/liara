@@ -177,7 +177,7 @@ class Page:
     def content(self) -> str:
         """Provides the content of this page.
         """
-        return self.__node.content
+        return getattr(self.__node, 'content', '')
 
     @property
     def url(self) -> str:

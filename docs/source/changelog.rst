@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.2.1
+-----
+
+* :py:attr:`liara.template.Page.content` now returns an empty string for :py:class:`~liara.nodes.IndexNode` instances. Previously, it would raise an exception.
+* ``liara quickstart`` gained a new option, ``--template-backend``, which allows selecting between ``jinja2`` and ``mako`` templates.
+
 2.2.0
 -----
 

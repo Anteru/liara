@@ -6,18 +6,17 @@ If you want to get rolling with Liara right away, here's a quickstart guide to g
 Installation
 ------------
 
-After obtaining `pip <https://pip.pypa.io/en/stable/getting-started/>`_, use:
+After obtaining `pip <https://pip.pypa.io/en/stable/installation/>`_, use:
 
 .. code:: bash
 
   pip install Liara
 
-Liara has a few installation options:
+The Liara installation can be customized by adding extras to the installation. Extra features are:
 
 * ``redis``: Enables the Redis cache backend.
-* ``mako``: Enables the Mako template backend.
 
-For instance, if you want to install Liara with Redis support, you'd install ``liara[redis]``.
+For instance, if you want to install Liara with Redis support, you would install ``liara[redis]``.
 
 Create a project
 ----------------

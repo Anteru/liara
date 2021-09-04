@@ -4,6 +4,7 @@ Changelog
 2.2.1
 -----
 
+* Mako is now installed by default, and the ``mako`` extra is gone. If you installed Liara using ``liara[mako]``, please switch to ``liara`` going forward.
 * :py:attr:`liara.template.Page.content` now returns an empty string for :py:class:`~liara.nodes.IndexNode` instances. Previously, it would raise an exception.
 * ``liara quickstart`` gained a new option, ``--template-backend``, which allows selecting between ``jinja2`` and ``mako`` templates.
 

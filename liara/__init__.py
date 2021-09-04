@@ -12,7 +12,6 @@ from typing import (
         Optional,
         Set,
         Text,
-        Tuple,
         Union,
     )
 
@@ -244,7 +243,6 @@ class Liara:
                                    template_path / static_directory)
 
     def __discover_redirections(self, site: Site, static_routes: pathlib.Path):
-        from .nodes import RedirectionNode
         if not static_routes.exists():
             return
 

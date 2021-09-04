@@ -60,7 +60,7 @@ class Collection:
         :param order_by: A list of accessors for fields to order by. If
                          multiple entries are provided, the result will be
                          sorted by each in order using a stable sort. To
-                         reverse the order, use a leading ``-``, for 
+                         reverse the order, use a leading ``-``, for
                          example: ``-date``.
 
         If an ordering is specified, and a particular node cannot support that
@@ -174,7 +174,7 @@ class Index:
     The index structure requires a grouping schema -- for instance, all nodes
     containing some tag can get grouped under one index node.
     """
-    def __init__(self, site, collection: Collection,
+    def __init__(self, collection: Collection,
                  path: str, group_by: Optional[List] = None, *,
                  create_top_level_index=False):
         nodes = collection.nodes
@@ -182,11 +182,10 @@ class Index:
         group_by = group_by if group_by else []
 
         self.__groups = _group_recursive(nodes, group_by)
-        self.__site = site
         self.__path = path
         self.__create_top_level_index = create_top_level_index
 
-    def create_nodes(self, site):
+    def create_nodes(self, site: 'Site'):
         """Create the index nodes inside the specified site."""
         self._create_nodes_recursive(site, self.__path,
                                      self.__groups, 1)
@@ -202,7 +201,7 @@ class Index:
             })
             site.add_index(node)
 
-    def _create_nodes_recursive(self, site, path, d, index):
+    def _create_nodes_recursive(self, site: 'Site', path, d, index):
         for k, v in d.items():
             url = pathlib.PurePosixPath(path.replace(f'%{index}', str(k)))
             # TODO Find out what to do here -- either don't create intermediate
@@ -457,7 +456,7 @@ class Site:
         for index_definition in indices:
             collection = self.get_collection(index_definition['collection'])
             del index_definition['collection']
-            index = Index(self, collection, **index_definition)
+            index = Index(collection, **index_definition)
             self.__indices.append(index)
 
         for index in self.__indices:

@@ -53,13 +53,15 @@ class Collection:
 
     __log = logging.getLogger('liara.Collection')
 
-    def __init__(self, site, pattern, order_by: Optional[List] = None):
+    def __init__(self, site, pattern, order_by: Optional[List[str]] = None):
         """
         :param pattern: The pattern to select nodes which belong to this
                         collection.
         :param order_by: A list of accessors for fields to order by. If
                          multiple entries are provided, the result will be
-                         sorted by each in order using a stable sort.
+                         sorted by each in order using a stable sort. To
+                         reverse the order, use a leading ``-``, for 
+                         example: ``-date``.
 
         If an ordering is specified, and a particular node cannot support that
         ordering (for instance, as it's missing the field that is used to order
@@ -86,6 +88,8 @@ class Collection:
         def filter_fun(o):
             for ordering in self.__order_by:
                 # we need to match the metadata accessor logic below
+                if ordering.startswith('-'):
+                    ordering = ordering[1:]
                 if '.' in ordering:
                     ordering = ordering.split('.')[0]
                 if ordering not in o.metadata:
@@ -95,8 +99,14 @@ class Collection:
         nodes = filter(filter_fun, nodes)
 
         for ordering in self.__order_by:
+            if ordering.startswith('-'):
+                ordering = ordering[1:]
+                reverse = True
+            else:
+                reverse = False
+
             key_fun = _create_metadata_accessor(ordering)
-            nodes = sorted(nodes, key=key_fun)
+            nodes = sorted(nodes, key=key_fun, reverse=reverse)
         pairs = list(pairwise(nodes))
         self.__next = {i[0].path: i[1] for i in pairs}
         self.__previous = {i[1].path: i[0] for i in pairs}

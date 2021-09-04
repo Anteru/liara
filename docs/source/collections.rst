@@ -10,7 +10,7 @@ A collection definition consists of three elements:
 
 - The name
 - The filter -- this is an :ref:`URL pattern <url-patterns>` which defines all elements that are in this collection.
-- The ordering -- optionally specifies how the collection should be ordered. This is a metadata accessor, to access nested fields, separate the individual accesses using ``.``. For instance, ``date.year`` will access the ``date`` metadata field first, and then the ``year`` attribute.
+- The ordering -- optionally specifies how the collection should be ordered. This is a metadata accessor, to access nested fields, separate the individual accesses using ``.``. For instance, ``date.year`` will access the ``date`` metadata field first, and then the ``year`` attribute. If you want to reverse the order, add a leading ``-``, for example ``-date.year``.
 
 For example:
 

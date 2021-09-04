@@ -8,7 +8,11 @@ Definition
 
 Templates are defined using a template definition, which must contain at least two fields:
 
-* ``backend`` chose the template engine, the default is ``jinja2``.
+* ``backend`` selects the template engine. This must be one of:
+
+  - ``jinja2``: Uses `Jinja2 <https://jinja.palletsprojects.com>`_. This is the default.
+  - ``mako``: Uses `Mako <https://www.makotemplates.org/>`_
+
 * ``paths`` provides a dictionary containing key-value pairs. The key must be an :doc:`URL pattern <url-patterns>`, the value the template file that should get applied for this pattern.
 
 A very basic template could be defined as following:

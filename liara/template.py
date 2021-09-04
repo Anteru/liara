@@ -163,8 +163,8 @@ class Jinja2TemplateRepository(TemplateRepository):
 
 
 class Page:
-    """A wrapper around :py:class:`DocumentNode` and :py:class:`IndexNode` for
-    use inside templates.
+    """A wrapper around :py:class:`~liara.nodes.DocumentNode` and
+    :py:class:`~liara.nodes.IndexNode` for use inside templates.
 
     Templates only get applied to those node types, and the :py:class:`Page`
     class provides convenience accessors while hiding the underlying node from

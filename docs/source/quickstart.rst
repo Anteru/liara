@@ -39,6 +39,10 @@ Preview the site
 
 Run ``liara serve`` to run a local web-server which will show the page. You can edit pages and templates while in this mode and hit refresh to see updates. You cannot add/remove content or change meta-data while running the interactive server though.
 
+By default, the ``serve`` command will open a server that listens on port 8080
+and will open your configured browser. This can be configured from the command
+line.
+
 Exploring the quick-start template
 ----------------------------------
 

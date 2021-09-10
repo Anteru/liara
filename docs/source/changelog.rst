@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.2.2
+-----
+
+* Add a ``--port`` option to ``liara serve`` to change the listen port.
+
 2.2.1
 -----
 

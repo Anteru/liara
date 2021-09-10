@@ -258,8 +258,10 @@ def list_content(env, format, content_type):
 @click.option('--browser/--no-browser',
               default=True,
               help='Open a browser window automatically')
+@click.option('--port', '-p', default=8080,
+              help='The port to use for the local server')
 @pass_environment
-def serve(env, browser):
+def serve(env, browser, port):
     """Run a local development server."""
     liara = env.liara
-    liara.serve(open_browser=browser)
+    liara.serve(open_browser=browser, port=port)

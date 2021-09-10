@@ -530,25 +530,22 @@ class Liara:
         self.__log.info(f'Build finished ({end_time - start_time:.2f} sec)')
         self.__cache.persist()
 
-    def serve(self, *, open_browser=True):
+    def serve(self, *, open_browser=True, port=8080):
         """Serve the current site using a local webserver."""
         from .server import HttpServer
         if self.__configuration['build.clean_output']:
             self.__clean_output()
 
-        self.__base_url_override = HttpServer.get_url()
+        server = HttpServer(open_browser=open_browser, port=port)
+        self.__base_url_override = server.get_url()
 
         site = self.discover_content()
-
-        server = HttpServer(site, self.__template_repository,
-                            self.__configuration,
-                            self.__cache,
-                            open_browser=open_browser)
 
         for document in site.documents:
             document.validate_metadata()
 
-        server.serve()
+        server.serve(site, self.__template_repository, self.__configuration,
+                     self.__cache)
 
     def create_document(self, t):
         """Create a new document using a generator."""

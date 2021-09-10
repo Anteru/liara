@@ -14,23 +14,13 @@ import mimetypes
 
 class HttpServer:
     __log = logging.getLogger('liara.HttpServer')
-    port = 8080
 
-    @staticmethod
-    def get_url():
-        return f'http://127.0.0.1:{HttpServer.port}'
+    def get_url(self):
+        return f'http://127.0.0.1:{self.__port}'
 
-    def __init__(self, site: Site, template_repository: TemplateRepository,
-                 configuration, cache: Cache, *, open_browser=True):
-        self.__site = site
-        self.__template_repository = template_repository
-        self.__configuration = configuration
-        self.__cache = cache
-        output_path = pathlib.Path(
-            self.__configuration['output_directory'])
-        self.__publisher = TemplatePublisher(output_path, self.__site,
-                                             self.__template_repository)
+    def __init__(self, *, open_browser=True, port=8080):
         self.__open_browser = open_browser
+        self.__port = port
 
     def _reload_template_paths(self):
         """Reload the template configuration.
@@ -76,7 +66,8 @@ class HttpServer:
 
         return result(node.publish(self.__publisher), cache)
 
-    def serve(self):
+    def serve(self, site: Site, template_repository: TemplateRepository,
+              configuration, cache: Cache):
         """Serve the site with just-in-time processing.
 
         This does not build the whole site up-front, but rather builds nodes
@@ -85,6 +76,16 @@ class HttpServer:
         serving will break the server, as it will not get notified and
         re-discover content."""
         import http.server
+
+        self.__site = site
+        self.__template_repository = template_repository
+
+        self.__configuration = configuration
+        self.__cache = cache
+        output_path = pathlib.Path(
+            self.__configuration['output_directory'])
+        self.__publisher = TemplatePublisher(output_path, self.__site,
+                                             self.__template_repository)
 
         class RequestHandler(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
@@ -116,7 +117,7 @@ class HttpServer:
             def log_message(self, f, *args):
                 self.server.log.info(f, *args)
 
-        server_address = ('', self.port)
+        server_address = ('', self.__port)
         server = http.server.HTTPServer(server_address, RequestHandler)
         server.http_server = self
         server.log = self.__log

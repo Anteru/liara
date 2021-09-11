@@ -21,6 +21,7 @@ Welcome to Liara's documentation!
    indices
    metadata
    plugins
+   processing
    static-routes
    templates
    url-patterns

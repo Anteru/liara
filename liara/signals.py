@@ -4,12 +4,17 @@ from blinker import signal
 content_filtered = signal('content-filtered')
 """Raised when content has been removed due to a filter.
 
+  This signal is raised during the content discovery stage.
+
   :param liara.nodes.Node node: the node that was removed
   :param liara.site.ContentFilter filter: the filter that matched
 """
 
 content_added = signal('content-added')
 """Raised when a content node was successfully added.
+
+  This signal is raised during the content discovery stage. It is not raised
+  for nodes that have been filtered.
 
   :param liara.nodes.Node node: the node that was created
 """
@@ -37,9 +42,11 @@ documents_processed = signal('documents-processed')
 document_loaded = signal('document-loaded')
 """Raised after a document has been loaded.
 
+  This signal is raised during the content discovery stage.
+
   :param liara.nodes.DocumentNode document: the document node
   :param str content: the raw document contents
 
-  This signal is raised after loading, but before processing starts. Templates
-  etc. have thus not been applied to the document yet.
+  When this signal is raised, the content has been loaded, but no
+  templates etc. have been applied to the document yet.
 """

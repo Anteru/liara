@@ -92,6 +92,8 @@ liara.server module
 liara.signals module
 --------------------
 
+See :doc:`processing` for an overview of the processing stages.
+
 .. automodule:: liara.signals
 
     .. autodata:: content_filtered

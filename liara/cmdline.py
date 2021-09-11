@@ -265,3 +265,6 @@ def serve(env, browser, port):
     """Run a local development server."""
     liara = env.liara
     liara.serve(open_browser=browser, port=port)
+
+if __name__=='__main__':
+    main()

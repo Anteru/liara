@@ -6,6 +6,7 @@ from typing import (
 
 def create_default_configuration() -> Dict[str, Any]:
     """Creates a dictionary with the default configuration."""
+    # When changing this, make sure to update the docs as well
     return {
         'content_directory': 'content',
         'resource_directory': 'resources',
@@ -22,6 +23,7 @@ def create_default_configuration() -> Dict[str, Any]:
             'cache.redis.expiration_time': 60,
             'cache.type': 'fs'
         },
+        'ignore_files': ['*~'],
         'content': {
             'filters': ['date', 'status']
         },

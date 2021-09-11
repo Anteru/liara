@@ -81,3 +81,4 @@ Other settings
 --------------
 
 * ``routes.static``: Points to the file containing :any:`static routes <static-routes>`.
+* ``ignore_files``: A list of file patterns to ignore, for instance, ``["*.backup"]``. The default is ``*~`` which ignores all files with a trailing ``~``. The file matching supports Unix-style wildcards: ``?`` matches a single character, ``*`` matches everything.

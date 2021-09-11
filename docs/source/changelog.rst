@@ -5,6 +5,9 @@ Changelog
 -----
 
 * Add a ``--port`` option to ``liara serve`` to change the listen port.
+* Add an ``ignore_files`` option to ignore certain file patterns. This is particularly useful if an editor creates lock or backup files that should be ignored. See :doc:`configuration` for more details.
+* The file discovery process will ignore invalid index and resource files instead of failing with an exception. An error will be logged to help find the problematic files.
+* Document metadata can be placed in a separate ``.meta`` file now instead of being part of the document itself. See :doc:`content` for more details.
 
 2.2.1
 -----

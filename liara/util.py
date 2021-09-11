@@ -2,6 +2,9 @@ import pathlib
 import collections.abc
 import datetime
 import tzlocal
+from typing import List, Optional
+import os
+import fnmatch
 
 
 def pairwise(iterable):
@@ -70,3 +73,26 @@ def local_now() -> datetime.datetime:
     timestamp which has ``tzinfo`` set to the local timezone.
     """
     return datetime.datetime.now(tz=__TZ)
+
+
+class FilesystemWalker:
+    def __init__(self, ignore_files: Optional[List[str]] = None):
+        self.__ignore_files = ignore_files if ignore_files else []
+
+    def walk(self, path: pathlib.Path):
+        """Walk a directory recursively.
+
+        This is quite similar to ``os.walk``, but with two major differences:
+        * Files matching the ``ignore_files`` pattern are ignored.
+        * The dirnames part of the tuple is ommitted
+        """
+        for dirpath, _, filenames in os.walk(path):
+            files_to_ignore = set()
+            for pattern in self.__ignore_files:
+                for filename in fnmatch.filter(filenames, pattern):
+                    files_to_ignore.add(filename)
+
+            filenames = [filename for filename in filenames
+                         if filename not in files_to_ignore]
+
+            yield dirpath, filenames

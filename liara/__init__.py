@@ -26,10 +26,10 @@ from .nodes import (
 )
 
 from .cache import Cache, FilesystemCache, Sqlite3Cache, RedisCache
-from .util import flatten_dictionary
+from .util import FilesystemWalker, flatten_dictionary
 from .yaml import load_yaml
 
-__version__ = '2.2.1'
+__version__ = '2.2.2'
 __all__ = [
     'actions',
     'cache',
@@ -84,6 +84,7 @@ class Liara:
     # When running using 'serve', this will be set to the local URL
     __base_url_override: Optional[str] = None
     __registered_plugins: Set[str] = set()
+    __filesystem_walker: FilesystemWalker
 
     def __init__(self,
                  configuration: Optional[
@@ -122,6 +123,10 @@ class Liara:
         self.__document_node_factory = DocumentNodeFactory(
             self.__configuration
         )
+
+        # Must come before the template backend, as that can look for files
+        self.__filesystem_walker = FilesystemWalker(
+            self.__configuration['ignore_files'])
 
         # Must come before the template backend, as those can use caches
         self.__setup_cache()
@@ -272,7 +277,7 @@ class Liara:
 
         document_factory = self.__document_node_factory
 
-        for (dirpath, _, filenames) in os.walk(content_root):
+        for dirpath, filenames in self.__filesystem_walker.walk(content_root):
             directory = pathlib.Path(dirpath)
             # Need to run two passes here: First, we check if an _index file is
             # present in this folder, in which case it's the root of this
@@ -283,10 +288,27 @@ class Liara:
             for filename in filenames:
                 if filename.startswith('_index'):
                     src = pathlib.Path(os.path.join(dirpath, filename))
+                    if src.suffix not in document_factory.known_types:
+                        supported_file_types = ', '.join(
+                            document_factory.known_types
+                        )
+                        self.__log.error(f'Ignoring "{src}", unsupported file '
+                                         'type for index node. Supported file '
+                                         f'types are: {supported_file_types}.')
+                        continue
+
                     relative_path = _create_relative_path(directory,
                                                           content_root)
-                    node = document_factory.create_node(src.suffix,
-                                                        src, relative_path)
+
+                    metadata_path = src.with_suffix('.meta')
+                    if metadata_path.exists():
+                        node = document_factory.create_node(src.suffix, src,
+                                                            relative_path,
+                                                            metadata_path)
+                    else:
+                        node = document_factory.create_node(src.suffix, src,
+                                                            relative_path)
+
                     site.add_document(node)
                     break
             else:
@@ -299,11 +321,24 @@ class Liara:
                 if filename.startswith('_index'):
                     continue
 
+                if filename.endswith('.meta'):
+                    # Metadata files are handled while dealing with the actual
+                    # content
+                    continue
+
                 src = pathlib.Path(os.path.join(directory, filename))
                 path = _create_relative_path(src, content_root)
 
                 if src.suffix in document_factory.known_types:
-                    node = document_factory.create_node(src.suffix, src, path)
+                    metadata_path = src.with_suffix('.meta')
+                    if metadata_path.exists():
+                        node = document_factory.create_node(src.suffix, src,
+                                                            path,
+                                                            metadata_path)
+                    else:
+                        node = document_factory.create_node(src.suffix, src,
+                                                            path)
+
                     site.add_document(node)
                     # If there's an index node, we add each document directly
                     # below it manually to the reference list
@@ -327,7 +362,7 @@ class Liara:
 
     def __discover_static(self, site: Site, static_root: pathlib.Path) -> None:
         from .nodes import StaticNode
-        for dirpath, _, filenames in os.walk(static_root):
+        for dirpath, filenames in self.__filesystem_walker.walk(static_root):
             directory = pathlib.Path(dirpath)
 
             for filename in filenames:
@@ -349,10 +384,23 @@ class Liara:
     def __discover_resources(self, site: Site,
                              resource_factory: ResourceNodeFactory,
                              resource_root: pathlib.Path) -> None:
-        for dirpath, _, filenames in os.walk(resource_root):
+        for dirpath, filenames in self.__filesystem_walker.walk(resource_root):
             for filename in filenames:
                 src = pathlib.Path(os.path.join(dirpath, filename))
                 path = _create_relative_path(src, resource_root)
+
+                if src.suffix not in resource_factory.known_types:
+                    supported_resource_types = ','.join(
+                        resource_factory.known_types)
+                    self.__log.error(f'Ignoring resource "{src}" as the file '
+                                     f'type {src.suffix} is not a supported '
+                                     'resource file type. '
+                                     'Supported resource types are: '
+                                     + supported_resource_types + '. '
+                                     'Please place static files that don\'t '
+                                     'require resource processing into the '
+                                     'static directory.')
+                    continue
 
                 metadata_path = src.with_suffix('.meta')
                 if metadata_path.exists():

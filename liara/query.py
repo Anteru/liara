@@ -1,6 +1,7 @@
 from typing import Iterable, List, Iterator
-from .nodes import Node
+from .nodes import Node, NodeKind
 from .template import Page
+from typing import Union
 
 import re
 
@@ -83,8 +84,12 @@ class MetadataSorter(Sorter):
         return key
 
 
-class Query(Iterable[Node]):
+class Query(Iterable[Union[Node, Page]]):
     """A query modifies a list of nodes, by sorting and filtering entries.
+
+    Index and document nodes will be wrapped in a
+    :py:class:`~liara.template.Page` instance. Everything else will be returned
+    as a :py:class:`~liara.nodes.Node`.
     """
 
     __filters: List[SelectionFilter]
@@ -94,15 +99,16 @@ class Query(Iterable[Node]):
     __reversed: bool
     __result: List[Page]
 
-    def __init__(self, nodes):
-        self.__nodes = nodes
+    def __init__(self, nodes: Iterable[Node]):
+        """Create a query object for the list of specified nodes."""
+        self.__nodes = list(nodes)
         self.__limit = -1
         self.__filters = []
         self.__sorters = []
         self.__reversed = False
         self.__result = None
 
-    def limit(self, limit) -> 'Query':
+    def limit(self, limit: int) -> 'Query':
         """Limit this query to return at most ``limit`` results."""
         self.__limit = limit
         return self
@@ -165,16 +171,22 @@ class Query(Iterable[Node]):
         if self.__reversed:
             result = reversed(result)
 
+        def Wrap(n: Node):
+            if n.kind in {NodeKind.Document, NodeKind.Index}:
+                return Page(n)
+
+            return n
+
         if self.__limit > 0:
             for i, e in enumerate(result):
                 if i >= self.__limit:
                     break
-                self.__result.append(Page(e))
+                self.__result.append(Wrap(e))
         else:
             for e in result:
-                self.__result.append(Page(e))
+                self.__result.append(Wrap(e))
 
-    def __iter__(self) -> Iterator[Page]:
+    def __iter__(self) -> Iterator[Union[Node, Page]]:
         self.__execute()
         return iter(self.__result)
 

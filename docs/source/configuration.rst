@@ -22,7 +22,7 @@ Liara is driven through configuration files. The main file is ``config.yaml``, w
 Directory settings
 ------------------
 
-* ``content_directory``: The root directory for all content. Output paths will be build relative to this folder.
+* ``content_directory``: The root directory for all content. Output paths will be build relative to this folder. See :doc:`content` for more details.
 * ``resource_directory``: The folder containing resources, i.e. ``SASS`` or other files that need to get processed before they can be written to the output.
 * ``static_directory``: The folder containing static files, for instance downloads, images, videos etc.
 * ``output_directory``: The output directory.

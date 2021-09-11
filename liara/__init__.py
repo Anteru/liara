@@ -367,6 +367,10 @@ class Liara:
 
             for filename in filenames:
                 src = directory / filename
+
+                if src.suffix == '.meta':
+                    continue
+
                 path = _create_relative_path(src, static_root)
                 # We need to re-append the source suffix
                 # We can't use .with_suffix, as this will break on paths like
@@ -386,6 +390,9 @@ class Liara:
                              resource_root: pathlib.Path) -> None:
         for dirpath, filenames in self.__filesystem_walker.walk(resource_root):
             for filename in filenames:
+                if filename.endswith('.meta'):
+                    continue
+
                 src = pathlib.Path(os.path.join(dirpath, filename))
                 path = _create_relative_path(src, resource_root)
 

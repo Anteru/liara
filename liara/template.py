@@ -199,7 +199,7 @@ class Page:
     @property
     def metadata(self) -> Dict[str, Any]:
         """Provides the metadata associated with this page.
-        
+
         .. versionadded:: 2.1.2
         """
         return self.__node.metadata
@@ -252,7 +252,7 @@ class SiteTemplateProxy:
         """
         return self.__site.metadata
 
-    def select(self, query) -> 'query.Query':
+    def select(self, query) -> 'liara.query.Query':
         """Run a query on this site.
         """
         from .query import Query
@@ -291,7 +291,7 @@ class SiteTemplateProxy:
         else:
             return None
 
-    def get_collection(self, collection: str) -> 'query.Query':
+    def get_collection(self, collection: str) -> 'liara.query.Query':
         """Get a collection in form of a :py:class:`liara.query.Query` for
         further filtering/sorting.
         """

@@ -68,14 +68,23 @@ class TemplateRepository:
     def _match_template(self, url: pathlib.PurePosixPath, site: Site) -> str:
         best_match = None
         best_score = None
+        longest_matching_pattern_length = -1
         for pattern, template in self.__paths.items():
             score = _match_url(url, pattern, site)
             if score is None:
                 continue
 
+            # If the pattern is a better match, we always update
             if best_score is None or score < best_score:
                 best_score = score
                 best_match = template
+                longest_matching_pattern_length = len(pattern)
+
+            # Tie breaker: The longer pattern wins
+            if best_score == score:
+                if len(pattern) > longest_matching_pattern_length:
+                    best_match = template
+                    longest_matching_pattern_length = len(pattern)
 
         if not best_match:
             raise Exception(f'Could not find matching template for path: '

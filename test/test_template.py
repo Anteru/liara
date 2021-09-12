@@ -30,6 +30,11 @@ def test_match_fail(default_site):
     assert score is None
 
 
+def test_match_subfolders(default_site):
+    score = _match_url('/research/a/b', '/research/*', default_site)
+    assert score is not None
+
+
 def test_match_url_wildcard(default_site):
     score0 = _match_url('/blog', '/blog*', default_site)
     score1 = _match_url('/blog', '/*', default_site)
@@ -68,3 +73,25 @@ def test_match_url_order_independent(default_site):
 
     t11 = tr1._match_template(pathlib.PurePosixPath('/'), default_site)
     assert t11 == 'default'
+
+
+def test_match_url_same_length(default_site):
+    tr0 = TemplateRepository(
+        {
+            '/e*': 'a',
+            '/*n': 'b'
+        }
+    )
+
+    t00 = tr0._match_template(pathlib.PurePosixPath('/en'), default_site)
+    assert t00 == 'a'
+
+    tr1 = TemplateRepository(
+        {
+            '/*n': 'a',
+            '/e*': 'b'
+        }
+    )
+
+    t10 = tr1._match_template(pathlib.PurePosixPath('/en'), default_site)
+    assert t10 == 'a'

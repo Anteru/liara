@@ -4,7 +4,7 @@ Changelog
 2.3.1
 -----
 
-* Improve ambiguous template pattern resolution. See :doc:`url-patterns` for more details.
+* Improve ambiguous template pattern resolution. See :doc:`templates` for more details.
 
 2.3.0
 -----

@@ -13,7 +13,7 @@ Templates are defined using a template definition, which must contain at least t
   - ``jinja2``: Uses `Jinja2 <https://jinja.palletsprojects.com>`_. This is the default.
   - ``mako``: Uses `Mako <https://www.makotemplates.org/>`_
 
-* ``paths`` provides a dictionary containing key-value pairs. The key must be an :doc:`URL pattern <url-patterns>`, the value the template file that should get applied for this pattern.
+* ``paths`` provides a dictionary containing key-value pairs. See  `path patterns <path-patterns>`_ for more details.
 
 A very basic template could be defined as following:
 
@@ -50,3 +50,17 @@ Templates get applied to :py:class:`~liara.nodes.DocumentNode` and :py:class:`~l
 - ``page`` references the current node, in form of a :py:class:`~liara.template.Page` instance.
 - ``node`` provides access to the current node directly, which will point to a  :py:class:`~liara.nodes.Node` instance.
 - ``site`` provides access to the site in form of the :py:class:`~liara.template.SiteTemplateProxy` object.
+
+Path patterns
+-------------
+
+.. _path-patterns:
+
+The paths used for template matching are using a syntax very similar to filesystem globs, with ``*`` being the only wildcard character supported. Perfect matches take precedence over wildcard matches. That is, if there are two path patterns ``/foo/*`` and ``/foo/``, and they are matched against ``/foo/``, both match but ``/foo/`` gets selected as it's a perfect match.
+
+The patterns have two additional tie-breaker rules implemented if multiple rules apply to the same template:
+
+* If two rules have the same score, the longer rule wins, as it's assumed to be more specific. For instance, if you have a rule ``/en*`` and ``/*``, and you match ``/en``, then both match, but because ``/en*`` is longer it gets selected.
+* If rules have the same length and match the same URL, the first matching rule is used. I.e. if you specify ``/e*`` and ``/*n`` to match ``/en``, whichever rule came first in the rule set wins.
+
+Additionally, template path patterns allow a query string to restrict the search to specific types. For instance, ``/foo/*?kind=document`` will match all :py:class:`~liara.nodes.DocumentNode` below ``/foo/``, but will ignore other node types. The nodes types that can be selected using this method are ``document`` for :py:class:`~liara.nodes.DocumentNode` instances and ``index`` for :py:class:`~liara.nodes.IndexNode` instances.

@@ -1,7 +1,35 @@
 Content
 =======
 
-No site would be complete without content. In Liara, content is provided in a separate directory, and mirrored into the output. That is, a document placed in ``content-root/foo/bar.md`` will be routed to ``/foo/bar/index.html``. The content root can be set in the :doc:`configuration`.
+No site would be complete without content. In Liara, content is provided in a content directory. Documents within that directory get processed through templates and routed. For example, a document placed in ``content-root/foo/bar.md`` will be routed to ``/foo/bar/index.html``. The content root can be set in the :doc:`configuration`.
+
+In addition to documents static files can be also placed in the content directory. Those are just copied to the output without processing. Static files within the content root can use metadata.
+
+If you have static files without any metadata, they should be placed into the static directory. In this case they get directly copied into the output without any extra processing.
+
+.. note::
+
+   Static files get always symlinked to the output if possible, no matter if they're in the content or static directory tree. The difference is how metadata is handled.
+
+An example content layout could be:
+
+.. code::
+
+   .
+   ├── content
+   │  ├── about
+   │  │   ├── index.md     // Document
+   │  │   ├── about1.mp4   // Static file
+   │  │   ├── about1.meta  // Metadata file
+   │  │   ├── about2.mp4   // Static file
+   │  │   └── about2.meta  // Metadata file
+   │  └── blog
+   │      ├── first-blog-post.md    // Document
+   │      └── second-blog-post.md   // Document
+   └── static
+      └── background-image.jpg
+
+In the example above, the about movie files in ``/content/about/`` are binaries with metadata attached to them, making them discoverable (for instance, one could store a caption in the metadata and reference it in a template.) The background image on the other hand would get copied over without any processing.
 
 Documents
 ---------
@@ -11,7 +39,7 @@ The bulk of the content are document nodes -- Markdown or Html files which get p
 Metadata
 --------
 
-Every document in Liara must have metadata associated with it, which contains at least the document title. There are two ways to add metadata to a document: Embedding it inside the document or by using a separate ``.meta`` file.
+Every document in Liara must have metadata associated with it, which contains at least the document title. There are two ways to add metadata to a document: Embedding it inside the document or by using a separate ``.meta`` file. For non-document files, using a separate ``.meta`` file is the only way to associate metadata with a file.
 
 .. note::
 
@@ -27,11 +55,11 @@ When embedding it inside the document, the metadata must be placed at the beginn
 
 You cannot mix the delimiters, i.e. using ``---`` to start and ``+++`` to end will result in a failure. Using more characters is also not supported.
 
-Alternatively, the metadata can be stored in a ``.meta`` file next to the document. The ``.meta`` file **must** contain YAML.
+Alternatively, the metadata can be stored in a ``.meta`` file next to the document. This method also works for static files like images, videos, and other binaries. In this case, the ``.meta`` file **must** contain YAML.
 
 .. note::
 
-   The ``.meta`` file name must be the same as the original file name, with the last suffix changed to ``.meta``. For instance, if your content is stored in ``blog-post.md``, the metadata file would be ``blog-post.meta``. If you have a file with multiple suffixes like ``blog-post.new.md``, then the metadata file has to be named ``blog-post.new.meta``.
+   The ``.meta`` file name must be the same as the original file name, with the last suffix changed to ``.meta``. For instance, for a file named ``blog-post.md``, the metadata file would be ``blog-post.meta``. If you have a file with multiple suffixes like ``blog-post.new.md``, then the metadata file has to be named ``blog-post.new.meta``.
 
 Content filters
 ---------------

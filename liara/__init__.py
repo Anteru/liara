@@ -368,9 +368,6 @@ class Liara:
             for filename in filenames:
                 src = directory / filename
 
-                if src.suffix == '.meta':
-                    continue
-
                 path = _create_relative_path(src, static_root)
                 # We need to re-append the source suffix
                 # We can't use .with_suffix, as this will break on paths like
@@ -378,11 +375,11 @@ class Liara:
                 # of a.b.c.foo
                 path = path.parent / (path.name + src.suffix)
 
-                metadata_path = src.with_suffix('.meta')
-                if metadata_path.exists():
-                    node = StaticNode(src, path, metadata_path)
-                else:
-                    node = StaticNode(src, path)
+                # We don't support metadata on static content inside the
+                # static directory. Everything here gets passed through
+                # unchanged, as we can't tell a .meta file apart from an
+                # actual static file
+                node = StaticNode(src, path)
                 site.add_static(node)
 
     def __discover_resources(self, site: Site,

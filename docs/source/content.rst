@@ -55,7 +55,7 @@ When embedding it inside the document, the metadata must be placed at the beginn
 
 You cannot mix the delimiters, i.e. using ``---`` to start and ``+++`` to end will result in a failure. Using more characters is also not supported.
 
-Alternatively, the metadata can be stored in a ``.meta`` file next to the document. This method also works for static files like images, videos, and other binaries. In this case, the ``.meta`` file **must** contain YAML.
+Alternatively, the metadata can be stored in a ``.meta`` file next to the document. This method also works for static files like images, videos, and other binaries. In this case, the ``.meta`` file **must** contain plain YAML.
 
 .. note::
 

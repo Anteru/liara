@@ -18,16 +18,16 @@ An example content layout could be:
    .
    ├── content
    │  ├── about
-   │  │   ├── index.md     // Document
-   │  │   ├── about1.mp4   // Static file
-   │  │   ├── about1.meta  // Metadata file
-   │  │   ├── about2.mp4   // Static file
-   │  │   └── about2.meta  // Metadata file
+   │  │   ├── index.md              // Document
+   │  │   ├── about1.mp4            // Static file
+   │  │   ├── about1.meta           // Metadata file
+   │  │   ├── about2.mp4            // Static file
+   │  │   └── about2.meta           // Metadata file
    │  └── blog
    │      ├── first-blog-post.md    // Document
    │      └── second-blog-post.md   // Document
    └── static
-      └── background-image.jpg
+      └── background-image.jpg      // Static file
 
 In the example above, the about movie files in ``/content/about/`` are binaries with metadata attached to them, making them discoverable (for instance, one could store a caption in the metadata and reference it in a template.) The background image on the other hand would get copied over without any processing.
 
@@ -50,7 +50,7 @@ When embedding it inside the document, the metadata must be placed at the beginn
 .. code:: yaml
 
    ---
-   title: " This is an example"
+   title: "This is an example"
    ---
 
 You cannot mix the delimiters, i.e. using ``---`` to start and ``+++`` to end will result in a failure. Using more characters is also not supported.

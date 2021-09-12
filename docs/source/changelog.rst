@@ -1,16 +1,17 @@
 Changelog
 =========
 
-2.2.2
+2.3.0
 -----
 
 * Add a ``--port`` option to ``liara serve`` to change the listen port.
 * Add an ``ignore_files`` option to ignore certain file patterns. This is particularly useful if an editor creates lock or backup files that should be ignored. See :doc:`configuration` for more details.
 * The file discovery process will ignore invalid index and resource files instead of failing with an exception. An error will be logged to help find the problematic files.
+* Fix ``liara list-content`` not showing the node type on ``_index`` nodes.
 * Handling of metadata has changed:
 
   * Document metadata can be placed in a separate ``.meta`` file instead of being part of the document itself. See :doc:`content` for more details.
-  * Separate ``.meta`` files for metadata are no longer supported in the static and resource directory. This previously didn't work as expected -- resource files with ``.meta`` files associated had the ``.meta`` file processed (which would cause a failure), and static files had the ``.meta`` file added as a separate static file. From 2.2.2 on, ``.meta`` files don't get any special treatment when placed in the static or resource directory trees. Static files inside the content directory continue to support metadata files. See :doc:`content` for more details.
+  * Separate ``.meta`` files for metadata are no longer supported in the static and resource directory. This previously didn't work as expected -- resource files with ``.meta`` files associated had the ``.meta`` file processed (which would cause a failure), and static files had the ``.meta`` file added as a separate static file. From this release on, ``.meta`` files don't get any special treatment when placed in the static or resource directory trees. Static files inside the content directory continue to support metadata files. See :doc:`content` for more details.
 
 2.2.1
 -----

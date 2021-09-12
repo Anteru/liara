@@ -220,7 +220,7 @@ def list_content(env, format, content_type):
         tree = treelib.Tree()
         tree.create_node('Site', ('/',))
         if nodes[0].path.parts == ('/',):
-            tree.create_node('_index', parent=('/',),
+            tree.create_node(f'_index ({nodes[0].kind.name})', parent=('/',),
                              data=nodes[0].path)
 
         known_paths = {('/',)}

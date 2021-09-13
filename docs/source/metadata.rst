@@ -10,4 +10,4 @@ The default site metadata consists of:
 * ``language``: The language, provided as a language code of the form ``en-US``.
 * ``copyright``: The default content copyright.
 
-Metadata is used throughout Liara, for instance, :doc:`feeds` may use the metadata. It is available through :py:attr:`~liara.site.Site.metadata` within liara, and via :py:attr:`~liara.template.SiteTemplateProxy.metadata` to templates.
+Metadata is used throughout Liara, for instance, :doc:`feeds` may use the metadata. It is available through :py:attr:`Site.metadata <liara.site.Site.metadata>` within Liara, and via :py:attr:`site.metadata <liara.template.SiteTemplateProxy.metadata>` to templates.

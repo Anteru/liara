@@ -18,7 +18,7 @@ An example content layout could be:
    .
    ├── content
    │  ├── about
-   │  │   ├── index.md              // Document
+   │  │   ├── _index.md             // Document
    │  │   ├── about1.mp4            // Static file
    │  │   ├── about1.meta           // Metadata file
    │  │   ├── about2.mp4            // Static file
@@ -35,6 +35,25 @@ Documents
 ---------
 
 The bulk of the content are document nodes -- Markdown or Html files which get processed by Liara to Html and which get templates applied. Liara supports some common Markdown extensions to handle tables and code snippets.
+
+Index files
+-----------
+
+By default, every file is mapped directly to an output URL. For example, a file named ``/about/index.md`` will produce a page at ``/about/index``. Sometimes it's desirable to create a page at the *parent* location, for instance, when you want to move some content around. In this case, an ``_index`` file can be used. The index file behaves as-if a file with the same name as the parent folder had been placed inside the parent folder. The following two directory trees are thus equivalent:
+
+.. code::
+
+   .
+   └── about
+       └── _index.md    // maps to /about
+
+
+.. code::
+
+   .
+   └── about.md         // maps to /about
+
+If no ``_index`` file is present in a folder, an :py:class:`~liara.nodes.IndexNode` is created automatically. The auto-generated index nodes can be targeted by templates, see :doc:`templates` for more details.
 
 Metadata
 --------
@@ -76,3 +95,8 @@ Some metadata fields in Liara are processed by a :py:class:`~liara.site.ContentF
    ---
 
 Documents with a date that lies in the future relative to the time the build is invoked will get filtered by the :py:class:`~liara.site.DateFilter`. ``status`` can be used to hide content by setting it to ``private`` -- which in turn will make the :py:class:`~liara.site.StatusFilter` filter out the page. The filters can be set up in the :doc:`configuration`.
+
+Data files
+----------
+
+Besides normal content, Liara allows storing arbitrary structured data in data files. This data is available via :py:attr:`site.data <liara.template.SiteTemplateProxy.data>`. This is very similar to the :doc:`global metadata <metadata>`, but data nodes can be placed anywhere inside the content tree.

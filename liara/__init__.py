@@ -6,6 +6,7 @@ import time
 
 from typing import (
         IO,
+        ChainMap,
         List,
         Callable,
         Dict,
@@ -216,7 +217,18 @@ class Liara:
         from .template import Jinja2TemplateRepository, MakoTemplateRepository
 
         template_path = configuration_file.parent
+        default_configuration = config.create_default_template_configuration()
         configuration = load_yaml(open(configuration_file))
+
+        ignore_list = {
+            'image_thumbnail_sizes',
+            'backend_options',
+            'paths'
+        }
+
+        configuration = ChainMap(
+            flatten_dictionary(configuration, ignore_keys=ignore_list),
+            flatten_dictionary(default_configuration, ignore_keys=ignore_list))
 
         backend = configuration['backend']
         paths = configuration['paths']
@@ -226,7 +238,8 @@ class Liara:
 
         if backend == 'jinja2':
             self.__template_repository = Jinja2TemplateRepository(
-                paths, template_path, self.__cache)
+                paths, template_path, self.__cache,
+                options=configuration['backend_options']['jinja2'])
         elif backend == 'mako':
             self.__template_repository = MakoTemplateRepository(
                 paths, template_path)

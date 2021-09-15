@@ -39,6 +39,17 @@ def create_default_configuration() -> Dict[str, Any]:
     }
 
 
+def create_default_template_configuration() -> Dict[str, Any]:
+    return {
+        'backend_options': {
+            'jinja2': {
+                'trim_blocks': True,
+                'lstrip_blocks': True
+            }
+        }
+    }
+
+
 def create_default_metadata() -> Dict[str, Any]:
     """Creates a dictionary with the default metadata."""
     return {

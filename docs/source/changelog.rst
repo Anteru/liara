@@ -5,6 +5,7 @@ Changelog
 -----
 
 * Improve ambiguous template pattern resolution. See :doc:`templates` for more details.
+* Allow setting template backend options. See :doc:`templates` for more details. As part of this change, the Jinja2 backend now sets ``trim_blocks`` and ``lstrip_blocks`` by default to ``True``.
 
 2.3.0
 -----

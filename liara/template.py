@@ -123,16 +123,31 @@ class Jinja2Template(Template):
 class Jinja2TemplateRepository(TemplateRepository):
     """Jinja2 based template repository."""
     def __init__(self, paths: Dict[str, str], path: pathlib.Path,
-                 cache: Cache = None):
+                 cache: Cache = None, *, options: Dict[str, Any] = None):
         super().__init__(paths)
         self.__path = path
         self.__cache = cache
-        self.__create_environment()
+        self.__create_environment(options)
 
-    def __create_environment(self):
+    def __create_environment(self, options: Dict[str, Any] = None):
         from jinja2 import FileSystemLoader, Environment, BytecodeCache
         from .util import readtime
         import io
+
+        def sanitize_options(options):
+            if not options:
+                return dict()
+
+            forbidden_options = {
+                'undefined',
+                'finalize',
+                'loader',
+                'bytecode_cache',
+                'enable_async'
+            }
+
+            return {k: v for k, v in options.items()
+                    if k not in forbidden_options}
 
         class Jinja2BytecodeCache(BytecodeCache):
             def __init__(self, cache: Cache):
@@ -163,7 +178,8 @@ class Jinja2TemplateRepository(TemplateRepository):
 
         self.__env = Environment(
             loader=FileSystemLoader(str(self.__path)),
-            bytecode_cache=cache)
+            bytecode_cache=cache,
+            **sanitize_options(options))
         self.__env.filters['readtime'] = readtime
 
     def find_template(self, url, site: Site) -> Template:

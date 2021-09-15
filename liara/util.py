@@ -38,16 +38,28 @@ def readtime(wordcount: int, words_per_minute=300):
     return max(1, round(wordcount / 300))
 
 
-def flatten_dictionary(d, sep='.', parent_key=None):
+def flatten_dictionary(d, sep='.', parent_key=None,
+                       *, ignore_keys: set = None):
     """Flatten a nested dictionary. This uses the separator to combine keys
     together, so a dictionary access like ``['a']['b']`` with a separator
-    ``'.'`` turns into ``'a.b'``."""
+    ``'.'`` turns into ``'a.b'``.
+    
+    If ``ignore_keys`` is set, it must be a list of fully flattened key names
+    at which the flattening should stop. For instance, if a dictionary
+    ``{'a': {'b': {'c': 1}}}`` is provided, and ``ignore_keys`` is ``{'a.b'}``,
+    then ``a.b`` will not get flattened further, so ``a.b`` will contain a
+    dictionary with ``{'c': 1}``.
+    """
     items = []
+    ignore_keys = ignore_keys if ignore_keys else set()
+
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
-        if isinstance(v, collections.abc.Mapping):
+        if isinstance(v, collections.abc.Mapping) \
+           and new_key not in ignore_keys:
             items.extend(flatten_dictionary(v, sep=sep,
-                                            parent_key=new_key).items())
+                                            parent_key=new_key,
+                                            ignore_keys=ignore_keys).items())
         else:
             items.append((new_key, v,))
     return dict(items)

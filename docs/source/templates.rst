@@ -15,6 +15,17 @@ Templates are defined using a template definition, which must contain at least t
 
 * ``paths`` provides a dictionary containing key-value pairs. See  `path patterns <path-patterns>`_ for more details.
 
+* ``backend_options`` contains a mapping of options to be passed to the backend. For example, for Jinja2, if you want to keep the trailing newline, you'd set:
+
+  .. code:: yaml
+
+    backend_options:
+      jinja2:
+        keep_trailing_newline: true
+
+
+  Currently, only the Jinja2 backend has options that can be set this way. The default options that are set to enabled are ``trim_blocks`` and ``lstrip_blocks``. You can set any `Jinja2 option <https://jinja.palletsprojects.com/en/3.0.x/api/?highlight=environment#jinja2.Environment>`_ that doesn't expect a Python object. Additionally, ``enable_async`` can't be toggled.
+
 A very basic template could be defined as following:
 
 .. code:: yaml

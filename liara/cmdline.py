@@ -177,7 +177,8 @@ def create_config(output):
 
 
 @cli.command()
-@click.option('--template-backend', '-t', type=click.Choice(['jinja2', 'mako']),
+@click.option('--template-backend', '-t',
+              type=click.Choice(['jinja2', 'mako']),
               default='jinja2')
 def quickstart(template_backend):
     """Create a quickstart project."""
@@ -266,5 +267,6 @@ def serve(env, browser, port):
     liara = env.liara
     liara.serve(open_browser=browser, port=port)
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     main()

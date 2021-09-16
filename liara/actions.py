@@ -1,7 +1,7 @@
 from .nodes import DocumentNode
 from .site import Site
 import pathlib
-from typing import Dict, List
+from typing import Dict, Iterable, List
 from enum import Enum, auto
 from collections import defaultdict
 
@@ -41,7 +41,7 @@ def _is_internal_link(link: str) -> bool:
         return link[0] == '/'
 
 
-def gather_links(documents, link_type: LinkType) \
+def gather_links(documents: Iterable[DocumentNode], link_type: LinkType) \
         -> Dict[str, List[pathlib.PurePosixPath]]:
     """Gather links across documents.
 

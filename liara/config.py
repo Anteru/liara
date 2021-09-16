@@ -40,7 +40,9 @@ def create_default_configuration() -> Dict[str, Any]:
 
 
 def create_default_template_configuration() -> Dict[str, Any]:
+    """Creates the default template configuration."""
     return {
+        'backend': 'jinja2',
         'backend_options': {
             'jinja2': {
                 'trim_blocks': True,

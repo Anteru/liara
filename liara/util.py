@@ -95,8 +95,9 @@ class FilesystemWalker:
         """Walk a directory recursively.
 
         This is quite similar to ``os.walk``, but with two major differences:
+
         * Files matching the ``ignore_files`` pattern are ignored.
-        * The dirnames part of the tuple is omitted
+        * The ``dirnames`` part of the tuple is omitted
         """
         for dirpath, _, filenames in os.walk(path):
             files_to_ignore = set()

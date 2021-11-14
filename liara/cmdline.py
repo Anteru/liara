@@ -30,12 +30,14 @@ pass_environment = click.make_pass_decorator(Environment, ensure=True)
 
 
 @click.group(name='Built-in commands')
-@click.option('--debug/--no-debug', default=False)
-@click.option('--verbose', is_flag=True)
-@click.option('--config', default='config.yaml', type=click.Path())
+@click.option('--debug/--no-debug', default=False, help='Enable debug output.')
+@click.option('--verbose', is_flag=True, help='Enable verbose output.')
+@click.option('--config', default='config.yaml', type=click.Path(),
+    help='Set the path to the configuration file.')
+@click.option('--date', default=None, help='Override the current date.')
 @click.version_option()
 @pass_environment
-def cli(env, debug, verbose, config):
+def cli(env, debug, verbose, config, date):
     if debug:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s %(name)s %(message)s')
@@ -53,6 +55,11 @@ def cli(env, debug, verbose, config):
     else:
         logging.basicConfig(level=logging.WARN,
                             format='%(asctime)s %(name)s %(message)s')
+
+    if date:
+        from .util import set_local_now
+        import dateparser
+        set_local_now(dateparser.parse(date))
 
     env.config = config
 

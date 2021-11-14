@@ -1,6 +1,10 @@
 Changelog
 =========
 
+2.3.2
+-----
+
+* Add a new ``--date`` option to the command line to build the site at a different date. This is useful conjunction with the :py:class:`~liara.site.DateFilter`, as it allows previewing scheduled entries.
 2.3.1
 -----
 

@@ -251,7 +251,7 @@ class DateFilter(ContentFilter):
 
     @property
     def reason(self):
-        return 'date <= now()'
+        return f'date <= {self.__now}'
 
     @property
     def name(self):

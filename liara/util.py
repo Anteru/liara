@@ -76,14 +76,27 @@ def create_slug(s: str) -> str:
 
 
 __TZ = tzlocal.get_localzone()
+__override_now = None
+
+def set_local_now(dt: datetime.datetime):
+    """
+    Override "now" to allow previewing the page at a different point in time.
+    """
+    global __override_now
+    __override_now = dt.astimezone(__TZ)
 
 
 def local_now() -> datetime.datetime:
-    """Get a timezone aware timestamp.
+    """Get the current date/time in the local time zone.
 
     This is equivalent to ``datetime.datetime.now()``, except it returns a
     timestamp which has ``tzinfo`` set to the local timezone.
+
+    This can be overridden using ``set_local_now`` to build the page at a
+    different point in time.
     """
+    if __override_now:
+        return __override_now
     return datetime.datetime.now(tz=__TZ)
 
 

@@ -344,13 +344,18 @@ class Liara:
 
                 if src.suffix in document_factory.known_types:
                     metadata_path = src.with_suffix('.meta')
-                    if metadata_path.exists():
-                        node = document_factory.create_node(src.suffix, src,
-                                                            path,
-                                                            metadata_path)
-                    else:
-                        node = document_factory.create_node(src.suffix, src,
-                                                            path)
+                    try:
+                        if metadata_path.exists():
+                            node = document_factory.create_node(src.suffix, src,
+                                                                path,
+                                                                metadata_path)
+                        else:
+                            node = document_factory.create_node(src.suffix, src,
+                                                                path)
+                    except Exception as e:                        
+                        self.__log.error(f'Failed to load "{src}". Skipping.')
+                        self.__log.error(str(e))
+                        continue
 
                     site.add_document(node)
                     # If there's an index node, we add each document directly

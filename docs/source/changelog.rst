@@ -5,6 +5,8 @@ Changelog
 -----
 
 * Add a new ``--date`` option to the command line to build the site at a different date. This is useful conjunction with the :py:class:`~liara.site.DateFilter`, as it allows previewing scheduled entries.
+* Improve error handling during content discovery. An error while creating a document will no longer abort the build. Additionally, instead of printing a full stack trace, an short error message containing the file path is printed. In any case, discovery continues so multiple broken documents can be identified.
+
 2.3.1
 -----
 

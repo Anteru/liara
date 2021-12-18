@@ -12,6 +12,7 @@ import pathlib
 from typing import (
     Union
 )
+import logging
 
 
 def _publish_with_template(output_path: pathlib.Path,
@@ -34,6 +35,8 @@ def _publish_with_template(output_path: pathlib.Path,
 
 
 class DefaultPublisher(Publisher):
+    __log = logging.getLogger('liara.DefaultPublisher')
+
     def __init__(self, output_path: pathlib.Path,
                  site: Site):
         self._output_path = output_path
@@ -49,6 +52,10 @@ class DefaultPublisher(Publisher):
 
     def publish_generated(self, generated: GeneratedNode):
         import os
+        if generated.content is None:
+            self.__log.warning(
+                f'Generated node {generated.path} has no content, skipping')
+            return
         file_path = pathlib.Path(str(self._output_path) + str(generated.path))
         os.makedirs(file_path.parent, exist_ok=True)
         if isinstance(generated.content, bytes):

@@ -30,7 +30,7 @@ from .cache import Cache, FilesystemCache, Sqlite3Cache, RedisCache
 from .util import FilesystemWalker, flatten_dictionary
 from .yaml import load_yaml
 
-__version__ = '2.3.2'
+__version__ = '2.3.3'
 __all__ = [
     'actions',
     'cache',
@@ -305,9 +305,10 @@ class Liara:
                         supported_file_types = ', '.join(
                             document_factory.known_types
                         )
-                        self.__log.error(f'Ignoring "{src}", unsupported file '
-                                         'type for index node. Supported file '
-                                         f'types are: {supported_file_types}.')
+                        self.__log.warning(
+                            f'Ignoring "{src}", unsupported file '
+                            'type for index node. Supported file '
+                            f'types are: {supported_file_types}.')
                         continue
 
                     relative_path = _create_relative_path(directory,
@@ -346,15 +347,18 @@ class Liara:
                     metadata_path = src.with_suffix('.meta')
                     try:
                         if metadata_path.exists():
-                            node = document_factory.create_node(src.suffix, src,
+                            node = document_factory.create_node(src.suffix,
+                                                                src,
                                                                 path,
                                                                 metadata_path)
                         else:
-                            node = document_factory.create_node(src.suffix, src,
+                            node = document_factory.create_node(src.suffix,
+                                                                src,
                                                                 path)
-                    except Exception as e:                        
-                        self.__log.error(f'Failed to load "{src}". Skipping.')
-                        self.__log.error(str(e))
+                    except Exception:
+                        self.__log.warning(
+                            f'Failed to load "{src}". Skipping file.',
+                            exc_info=True)
                         continue
 
                     site.add_document(node)
@@ -414,14 +418,14 @@ class Liara:
                 if src.suffix not in resource_factory.known_types:
                     supported_resource_types = ','.join(
                         resource_factory.known_types)
-                    self.__log.error(f'Ignoring resource "{src}" as the file '
-                                     f'type {src.suffix} is not a supported '
-                                     'resource file type. '
-                                     'Supported resource types are: '
-                                     + supported_resource_types + '. '
-                                     'Please place static files that don\'t '
-                                     'require resource processing into the '
-                                     'static directory.')
+                    self.__log.warning(
+                        f'Ignoring resource "{src}" as the file '
+                        f'type {src.suffix} is not a supported '
+                        'resource file type. Supported resource types are: '
+                        + supported_resource_types + '. '
+                        'Please place static files that don\'t '
+                        'require resource processing into the '
+                        'static directory.')
                     continue
 
                 metadata_path = src.with_suffix('.meta')

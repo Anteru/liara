@@ -451,7 +451,7 @@ class GeneratedNode(Node):
         self.src = None
         self.path = path
         self.metadata = metadata if metadata else {}
-        self.content = None
+        self.content: Optional[Union[bytes, str]] = None
 
     def generate(self) -> None:
         """Generate the content of this node.

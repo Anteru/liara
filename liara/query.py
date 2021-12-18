@@ -1,4 +1,4 @@
-from typing import Iterable, List, Iterator
+from typing import Iterable, List, Iterator, Optional
 from .nodes import Node, NodeKind
 from .template import Page
 from typing import Union
@@ -97,7 +97,7 @@ class Query(Iterable[Union[Node, Page]]):
     __sorters: List[Sorter]
     __limit: int
     __reversed: bool
-    __result: List[Page]
+    __result: Optional[List[Page]]
 
     def __init__(self, nodes: Iterable[Node]):
         """Create a query object for the list of specified nodes."""
@@ -188,8 +188,10 @@ class Query(Iterable[Union[Node, Page]]):
 
     def __iter__(self) -> Iterator[Union[Node, Page]]:
         self.__execute()
+        assert self.__result is not None
         return iter(self.__result)
 
     def __len__(self) -> int:
         self.__execute()
+        assert self.__result is not None
         return len(self.__result)

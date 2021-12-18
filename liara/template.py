@@ -1,4 +1,3 @@
-from . import Site
 from .cache import Cache
 import pathlib
 from typing import (
@@ -7,8 +6,13 @@ from typing import (
     Optional,
 )
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .query import Query
+    from . import Site
 
-def _match_url(url: pathlib.PurePosixPath, pattern: str, site: Site) \
+
+def _match_url(url: pathlib.PurePosixPath, pattern: str, site: 'Site') \
         -> Optional[int]:
     """Match an url against a pattern.
 
@@ -20,20 +24,19 @@ def _match_url(url: pathlib.PurePosixPath, pattern: str, site: Site) \
     import urllib.parse
     from .nodes import NodeKind
     if '?' in pattern and site:
-        pattern, params = pattern.split('?')
+        pattern, params_str = pattern.split('?')
 
         node = site.get_node(url)
         assert node
-        params = urllib.parse.parse_qs(params)
-        if 'kind' in params:
-            kinds = params['kind']
+        params = urllib.parse.parse_qs(params_str)
+
+        if kinds := params.get('kind'):
             for kind in kinds:
-                if kind == 'document' or kind == 'doc':
-                    if node.kind == NodeKind.Document:
-                        break
-                elif kind == 'index' or kind == 'idx':
-                    if node.kind == NodeKind.Index:
-                        break
+                if kind in {'document', 'doc'} and \
+                        node.kind == NodeKind.Document:
+                    break
+                elif kind in {'index', 'idx'} and node.kind == NodeKind.Index:
+                    break
             else:
                 return None
 
@@ -62,10 +65,11 @@ class TemplateRepository:
     def update_paths(self, paths: Dict[str, str]):
         self.__paths = paths
 
-    def find_template(self, url: pathlib.PurePosixPath) -> Template:
+    def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
+            -> Template:
         pass
 
-    def _match_template(self, url: pathlib.PurePosixPath, site: Site) -> str:
+    def _match_template(self, url: pathlib.PurePosixPath, site: 'Site') -> str:
         best_match = None
         best_score = None
         longest_matching_pattern_length = -1
@@ -107,7 +111,8 @@ class MakoTemplateRepository(TemplateRepository):
         from mako.lookup import TemplateLookup
         self.__lookup = TemplateLookup(directories=[str(path)])
 
-    def find_template(self, url, site: Site) -> Template:
+    def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
+            -> Template:
         template = self._match_template(url, site)
         return MakoTemplate(self.__lookup.get_template(template))
 
@@ -182,7 +187,8 @@ class Jinja2TemplateRepository(TemplateRepository):
             **sanitize_options(options))
         self.__env.filters['readtime'] = readtime
 
-    def find_template(self, url, site: Site) -> Template:
+    def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
+            -> Template:
         template = self._match_template(url, site)
         return Jinja2Template(self.__env.get_template(template))
 
@@ -237,7 +243,7 @@ class Page:
         return f'Page({self.url})'
 
     @property
-    def references(self) -> 'query.Query':
+    def references(self) -> 'Query':
         """Provides the list of referenced nodes by this page.
 
         This can be only used if the current page is an
@@ -256,9 +262,9 @@ class Page:
 class SiteTemplateProxy:
     """A wrapper around :py:class:`Site` for use inside templates.
     """
-    __site: Site
+    __site: 'Site'
 
-    def __init__(self, site: Site):
+    def __init__(self, site: 'Site'):
         self.__site = site
         self.__data = {}
         for data in self.__site.data:
@@ -277,7 +283,7 @@ class SiteTemplateProxy:
         """
         return self.__site.metadata
 
-    def select(self, query) -> 'liara.query.Query':
+    def select(self, query) -> 'Query':
         """Run a query on this site.
         """
         from .query import Query
@@ -316,7 +322,7 @@ class SiteTemplateProxy:
         else:
             return None
 
-    def get_collection(self, collection: str) -> 'liara.query.Query':
+    def get_collection(self, collection: str) -> 'Query':
         """Get a collection in form of a :py:class:`liara.query.Query` for
         further filtering/sorting.
         """

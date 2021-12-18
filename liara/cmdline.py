@@ -197,7 +197,8 @@ def quickstart(template_backend):
 @click.option('--format', '-f', type=click.Choice(['tree', 'list']),
               default='tree')
 @click.option('--type', '-t', 'content_type', multiple=True,
-              type=click.Choice(map(str.lower, NodeKind.__members__.keys())))
+              type=click.Choice(
+                  list(map(str.lower, NodeKind.__members__.keys()))))
 @pass_environment
 def list_content(env, format, content_type):
     """List all content.

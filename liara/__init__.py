@@ -18,6 +18,8 @@ from typing import (
 
 import collections
 
+from liara.template import TemplateRepository
+
 from . import config, signals
 from .site import Site, ContentFilterFactory
 from .nodes import (
@@ -86,6 +88,7 @@ class Liara:
     __base_url_override: Optional[str] = None
     __registered_plugins: Set[str] = set()
     __filesystem_walker: FilesystemWalker
+    __template_repository: TemplateRepository
 
     def __init__(self,
                  configuration: Optional[
@@ -297,7 +300,7 @@ class Liara:
             # directory
             # Otherwise, we create a new index node
             node: Node
-            indexNode: Node = None
+            indexNode: Optional[Node] = None
             for filename in filenames:
                 if filename.startswith('_index'):
                     src = pathlib.Path(os.path.join(dirpath, filename))

@@ -74,6 +74,7 @@ class DefaultPublisher(Publisher):
 
         with suppress(FileExistsError):
             # Symlink requires an absolute path
+            assert static.src
             source_path = os.path.abspath(static.src)
             try:
                 os.symlink(source_path, file_path)

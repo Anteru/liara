@@ -282,7 +282,7 @@ class DocumentNode(Node):
     _process_fixups: List[Callable]
     """These functions are called after a document has been processed
     (These should be called before :py:meth:`process` returns)."""
-    
+
     def __init__(self, src, path, metadata_path=None):
         super().__init__()
         self.kind = NodeKind.Document

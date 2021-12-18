@@ -13,8 +13,10 @@ from typing import (
     Any,
     Dict,
     Iterable,
+    KeysView,
     List,
     Optional,
+    ValuesView,
 )
 from .util import pairwise
 from . import signals
@@ -161,7 +163,7 @@ def _group_recursive(iterable, group_keys: List[str]):
     else:
         key_func = _create_metadata_accessor(current_key)
         iterable = sorted(iterable, key=key_func)
-        result = {}
+        result = dict()
         for k, v in itertools.groupby(iterable, key_func):
             values = _group_recursive(v, group_keys)
             result[k] = values
@@ -416,12 +418,12 @@ class Site:
         self.__nodes[node.path] = node
 
     @property
-    def nodes(self) -> Iterable[Node]:
+    def nodes(self) -> ValuesView[Node]:
         """The list of all nodes in this site."""
         return self.__nodes.values()
 
     @property
-    def urls(self) -> Iterable[pathlib.PurePosixPath]:
+    def urls(self) -> KeysView[pathlib.PurePosixPath]:
         """The list of all registered URLs."""
         return self.__nodes.keys()
 
@@ -540,7 +542,9 @@ class Site:
             if component == '':
                 return [node]
 
-            node = node.get_child(component)
-            if node is None:
+            if (next_child := node.get_child(component)) is None:
                 return []
+            else:
+                node = next_child
+
         return [node]

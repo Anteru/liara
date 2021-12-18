@@ -70,8 +70,8 @@ def validate_internal_links(links: Dict[str, List[pathlib.PurePosixPath]],
     For each link, check if it exists inside the provided site. If not, an
     error is printed indicating the link and the documents referencing it."""
 
-    for link, sources in links.items():
-        link = pathlib.PurePosixPath(link)
+    for link_str, sources in links.items():
+        link = pathlib.PurePosixPath(link_str)
 
         # Special case handling for index.html:
         # The redirection table contains full paths including the trailing

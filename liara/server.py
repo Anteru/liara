@@ -1,5 +1,10 @@
 from .nodes import (
-    NodeKind
+    DocumentNode,
+    GeneratedNode,
+    IndexNode,
+    NodeKind,
+    ResourceNode,
+    StaticNode
 )
 import pathlib
 from .site import Site
@@ -40,7 +45,7 @@ class HttpServer:
         are always rebuilt from scratch, and for documents, we also reload
         all templates."""
         from collections import namedtuple
-        result = namedtuple('BuildResult', ['path', 'cache'])
+        BuildResult = namedtuple('BuildResult', ['path', 'cache'])
         node = self.__site.get_node(path)
 
         if node is None:
@@ -49,10 +54,13 @@ class HttpServer:
 
         # We always regenerate the content
         if node.kind in {NodeKind.Document, NodeKind.Resource}:
+            assert isinstance(node, DocumentNode) \
+                   or isinstance(node, ResourceNode)
             node.reload()
             node.process(self.__cache)
             cache = False
         elif node.kind in {NodeKind.Generated}:
+            assert isinstance(node, GeneratedNode)
             node.generate()
             cache = False
         # We don't cache index nodes so templates get re-applied
@@ -64,7 +72,13 @@ class HttpServer:
         if node.kind == NodeKind.Document:
             self._reload_template_paths()
 
-        return result(node.publish(self.__publisher), cache)
+        assert isinstance(node, StaticNode) \
+               or isinstance(node, DocumentNode) \
+               or isinstance(node, GeneratedNode) \
+               or isinstance(node, IndexNode) \
+               or isinstance(node, ResourceNode)
+
+        return BuildResult(node.publish(self.__publisher), cache)
 
     def serve(self, site: Site, template_repository: TemplateRepository,
               configuration, cache: Cache):

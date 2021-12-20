@@ -8,6 +8,7 @@ Changelog
 * Non-fatal issues (i.e. those which don't stop the build) use the ``warning`` log level now instead of ``error``.
 * Update ``PyYAML`` dependency to `6.0 <https://github.com/yaml/pyyaml/blob/master/CHANGES>`_.
 * Update ``pymdown-extensions`` dependency to `9.0 <https://facelessuser.github.io/pymdown-extensions/about/releases/9.0/>`_.
+* Replace ``toml`` dependency with ``tomli`` which is TOML 1.0 compliant (``toml`` only supports TOML 0.5)
 * Add Python 3.10 as an officially supported version.
 
 2.3.2

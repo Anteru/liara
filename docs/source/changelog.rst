@@ -4,8 +4,8 @@ Changelog
 2.3.3
 -----
 
-* Improve error handling during publishing. A generated node that fails to produce content is now skipping and a warning is printed.
-* Non-fatal issues (i.e. those which don't stop the build) are using the ``warning`` log level instead of ``error`` now.
+* Improve error handling during publishing. A generated node that fails to produce content is now skipped and a warning is printed.
+* Non-fatal issues (i.e. those which don't stop the build) use the ``warning`` log level now instead of ``error``.
 * Update ``PyYAML`` dependency to `6.0 <https://github.com/yaml/pyyaml/blob/master/CHANGES>`_.
 * Update ``pymdown-extensions`` dependency to `9.0 <https://facelessuser.github.io/pymdown-extensions/about/releases/9.0/>`_.
 * Add Python 3.10 as an officially supported version.

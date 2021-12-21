@@ -529,7 +529,8 @@ class Site:
 
         The query string may contain ``*`` to list all direct children of a
         node, and ``**`` to recursively enumerate nodes. Partial matches
-        using ``*foo`` are not supported."""
+        using ``*foo`` are not supported. See :doc:`url-patterns` for details.
+        """
         parts = query.split('/')
         # A valid query must start with /
         assert parts[0] == ''

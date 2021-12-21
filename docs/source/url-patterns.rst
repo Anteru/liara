@@ -3,10 +3,10 @@ URL patterns
 
 .. _url-patterns:
 
-Liara uses a :py:class:`~liara.query.Query` in various places to match node paths. A query uses an "URL pattern", which, while looking similar to a file glob, matches the actual path structure instead of matching parts of the folder/file names. The syntax is as following:
+The :py:meth:`~liara.site.Site.select` method uses an "URL pattern" to match nodes by their path. URL patterns match the structure of a path instead of the individual components. They support two match patterns which work as following:
 
-* ``*`` matches anything but a subpath (i.e., ``/foo/*`` will match ``/foo/bar``, but not ``/foo/bar/baz``)
-* ``**`` matches anything recursively (i.e. ``/foo/**`` will match any path starting with ``/foo/``)
+* ``*`` matches a path leaf: ``/foo/*`` will match ``/foo/bar``, but not ``/foo/bar/baz``, as ``/foo/bar/baz`` is not directly below ``/foo/``
+* ``**`` matches anything recursively: ``/foo/**`` will match any path starting with ``/foo/``, for example ``/foo/bar/baz``
 
 Partial strings are not matched, i.e. ``/foo*`` or ``/f*o`` are invalid URL patterns. ``?`` is also not supported for URL patterns.
 

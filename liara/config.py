@@ -21,7 +21,8 @@ def create_default_configuration() -> Dict[str, Any]:
             'cache.redis.port': 6379,
             'cache.redis.db': 0,
             'cache.redis.expiration_time': 60,
-            'cache.type': 'fs'
+            'cache.type': 'fs',
+            'resource.sass.compiler': 'cli'
         },
         'ignore_files': ['*~'],
         'content': {

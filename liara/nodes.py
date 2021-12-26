@@ -1,4 +1,5 @@
 from enum import auto, Enum
+import logging
 import pathlib
 from .yaml import load_yaml
 import tomli
@@ -11,6 +12,7 @@ from typing import (
     Generic,
     Iterable,
     List,
+    Literal,
     Optional,
     Type,
     TypeVar,
@@ -531,10 +533,14 @@ class ResourceNode(Node):
         return publisher.publish_resource(self)
 
 
+_SASS_COMPILER = Literal['cli', 'libsass']
+
+
 class SassResourceNode(ResourceNode):
     """This resource node compiles ``.sass`` and ``.scss`` files to CSS
     when built.
     """
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self, src, path, metadata_path=None):
         super().__init__(src, path, metadata_path)
@@ -543,14 +549,27 @@ class SassResourceNode(ResourceNode):
                             " .sass file")
 
         self.path = self.path.with_suffix('.css')
+        self.__compiler: _SASS_COMPILER = 'libsass'
+
+    def set_compiler(self, compiler: _SASS_COMPILER):
+        self.__compiler = compiler
 
     def reload(self) -> None:
         self.content = None
 
     def process(self, cache: Cache):
-        import sass
-        if self.content is None:
-            self.content = sass.compile(filename=str(self.src)).encode('utf-8')
+        if self.__compiler == 'cli':
+            import subprocess
+            self.__log.debug(f'Processing "{self.src}" using "sass" binary')
+            if self.content is None:
+                self.content = subprocess.check_output(['sass', str(self.src)],
+                                                       shell=True)
+        elif self.__compiler == 'libsass':
+            import sass
+            self.__log.debug(f'Processing {self.src} using "libsass"')
+            if self.content is None:
+                self.content = sass.compile(
+                    filename=str(self.src)).encode('utf-8')
         return self
 
 
@@ -602,14 +621,32 @@ class NodeFactory(Generic[T]):
                     metadata_path: Optional[pathlib.Path] = None) -> T:
         """Create a node using the provided parameters."""
         cls = self.__known_types[suffix]
-        return self._create_node(cls, src, path, metadata_path)
+        node = self._create_node(cls, src, path, metadata_path)
+        return self._on_node_created(node)
+
+    def _on_node_created(self, node: T):
+        """Called after a node has been created.
+
+        This can be used to further configure the node from the factory
+        before returning it from the factory, for instance, to pass
+        configuration down into the node.
+
+        .. versionadded:: 2.3.4"""
+        return node
 
 
 class ResourceNodeFactory(NodeFactory[ResourceNode]):
     """A factory for resource nodes."""
-    def __init__(self):
+    def __init__(self, configuration):
         super().__init__()
         self.register_type(['.sass', '.scss'], SassResourceNode)
+
+        self.__sass_compiler = configuration['build.resource.sass.compiler']
+
+    def _on_node_created(self, node: T):
+        if isinstance(node, SassResourceNode):
+            node.set_compiler(self.__sass_compiler)
+        return node
 
 
 class DocumentNodeFactory(NodeFactory[DocumentNode]):
@@ -633,8 +670,7 @@ class DocumentNodeFactory(NodeFactory[DocumentNode]):
         self.register_type(['.md'], MarkdownDocumentNode)
         self.register_type(['.html'], HtmlDocumentNode)
 
-    def _create_node(self, cls, src, path, metadata_path=None):
-        node = cls(src, path, metadata_path)
+    def _on_node_created(self, node):
         node.set_fixups(
             load_fixups=self.__load_fixups,
             process_fixups=self.__process_fixups)

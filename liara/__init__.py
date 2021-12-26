@@ -32,7 +32,7 @@ from .cache import Cache, FilesystemCache, Sqlite3Cache, RedisCache
 from .util import FilesystemWalker, flatten_dictionary
 from .yaml import load_yaml
 
-__version__ = '2.3.3'
+__version__ = '2.3.4'
 __all__ = [
     'actions',
     'cache',
@@ -123,7 +123,9 @@ class Liara:
 
         Liara.setup_plugins()
 
-        self.__resource_node_factory = ResourceNodeFactory()
+        self.__resource_node_factory = ResourceNodeFactory(
+            self.__configuration
+        )
         self.__document_node_factory = DocumentNodeFactory(
             self.__configuration
         )

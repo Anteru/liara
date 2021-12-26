@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.3.4 (unreleased)
+------------------
+
+* Add a new configuration option to select the SASS compiler. From this version on, it defaults to the `sass` command-line binary which must be installed on the target system. See `the SASS website <https://sass-lang.com/install>`_ for details how to install it. Use `libsass` to use the deprecated legacy builder. A future version of Liara will remove the ability to use ``libsass``. See :doc:`configuration` for details.
+
 2.3.3
 -----
 

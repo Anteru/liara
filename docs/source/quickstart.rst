@@ -29,10 +29,6 @@ Installing Liara deploys the command-line runner ``liara``, which is your entry 
 
 This will deploy the required scaffolding for a super-simple blog, which we'll use throughout this guide.
 
-.. note::
-
-  The quickstart project uses SASS. You have to `install SASS manually <https://sass-lang.com/install>`_ to build the quickstart project.
-
 Build the site
 --------------
 
@@ -53,6 +49,6 @@ Exploring the quick-start template
 The quickstart produces a bunch of folders and files:
 
 * ``content`` holds the content, which for the quickstart sample consists of a few blog posts. See :doc:`content` for more details on how to structure the content.
-* ``templates`` holds the template files. The quickstart sample uses jinja2 for its templates. ``default.yaml`` in that folder contains the default routes for the templates. See :doc:`templates` for more information on how to use templates.
+* ``templates`` holds the template files. The quickstart sample uses `Jinja2 <https://jinja.palletsprojects.com>`_ for its templates, but you can select the template engine using the command line to use `Mako <https://www.makotemplates.org/>`_ instead. ``default.yaml`` in that folder contains the default routes for the templates. See :doc:`templates` for more information on how to use templates.
 * ``generators`` contains a sample generator to create new blog posts. See :doc:`generators` for more information.
 * A few :ref:`configuration files <configuration>`.

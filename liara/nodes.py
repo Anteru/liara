@@ -149,7 +149,7 @@ class Node:
             if recursive:
                 yield from child.get_children(recursive=True)
 
-    def process(self, cache: Cache) -> Optional['Node']:
+    def process(self, cache: Cache) -> None:
         """Some nodes -- resources, documents, etc. need to be processed. As
         this can be a resource-intense process (for instance, it may require
         generating images), processing can cache results and has to be
@@ -356,8 +356,6 @@ class HtmlDocumentNode(DocumentNode):
 
         self._apply_process_fixups()
 
-        return self
-
 
 class MarkdownDocumentNode(DocumentNode):
     """A node representing a Markdown document."""
@@ -395,7 +393,6 @@ class MarkdownDocumentNode(DocumentNode):
         self._apply_process_fixups()
 
         cache.put(content_hash, self.content)
-        return self
 
 
 class DataNode(Node):
@@ -572,26 +569,27 @@ class SassResourceNode(ResourceNode):
     def _compile_using_cli(self):
         import subprocess
         import sys
-        self.__log.debug(f'Processing "{self.src}" using "sass" binary')
-        if self.content is None:
-            result = subprocess.run(
-                ['sass', str(self.src)],
-                # On Windows, we need to set shell=True, otherwise, the
-                # sass binary installed using npm install -g sass won't
-                # be found.
-                shell=sys.platform == 'win32',
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL)
 
-            result.check_returncode()
-            self.content = result.stdout
+        self.__log.debug(f'Processing "{self.src}" using "sass" binary')
+
+        result = subprocess.run(
+            ['sass', str(self.src)],
+            # On Windows, we need to set shell=True, otherwise, the
+            # sass binary installed using npm install -g sass won't
+            # be found.
+            shell=sys.platform == 'win32',
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL)
+
+        result.check_returncode()
+        self.content = result.stdout
 
     def _compile_using_libsass(self):
         import sass
         self.__log.debug(f'Processing "{self.src}" using "libsass"')
-        if self.content is None:
-            self.content = sass.compile(
-                filename=str(self.src)).encode('utf-8')
+
+        self.content = sass.compile(
+            filename=str(self.src)).encode('utf-8')
 
 
 class NodeFactory(Generic[T]):
@@ -667,7 +665,7 @@ class ResourceNodeFactory(NodeFactory[ResourceNode]):
 
         self.__sass_compiler = configuration['build.resource.sass.compiler']
         if self.__sass_compiler == 'libsass':
-            self.__log.warn(
+            self.__log.info(
                 'Support for "libsass" as the compiler for SASS '
                 'files is deprecated and will be removed in a future release. '
                 'Please check the documentation how to use the SASS '

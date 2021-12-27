@@ -10,6 +10,7 @@ Changelog
     
     The option is set to ``libsass`` by default for now, but it is highly recommended to `install the command line compiler <https://sass-lang.com/install>`_ and use it. The option to use ``libsass`` will be removed in a future release.
 
+* Add support for caching to :py:class:`~liara.nodes.SassResourceNode`. This can significantly speed up building sites with large amounts of SASS files.
 * Change the default log formatting settings:
 
   * The default output no longer includes the source. The debug level will print the source. The source refers (typically) to the class producing the log message and results in noise for most normal use of Liara.

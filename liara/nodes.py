@@ -555,16 +555,26 @@ class SassResourceNode(ResourceNode):
         self.content = None
 
     def process(self, cache: Cache):
+        import hashlib
+        if self.content is not None:
+            return
+
+        assert self.src
+        hash_key = hashlib.sha256(self.src.open('rb').read()).digest()
+
+        if (value := cache.get(hash_key)) is not None:
+            self.content = value
+            return
+
         try:
             if self.__compiler == 'cli':
                 self._compile_using_cli()
             elif self.__compiler == 'libsass':
                 self._compile_using_libsass()
+            cache.put(hash_key, self.content)
         except Exception:
             self.__log.warn(f'Failed to compile SCSS file "{self.src}"',
                             exc_info=1)
-            return None
-        return self
 
     def _compile_using_cli(self):
         import subprocess

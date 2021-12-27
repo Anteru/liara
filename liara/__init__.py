@@ -161,6 +161,7 @@ class Liara:
                 continue
 
             self.__log.debug(f'Initializing plugin: {name}')
+            assert hasattr(module, 'register')
             module.register()
             self.__registered_plugins.add(name)
 
@@ -168,15 +169,17 @@ class Liara:
         # Deprecated since version 2.2
         cache_directory = self.__configuration.get('build.cache_directory')
         if cache_directory:
-            self.__log.warn("'build.cache_directory' is deprecated. Please "
-                            "use build.cache.<cache_type>.directory' instead.")
+            self.__log.warning(
+                "'build.cache_directory' is deprecated. Please "
+                "use build.cache.<cache_type>.directory' instead.")
             cache_directory = pathlib.Path(cache_directory)
 
         # Deprecated since version 2.2
         cache_type = self.__configuration.get('build.cache_type')
         if cache_type:
-            self.__log.warn("'build.cache_type' is deprecated. Please use "
-                            "'build.cache.type' instead.")
+            self.__log.warning(
+                "'build.cache_type' is deprecated. Please use "
+                "'build.cache.type' instead.")
 
         # Official value since 2.2
         if cache_type is None:
@@ -209,7 +212,7 @@ class Liara:
         elif cache_type == 'none':
             self.__log.debug('Not using any cache')
         else:
-            self.__log.warn('No cache backend configured')
+            self.__log.warning('No cache backend configured')
 
     def __setup_content_filters(self, filters: List[str]) -> None:
         content_filter_factory = ContentFilterFactory()
@@ -360,10 +363,10 @@ class Liara:
                             node = document_factory.create_node(src.suffix,
                                                                 src,
                                                                 path)
-                    except Exception:
+                    except Exception as e:
                         self.__log.warning(
                             f'Failed to load "{src}". Skipping file.',
-                            exc_info=True)
+                            exc_info=e)
                         continue
 
                     site.add_document(node)
@@ -461,7 +464,7 @@ class Liara:
                 feed = SitemapXmlFeedNode(path, site, **options)
                 site.add_generated(feed)
             else:
-                self.__log.warn(f'Unknown feed type: "{key}", ignored')
+                self.__log.warning(f'Unknown feed type: "{key}", ignored')
 
     def __discover_metadata(self, site: Site, metadata: pathlib.Path) -> None:
         if not metadata.exists():

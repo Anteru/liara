@@ -572,9 +572,9 @@ class SassResourceNode(ResourceNode):
             elif self.__compiler == 'libsass':
                 self._compile_using_libsass()
             cache.put(hash_key, self.content)
-        except Exception:
-            self.__log.warn(f'Failed to compile SCSS file "{self.src}"',
-                            exc_info=1)
+        except Exception as e:
+            self.__log.warning(f'Failed to compile SCSS file "{self.src}"',
+                               exc_info=e)
 
     def _compile_using_cli(self):
         import subprocess

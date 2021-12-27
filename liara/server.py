@@ -49,7 +49,7 @@ class HttpServer:
         node = self.__site.get_node(path)
 
         if node is None:
-            self.__log.warn(f'Could not find node for path: "{path}"')
+            self.__log.warning(f'Could not find node for path: "{path}"')
             return (None, None,)
 
         # We always regenerate the content

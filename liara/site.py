@@ -123,16 +123,18 @@ class Collection:
         """Get the next node in this collection with regard to the specified
         order, or ``None`` if this is the last node."""
         if not self.__order_by:
-            self.__log.warn('Using get_next() on an unordered collection has '
-                            'undefined results')
+            self.__log.warning(
+                'Using get_next() on an unordered collection has '
+                'undefined results')
         return self.__next.get(node.path)
 
     def get_previous(self, node):
         """Get the previous node in this collection with regard to the specified
         order, or ``None`` if this is the first node."""
         if not self.__order_by:
-            self.__log.warn('Using get_next() on an unordered collection has '
-                            'undefined results')
+            self.__log.warning(
+                'Using get_next() on an unordered collection has '
+                'undefined results')
         return self.__previous.get(node.path)
 
 

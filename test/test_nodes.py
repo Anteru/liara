@@ -53,7 +53,7 @@ content
     assert content == """
 content
 """
-    assert metadata is None
+    assert metadata == {}
 
 
 def test_extract_metadata_no_trailing_newline():

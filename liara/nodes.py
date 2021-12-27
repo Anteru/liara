@@ -190,7 +190,7 @@ def extract_metadata_content(text: str):
 
     # If the document doesn't end with a trailing new-line, the metadata regex
     # will get confused. We'll thus add a new-line to make sure this works
-    if text[-1] != '\n':
+    if text and text[-1] != '\n':
         text += '\n'
 
     for match in _metadata_marker.finditer(text):
@@ -221,7 +221,7 @@ def extract_metadata_content(text: str):
         metadata = tomli.loads(text[meta_start:meta_end])
     else:
         # We didn't find any metadata here, so everything must be content
-        return None, text
+        return {}, text
 
     content = text[content_start:content_end]
     return metadata, content

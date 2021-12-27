@@ -4,11 +4,17 @@ Changelog
 2.3.4 (unreleased)
 ------------------
 
-* Add a new configuration option to select the SASS compiler. See :doc:`configuration` for details.
+* Add a new configuration option to select the SASS compiler. See :ref:`configuration <sass-compiler-option>` for details. 
+  
+  .. note::
+    
+    The option is set to ``libsass`` by default for now, but it is highly recommended to `install the command line compiler <https://sass-lang.com/install>`_ and use it. The option to use ``libsass`` will be removed in a future release.
 
-  .. warning::
+* Change the default log formatting settings:
 
-    From 2.3.4 on, the default SASS compiler changed to the command line SASS compiler which must be `installed manually <https://sass-lang.com/install>`_. If you are using SASS files but can't install the command line compiler, you can configure the backend to use the deprecated, but built-in ``libsass`` based compiler. This option will be removed in a future Liara release.
+  * The default output no longer includes the source. The debug level will print the source. The source refers (typically) to the class producing the log message and results in noise for most normal use of Liara.
+  * The verbose output includes the message severity now. This makes it easier to spot warnings and errors in the verbose output.
+  * The debug output level contains both the source and the severity.
 
 2.3.3
 -----
@@ -29,20 +35,20 @@ Changelog
 2.3.1
 -----
 
-* Improve ambiguous template pattern resolution. See :doc:`templates` for more details.
-* Allow setting template backend options. See :doc:`templates` for more details. As part of this change, the Jinja2 backend now sets ``trim_blocks`` and ``lstrip_blocks`` by default to ``True``.
+* Improve ambiguous template pattern resolution. See :doc:`templates` for details.
+* Allow setting template backend options. See :doc:`templates` for details. As part of this change, the Jinja2 backend now sets ``trim_blocks`` and ``lstrip_blocks`` by default to ``True``.
 
 2.3.0
 -----
 
 * Add a ``--port`` option to ``liara serve`` to change the listen port.
-* Add an ``ignore_files`` option to ignore certain file patterns. This is particularly useful if an editor creates lock or backup files that should be ignored. See :doc:`configuration` for more details.
+* Add an ``ignore_files`` option to ignore certain file patterns. This is particularly useful if an editor creates lock or backup files that should be ignored. See :doc:`configuration` for details.
 * The file discovery process will ignore invalid index and resource files instead of failing with an exception. An error will be logged to help find the problematic files.
 * Fix ``liara list-content`` not showing the node type on ``_index`` nodes.
 * Handling of metadata has changed:
 
-  * Document metadata can be placed in a separate ``.meta`` file instead of being part of the document itself. See :doc:`content` for more details.
-  * Separate ``.meta`` files for metadata are no longer supported in the static and resource directory. This previously didn't work as expected -- resource files with ``.meta`` files associated had the ``.meta`` file processed (which would cause a failure), and static files had the ``.meta`` file added as a separate static file. From this release on, ``.meta`` files don't get any special treatment when placed in the static or resource directory trees. Static files inside the content directory continue to support metadata files. See :doc:`content` for more details.
+  * Document metadata can be placed in a separate ``.meta`` file instead of being part of the document itself. See :doc:`content` for details.
+  * Separate ``.meta`` files for metadata are no longer supported in the static and resource directory. This previously didn't work as expected -- resource files with ``.meta`` files associated had the ``.meta`` file processed (which would cause a failure), and static files had the ``.meta`` file added as a separate static file. From this release on, ``.meta`` files don't get any special treatment when placed in the static or resource directory trees. Static files inside the content directory continue to support metadata files. See :doc:`content` for details.
 
 2.2.1
 -----
@@ -50,14 +56,14 @@ Changelog
 * Mako is now installed by default, and the ``mako`` extra is gone. If you installed Liara using ``liara[mako]``, please switch to ``liara`` going forward.
 * :py:attr:`liara.template.Page.content` now returns an empty string for :py:class:`~liara.nodes.IndexNode` instances. Previously, it would raise an exception.
 * ``liara quickstart`` gained a new option, ``--template-backend``, which allows selecting between ``jinja2`` and ``mako`` templates.
-* The collection sort order can be reversed now. See :doc:`collections` for more details.
+* The collection sort order can be reversed now. See :doc:`collections` for details.
 
 2.2.0
 -----
 
 * Bump minimal required Python version to 3.8.
 * ``liara serve`` now uses the cache configuration specified by the user instead of always using a filesystem cache with fixed paths.
-* Add :py:class:`~liara.cache.RedisCache`, which uses `Redis <https://redis.io/>`_ as the storage backend. Using Redis in a shared environment allows multiple clients to benefit from the cache. Additionally, the Redis cache allows for cache entries to expire, so it won't accumulate garbage over time (i.e. draft posts which never get published, etc.) See :doc:`configuration` for more details on how to enable Redis. Redis also requires Liara to be installed with the ``[redis]`` option.
+* Add :py:class:`~liara.cache.RedisCache`, which uses `Redis <https://redis.io/>`_ as the storage backend. Using Redis in a shared environment allows multiple clients to benefit from the cache. Additionally, the Redis cache allows for cache entries to expire, so it won't accumulate garbage over time (i.e. draft posts which never get published, etc.) See :doc:`configuration` for details on how to enable Redis. Redis also requires Liara to be installed with the ``[redis]`` option.
 
 2.1.3
 -----

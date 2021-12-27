@@ -45,7 +45,7 @@ Build settings
 
   ``build.resource.sass.compiler``: The compiler to use for SASS files:
 
-  - ``cli`` uses the ``sass`` command, which must be available in the path. ``cli`` is the default since Liara 2.3.4.
+  - ``cli`` uses the ``sass`` command, which must be available in the path.
   - ``libsass`` uses ``libsass``, which is `deprecated <https://sass-lang.com/libsass>`_, but does not depend on external binaries.
 
   This option was added in Liara 2.3.4.

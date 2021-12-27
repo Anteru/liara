@@ -22,7 +22,7 @@ def create_default_configuration() -> Dict[str, Any]:
             'cache.redis.db': 0,
             'cache.redis.expiration_time': 60,
             'cache.type': 'fs',
-            'resource.sass.compiler': 'cli'
+            'resource.sass.compiler': 'libsass'
         },
         'ignore_files': ['*~'],
         'content': {

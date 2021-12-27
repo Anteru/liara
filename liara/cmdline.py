@@ -39,8 +39,9 @@ pass_environment = click.make_pass_decorator(Environment, ensure=True)
 @pass_environment
 def cli(env, debug, verbose, config, date):
     if debug:
-        logging.basicConfig(level=logging.DEBUG,
-                            format='%(asctime)s %(name)s %(message)s')
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s %(levelname)-7s %(name)s %(message)s')
         # Unfortunately PIL writes a lot of debug output, so we're disabling it
         # manually here to make debug output useful
         # This doesn't remove critical debug output -- PIL writes things like
@@ -50,11 +51,13 @@ def cli(env, debug, verbose, config, date):
         # were loaded and such, which is not important for debugging
         logging.getLogger('MARKDOWN').setLevel(logging.INFO)
     elif verbose:
-        logging.basicConfig(level=logging.INFO,
-                            format='%(asctime)s %(name)s %(message)s')
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s %(levelname)-7s %(message)s')
     else:
-        logging.basicConfig(level=logging.WARN,
-                            format='%(asctime)s %(name)s %(message)s')
+        logging.basicConfig(
+            level=logging.WARN,
+            format='%(asctime)s %(levelname)-7s %(message)s')
 
     if date:
         from .util import set_local_now

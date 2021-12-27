@@ -406,7 +406,8 @@ Welcome to the sample blog.""")
 
 __DEFAULT_CONFIG = {
     'collections': 'collections.yaml',
-    'indices': 'indices.yaml'
+    'indices': 'indices.yaml',
+    'build.resource.sass.compiler': 'cli'
 }
 
 __DEFAULT_COLLECTIONS = {

@@ -29,6 +29,10 @@ Installing Liara deploys the command-line runner ``liara``, which is your entry 
 
 This will deploy the required scaffolding for a super-simple blog, which we'll use throughout this guide.
 
+.. note::
+
+  The quickstart project uses SASS. You have to `install SASS manually <https://sass-lang.com/install>`_ to build the quickstart project.
+
 Build the site
 --------------
 

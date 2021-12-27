@@ -149,7 +149,7 @@ class Node:
             if recursive:
                 yield from child.get_children(recursive=True)
 
-    def process(self, cache: Cache) -> None:
+    def process(self, cache: Cache) -> Optional['Node']:
         """Some nodes -- resources, documents, etc. need to be processed. As
         this can be a resource-intense process (for instance, it may require
         generating images), processing can cache results and has to be
@@ -549,7 +549,7 @@ class SassResourceNode(ResourceNode):
                             " .sass file")
 
         self.path = self.path.with_suffix('.css')
-        self.__compiler: _SASS_COMPILER = 'libsass'
+        self.__compiler: _SASS_COMPILER = 'cli'
 
     def set_compiler(self, compiler: _SASS_COMPILER):
         self.__compiler = compiler
@@ -558,10 +558,15 @@ class SassResourceNode(ResourceNode):
         self.content = None
 
     def process(self, cache: Cache):
-        if self.__compiler == 'cli':
-            self._compile_using_cli()
-        elif self.__compiler == 'libsass':
-            self._compile_using_libsass()
+        try:
+            if self.__compiler == 'cli':
+                self._compile_using_cli()
+            elif self.__compiler == 'libsass':
+                self._compile_using_libsass()
+        except Exception:
+            self.__log.warn(f'Failed to compile SCSS file "{self.src}"',
+                            exc_info=1)
+            return None
         return self
 
     def _compile_using_cli(self):
@@ -653,11 +658,20 @@ class NodeFactory(Generic[T]):
 
 class ResourceNodeFactory(NodeFactory[ResourceNode]):
     """A factory for resource nodes."""
+
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
+
     def __init__(self, configuration):
         super().__init__()
         self.register_type(['.sass', '.scss'], SassResourceNode)
 
         self.__sass_compiler = configuration['build.resource.sass.compiler']
+        if self.__sass_compiler == 'libsass':
+            self.__log.warn(
+                'Support for "libsass" as the compiler for SASS '
+                'files is deprecated and will be removed in a future release. '
+                'Please check the documentation how to use the SASS '
+                'command line compiler.')
 
     def _on_node_created(self, node: T):
         if isinstance(node, SassResourceNode):

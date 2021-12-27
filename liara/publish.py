@@ -47,6 +47,10 @@ class DefaultPublisher(Publisher):
         assert resource is not None
         file_path = pathlib.Path(str(self._output_path) + str(resource.path))
         os.makedirs(file_path.parent, exist_ok=True)
+        if resource.content is None:
+            self.__log.warning(
+                f'Resource node "{resource.path}" has no content, skipping')
+            return
         file_path.write_bytes(resource.content)
         return file_path
 
@@ -54,7 +58,7 @@ class DefaultPublisher(Publisher):
         import os
         if generated.content is None:
             self.__log.warning(
-                f'Generated node {generated.path} has no content, skipping')
+                f'Generated node "{generated.path}" has no content, skipping')
             return
         file_path = pathlib.Path(str(self._output_path) + str(generated.path))
         os.makedirs(file_path.parent, exist_ok=True)

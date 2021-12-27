@@ -23,7 +23,7 @@ Directory settings
 ------------------
 
 * ``content_directory``: The root directory for all content. Output paths will be build relative to this folder. See :doc:`content` for more details.
-* ``resource_directory``: The folder containing resources, i.e. ``SASS`` or other files that need to get processed before they can be written to the output.
+* ``resource_directory``: The folder containing resources, i.e. ``SASS`` or other files that need to get processed before they can be written to the output. See :doc:`resources` for more details.
 * ``static_directory``: The folder containing static files, for instance downloads, images, videos etc.
 * ``output_directory``: The output directory.
 * ``generator_directory``: The folder containing :any:`generators`.
@@ -41,7 +41,9 @@ Build settings
   - ``redis`` uses Redis as the backend.
   - ``none`` disables caching
 
-* ``build.resource.sass.compiler``: The compiler to use for SASS files:
+* .. _`sass-compiler-option`:
+
+  ``build.resource.sass.compiler``: The compiler to use for SASS files:
 
   - ``cli`` uses the ``sass`` command, which must be available in the path. ``cli`` is the default since Liara 2.3.4.
   - ``libsass`` uses ``libsass``, which is `deprecated <https://sass-lang.com/libsass>`_, but does not depend on external binaries.

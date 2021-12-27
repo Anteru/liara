@@ -39,7 +39,7 @@ This would process any page using the ``default.jinja`` template.
 Template definitions also support the following fields:
 
 * ``static_directory`` specifies static files which will be deployed to the output. This can be used for images etc.
-* ``resource_directory`` specifies resource files to be deployed, for instance ``SASS`` files.
+* ``resource_directory`` specifies resource files to be deployed, for instance ``SASS`` files. See :doc:`resources` for more details.
 * ``image_thumbnail_sizes`` is a dictionary which provides suffixes and the sizes to which images get resized. For instance, assume the following configuration:
 
   .. code:: yaml

@@ -22,6 +22,7 @@ Welcome to Liara's documentation!
    metadata
    plugins
    processing
+   resources
    static-routes
    templates
    url-patterns

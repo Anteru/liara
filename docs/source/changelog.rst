@@ -4,7 +4,11 @@ Changelog
 2.3.4 (unreleased)
 ------------------
 
-* Add a new configuration option to select the SASS compiler. From this version on, it defaults to the `sass` command-line binary which must be installed on the target system. See `the SASS website <https://sass-lang.com/install>`_ for details how to install it. Use `libsass` to use the deprecated legacy builder. A future version of Liara will remove the ability to use ``libsass``. See :doc:`configuration` for details.
+* Add a new configuration option to select the SASS compiler. See :doc:`configuration` for details.
+
+  .. warning::
+
+    From 2.3.4 on, the default SASS compiler changed to the command line SASS compiler which must be `installed manually <https://sass-lang.com/install>`_. If you are using SASS files but can't install the command line compiler, you can configure the backend to use the deprecated, but built-in ``libsass`` based compiler. This option will be removed in a future Liara release.
 
 2.3.3
 -----

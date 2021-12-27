@@ -559,23 +559,34 @@ class SassResourceNode(ResourceNode):
 
     def process(self, cache: Cache):
         if self.__compiler == 'cli':
-            import subprocess
-            import sys
-            self.__log.debug(f'Processing "{self.src}" using "sass" binary')
-            if self.content is None:
-                self.content = subprocess.check_output(
-                    ['sass', str(self.src)],
-                    # On Windows, we need to set shell=True, otherwise, the
-                    # sass binary installed using npm install -g sass won't
-                    # be found.
-                    shell=sys.platform == 'win32')
+            self._compile_using_cli()
         elif self.__compiler == 'libsass':
-            import sass
-            self.__log.debug(f'Processing {self.src} using "libsass"')
-            if self.content is None:
-                self.content = sass.compile(
-                    filename=str(self.src)).encode('utf-8')
+            self._compile_using_libsass()
         return self
+
+    def _compile_using_cli(self):
+        import subprocess
+        import sys
+        self.__log.debug(f'Processing "{self.src}" using "sass" binary')
+        if self.content is None:
+            result = subprocess.run(
+                ['sass', str(self.src)],
+                # On Windows, we need to set shell=True, otherwise, the
+                # sass binary installed using npm install -g sass won't
+                # be found.
+                shell=sys.platform == 'win32',
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL)
+
+            result.check_returncode()
+            self.content = result.stdout
+
+    def _compile_using_libsass(self):
+        import sass
+        self.__log.debug(f'Processing "{self.src}" using "libsass"')
+        if self.content is None:
+            self.content = sass.compile(
+                filename=str(self.src)).encode('utf-8')
 
 
 class NodeFactory(Generic[T]):

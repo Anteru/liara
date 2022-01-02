@@ -1,8 +1,8 @@
 Changelog
 =========
 
-2.3.4 (unreleased)
-------------------
+2.3.4
+-----
 
 * Add a new configuration option to select the SASS compiler. See :ref:`configuration <sass-compiler-option>` for details. 
   

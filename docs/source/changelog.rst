@@ -13,7 +13,7 @@ Changelog
 * Add support for caching to :py:class:`~liara.nodes.SassResourceNode`. This can significantly speed up building sites with large amounts of SASS files.
 * Change the default log formatting settings:
 
-  * The default output no longer includes the source. The debug level will print the source. The source refers (typically) to the class producing the log message and results in noise for most normal use of Liara.
+  * The default output no longer includes the source. The source refers (typically) to the class producing the log message and results in noise for most normal use of Liara.
   * The verbose output includes the message severity now. This makes it easier to spot warnings and errors in the verbose output.
   * The debug output level contains both the source and the severity.
 

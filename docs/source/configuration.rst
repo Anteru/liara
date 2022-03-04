@@ -3,7 +3,7 @@ Configuration
 
 .. _configuration:
 
-Liara is driven through configuration files. The main file is ``config.yaml``, which can reference other configuration files. To get the full default configuration, use ``liara create-config``. Configuration options with a ``.`` can be either specified as nested dictionaries or in a flat list. For example, the following two configurations are equivalent:
+Liara is driven through configuration files. The main file is ``config.yaml``, which can reference other configuration files. To get the full default configuration, use ``liara create-config``. Nested configuration options can be either provided by actually nesting them in the ``YAML`` file, or by ```.`` as the separator. For example, the following two configurations are equivalent:
 
 .. code-block:: yaml
 

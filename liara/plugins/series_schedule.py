@@ -32,9 +32,9 @@ def _register_cli(cli):
             date_format = '%x' if day_only else '%x %X'
             date = document.metadata['date']
             if date in known_dates:
-                print ('* ', end='')
+                print('* ', end='')
             known_dates.add(date)
             print(document.metadata['date'].strftime(date_format),
-                document.metadata['title'])
+                  document.metadata['title'])
 
         sys.exit(0)

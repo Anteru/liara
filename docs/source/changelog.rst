@@ -4,11 +4,12 @@ Changelog
 2.3.5 (unreleased)
 ------------------
 
-* Improve ``liara validate-links`` command:
+* Improve the ``liara validate-links`` command:
 
   * Check internal links by default. Previously, if run without ``-t``, no links were checked.
   * Return a non-zero exit code if broken links are found
   * Add more debug output
+  * Fix an issue which prevented timeouts from being reported correctly. 
 
 2.3.4
 -----

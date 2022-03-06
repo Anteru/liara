@@ -105,7 +105,12 @@ def build(env, profile, profile_file):
               default='internal')
 @pass_environment
 def validate_links(env, link_type):
-    """Validate links."""
+    """Validate links.
+
+    Checks all internal/external links for validity. For internal links,
+    a check is performed if the link target exists. For external links,
+    a web request is made to the link target. If the request returns an
+    error code, the link is considered invalid."""
     from .cache import MemoryCache
     from .actions import (
         validate_internal_links,

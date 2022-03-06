@@ -65,13 +65,15 @@ def gather_links(documents: Iterable[DocumentNode], link_type: LinkType) \
 
 
 def validate_internal_links(links: Dict[str, List[pathlib.PurePosixPath]],
-                            site: Site):
+                            site: Site) -> int:
     """Validate internal links.
 
     For each link, check if it exists inside the provided site. If not, an
     error is printed indicating the link and the documents referencing it."""
 
-    log = logging.getLogger('LinkValidator')
+    log = logging.getLogger('liara.cmdline.LinkValidator')
+
+    error_count = 0
 
     for link_str, sources in links.items():
         link = pathlib.PurePosixPath(link_str)
@@ -87,6 +89,9 @@ def validate_internal_links(links: Dict[str, List[pathlib.PurePosixPath]],
         if link not in site.urls:
             for source in sources:
                 log.error(f'"{link}" referenced in "{source}" does not exist')
+                error_count += 1
+
+    return error_count
 
 
 def _check_external_link(url: str):
@@ -124,7 +129,7 @@ def _check_external_link(url: str):
         return None
 
 
-def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]):
+def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]) -> int:
     """Validate external links.
 
     This issues a request for each link, and checks if it connects correctly.
@@ -132,7 +137,8 @@ def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]):
     referencing it."""
     import multiprocessing
 
-    log = logging.getLogger('LinkValidator')
+    log = logging.getLogger('liara.cmdline.LinkValidator')
+    error_count = 0
 
     try:
         with multiprocessing.Pool() as pool:
@@ -148,5 +154,8 @@ def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]):
                         log.error(
                             f'Link "{r[1]}", referenced in "{source}" '
                             f'failed with: {r[2]}')
+                        error_count += 1
     except (KeyboardInterrupt, SystemExit):
-        return
+        return 0
+
+    return error_count

@@ -18,6 +18,7 @@ class Environment:
         self.debug = False
         self.config = None
         self.__liara = None
+        self.log = logging.getLogger('liara.cmdline')
 
     @property
     def liara(self):
@@ -33,7 +34,7 @@ pass_environment = click.make_pass_decorator(Environment, ensure=True)
 @click.option('--debug/--no-debug', default=False, help='Enable debug output.')
 @click.option('--verbose', is_flag=True, help='Enable verbose output.')
 @click.option('--config', default='config.yaml', type=click.Path(),
-    help='Set the path to the configuration file.')
+              help='Set the path to the configuration file.')
 @click.option('--date', default=None, help='Override the current date.')
 @click.version_option()
 @pass_environment
@@ -100,7 +101,8 @@ def build(env, profile, profile_file):
 
 @cli.command()
 @click.option('--type', '-t', 'link_type',
-              type=click.Choice(['internal', 'external']))
+              type=click.Choice(['internal', 'external']),
+              default='internal')
 @pass_environment
 def validate_links(env, link_type):
     """Validate links."""
@@ -115,20 +117,34 @@ def validate_links(env, link_type):
     site = liara.discover_content()
     cache = MemoryCache()
 
+    env.log.debug('Processing site ...')
+
     for document in site.documents:
         document.process(cache)
 
+    env.log.debug('done')
+
     if link_type == 'internal':
         link_type = LinkType.Internal
+        env.log.debug('Checking internal links')
     elif link_type == 'external':
         link_type = LinkType.External
+        env.log.debug('Checking external links')
 
     links = gather_links(site.documents, link_type)
+    env.log.debug(f'Found {len(links)} {link_type.name.lower()} links')
+
+    error_count = 0
 
     if link_type == LinkType.Internal:
-        validate_internal_links(links, site)
+        error_count = validate_internal_links(links, site)
     elif link_type == LinkType.External:
-        validate_external_links(links)
+        error_count = validate_external_links(links)
+
+    if error_count > 0:
+        env.log.error(f'Found {error_count} broken links')
+
+        return 1
 
 
 @cli.command()

@@ -4,6 +4,7 @@ import pathlib
 from typing import Dict, Iterable, List
 from enum import Enum, auto
 from collections import defaultdict
+import logging
 
 
 def _extract_links(document: DocumentNode):
@@ -70,6 +71,8 @@ def validate_internal_links(links: Dict[str, List[pathlib.PurePosixPath]],
     For each link, check if it exists inside the provided site. If not, an
     error is printed indicating the link and the documents referencing it."""
 
+    log = logging.getLogger('LinkValidator')
+
     for link_str, sources in links.items():
         link = pathlib.PurePosixPath(link_str)
 
@@ -83,7 +86,7 @@ def validate_internal_links(links: Dict[str, List[pathlib.PurePosixPath]],
 
         if link not in site.urls:
             for source in sources:
-                print(f'"{link}" referenced in "{source}" does not exist')
+                log.error(f'"{link}" referenced in "{source}" does not exist')
 
 
 def _check_external_link(url: str):
@@ -102,10 +105,10 @@ def _check_external_link(url: str):
                 ok = True
             else:
                 error = f'got {r.status_code}, expected 200'
-        except requests.exceptions.ConnectionError:
-            error = "connection error"
         except requests.exceptions.ConnectTimeout:
             error = "connection timeout"
+        except requests.exceptions.ConnectionError:
+            error = "connection error"
         except requests.exceptions.ReadTimeout:
             error = "read timeout"
         except requests.exceptions.TooManyRedirects:
@@ -129,6 +132,8 @@ def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]):
     referencing it."""
     import multiprocessing
 
+    log = logging.getLogger('LinkValidator')
+
     try:
         with multiprocessing.Pool() as pool:
             result = pool.imap_unordered(_check_external_link, links.keys())
@@ -140,7 +145,8 @@ def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]):
 
                 if not r[0]:
                     for source in links[r[1]]:
-                        print(f'Link "{r[1]}", referenced in "{source}" '
-                              f'failed with: {r[2]}')
+                        log.error(
+                            f'Link "{r[1]}", referenced in "{source}" '
+                            f'failed with: {r[2]}')
     except (KeyboardInterrupt, SystemExit):
         return

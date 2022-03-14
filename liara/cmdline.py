@@ -293,11 +293,13 @@ def list_content(env, format, content_type):
               help='Open a browser window automatically')
 @click.option('--port', '-p', default=8080,
               help='The port to use for the local server')
+@click.option('--cache/--no-cache', default=False,
+              help='Enable or disable the configured cache')
 @pass_environment
-def serve(env, browser, port):
+def serve(env, browser, port, cache):
     """Run a local development server."""
     liara = env.liara
-    liara.serve(open_browser=browser, port=port)
+    liara.serve(open_browser=browser, port=port, cache=cache)
 
 
 if __name__ == '__main__':

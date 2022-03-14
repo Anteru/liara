@@ -5,10 +5,13 @@ from typing import Dict, Optional
 import os
 import sqlite3
 from datetime import timedelta
+import abc
 
 
-class Cache:
-    """A key-value cache."""
+class Cache(abc.ABC):
+    """Interface for key-value caches.
+    """
+    @abc.abstractmethod
     def put(self, key: bytes, value: object) -> bool:
         """Put a value into the cache using the provided key.
 
@@ -17,15 +20,14 @@ class Cache:
         :return: ``True`` if the value was added to the cache, ``False`` if
                  it was already cached.
         """
-        return True
 
+    @abc.abstractmethod
     def get(self, key: bytes) -> Optional[object]:
         """Get a stored object.
 
         :param key: The object key.
         :return: An object if one exists. Otherwise, return ``None``.
         """
-        return None
 
     def persist(self) -> None:
         """Persists this cache to disk/persistent storage.
@@ -199,3 +201,19 @@ class RedisCache(Cache):
 
         # This is safe -- if the key has expired, we'll return None here
         return value
+
+
+class NullCache(Cache):
+    """The null cache drops all requests and does not cache any data.
+
+    This is mostly useful to disable caching in APIs which require a cache
+    instance.
+
+    Currently, this simply passes through to the implementation of
+    :py:class:`Cache`, but it's a separate class to improve readability.
+    """    
+    def put(self, key: bytes, value: object) -> bool:
+        return True
+
+    def get(self, key: bytes) -> Optional[object]:
+        return None

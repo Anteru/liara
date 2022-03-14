@@ -28,7 +28,7 @@ from .nodes import (
     ResourceNodeFactory,
 )
 
-from .cache import Cache, FilesystemCache, Sqlite3Cache, RedisCache
+from .cache import Cache, FilesystemCache, NullCache, Sqlite3Cache, RedisCache
 from .util import FilesystemWalker, flatten_dictionary
 from .yaml import load_yaml
 
@@ -612,7 +612,7 @@ class Liara:
         self.__log.info(f'Build finished ({end_time - start_time:.2f} sec)')
         self.__cache.persist()
 
-    def serve(self, *, open_browser=True, port=8080):
+    def serve(self, *, open_browser=True, port=8080, cache=True):
         """Serve the current site using a local webserver."""
         from .server import HttpServer
         if self.__configuration['build.clean_output']:
@@ -627,7 +627,7 @@ class Liara:
             document.validate_metadata()
 
         server.serve(site, self.__template_repository, self.__configuration,
-                     self.__cache)
+                     self.__cache if cache else NullCache())
 
     def create_document(self, t):
         """Create a new document using a generator."""

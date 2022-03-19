@@ -208,10 +208,7 @@ class NullCache(Cache):
 
     This is mostly useful to disable caching in APIs which require a cache
     instance.
-
-    Currently, this simply passes through to the implementation of
-    :py:class:`Cache`, but it's a separate class to improve readability.
-    """    
+    """
     def put(self, key: bytes, value: object) -> bool:
         return True
 

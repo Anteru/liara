@@ -156,7 +156,7 @@ class MemoryCache(Cache):
         if key in self.__index:
             return False
 
-        self.__index[key] = object
+        self.__index[key] = value
         return True
 
     def get(self, key: bytes) -> Optional[object]:

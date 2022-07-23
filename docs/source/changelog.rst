@@ -1,10 +1,11 @@
 Changelog
 =========
 
-2.3.5 (unreleased)
-------------------
+2.3.5
+-----
 
-* Add ``--no-cache`` option to ``liara serve``.
+* Add ``--no-cache`` option to ``liara serve`` and ``liara build`` (off by
+  default.)
   
   In some cases, it may be necessary to disable the cache to ensure up-to-date output during development. For instance ``SASS`` files can have includes which are not tracked by ``liara`` and fail to trigger a rebuild. With ``--no-cache`` each file is rebuilt on each request. This can be very slow and is thus only recommended during template/style development.
 

@@ -87,13 +87,15 @@ def _create_liara(config):
 @click.option('--profile/--no-profile')
 @click.option('--profile-file', type=click.Path(writable=True),
               default='build.prof')
+@click.option('--cache/--no-cache', default=True,
+              help='Enable or disable the configured cache')
 @pass_environment
-def build(env, profile, profile_file):
+def build(env, profile, profile_file, cache):
     """Build a site."""
     if profile:
         pr = cProfile.Profile()
         pr.enable()
-    env.liara.build()
+    env.liara.build(disable_cache=not cache)
     if profile:
         pr.disable()
         pr.dump_stats(profile_file)
@@ -293,13 +295,13 @@ def list_content(env, format, content_type):
               help='Open a browser window automatically')
 @click.option('--port', '-p', default=8080,
               help='The port to use for the local server')
-@click.option('--cache/--no-cache', default=False,
+@click.option('--cache/--no-cache', default=True,
               help='Enable or disable the configured cache')
 @pass_environment
 def serve(env, browser, port, cache):
     """Run a local development server."""
     liara = env.liara
-    liara.serve(open_browser=browser, port=port, cache=cache)
+    liara.serve(open_browser=browser, port=port, disable_cache=not cache)
 
 
 if __name__ == '__main__':

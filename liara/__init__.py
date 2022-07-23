@@ -538,7 +538,7 @@ class Liara:
             shutil.rmtree(output_directory)
         self.__log.info('Output directory cleaned')
 
-    def build(self, discover_content=True):
+    def build(self, discover_content=True, *, disable_cache=False):
         """Build the site.
 
         :param bool discover_content: If `True`, :py:meth:`discover_content`
@@ -559,14 +559,16 @@ class Liara:
             document.validate_metadata()
 
         self.__log.info('Processing documents ...')
+        cache = self.__cache if not disable_cache else NullCache()
+        self.__log.debug(f'Using {cache.__class__.__name__} for caching')
         for document in site.documents:
-            document.process(self.__cache)
+            document.process(cache)
         self.__log.info(f'Processed {len(site.documents)} documents')
         signals.documents_processed.send(self, site=self.__site)
 
         self.__log.info('Processing resources ...')
         for resource in site.resources:
-            resource.process(self.__cache)
+            resource.process(cache)
         self.__log.info(f'Processed {len(site.resources)} resources')
 
         output_path = pathlib.Path(self.__configuration['output_directory'])
@@ -612,7 +614,7 @@ class Liara:
         self.__log.info(f'Build finished ({end_time - start_time:.2f} sec)')
         self.__cache.persist()
 
-    def serve(self, *, open_browser=True, port=8080, cache=True):
+    def serve(self, *, open_browser=True, port=8080, disable_cache=True):
         """Serve the current site using a local webserver."""
         from .server import HttpServer
         if self.__configuration['build.clean_output']:
@@ -627,7 +629,7 @@ class Liara:
             document.validate_metadata()
 
         server.serve(site, self.__template_repository, self.__configuration,
-                     self.__cache if cache else NullCache())
+                     self.__cache if not disable_cache else NullCache())
 
     def create_document(self, t):
         """Create a new document using a generator."""

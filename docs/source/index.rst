@@ -11,7 +11,14 @@ Welcome to Liara's documentation!
    :caption: Contents:
 
    quickstart
+
+.. toctree::
+   :maxdepth: 1
+
    changelog
+
+.. toctree::
+   :maxdepth: 2
 
    collections
    configuration

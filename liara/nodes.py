@@ -21,6 +21,10 @@ from typing import (
 import re
 import dateparser
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .query import Query
+
 
 T = TypeVar('T')
 
@@ -122,7 +126,7 @@ class Node:
     def __repr__(self):
         return f'{self.__class__.__name__}({self.path})'
 
-    def select_children(self):
+    def select_children(self) -> 'Query':
         """Select all children of this node and return them as a
         :py:class:`~liara.query.Query`."""
         from .query import Query

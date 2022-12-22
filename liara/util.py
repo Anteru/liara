@@ -39,7 +39,7 @@ def readtime(wordcount: int, words_per_minute=300):
 
 
 def flatten_dictionary(d, sep='.', parent_key=None,
-                       *, ignore_keys: set = None):
+                       *, ignore_keys: Optional[set] = None):
     """Flatten a nested dictionary. This uses the separator to combine keys
     together, so a dictionary access like ``['a']['b']`` with a separator
     ``'.'`` turns into ``'a.b'``.

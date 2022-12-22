@@ -1,5 +1,5 @@
 from liara.cache import MemoryCache
-import pytest
+
 
 def test_put_retrieve_memory_cache():
     c = MemoryCache()

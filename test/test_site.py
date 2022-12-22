@@ -1,5 +1,6 @@
 from liara import site, nodes
 from collections import namedtuple
+import pathlib
 
 item = namedtuple('item', ['metadata', 'name'])
 
@@ -53,11 +54,9 @@ def test_group_splat():
 
 class MockDocumentNode(nodes.DocumentNode):
     def __init__(self, path, metadata):
-        nodes.Node.__init__(self)
+        super().__init__(path, pathlib.PurePosixPath(path))
 
-        self.kind = nodes.NodeKind.Document
         self.metadata = metadata
-        self.path = path
 
 
 def test_content_filters():
@@ -74,7 +73,7 @@ def test_content_filters():
     s.add_document(prvn)
 
     assert len(s.nodes) == 1
-    assert '/public' in s.urls
+    assert pathlib.PurePosixPath('/public') in s.urls
 
 
 class MockObject:

@@ -56,11 +56,13 @@ Template definitions also support the following fields:
 Authoring Templates
 -------------------
 
-Templates get applied to :py:class:`~liara.nodes.DocumentNode` and :py:class:`~liara.nodes.IndexNode` instances only. Inside a template, a few global variables are pre-populated to provide access to the site and page content. Note that the content of other nodes *cannot* be referenced inside a template (as the order in which they get executed is unspecified), however, metadata of other nodes *is* available and can be used.
+Templates get applied to :py:class:`~liara.nodes.DocumentNode` and :py:class:`~liara.nodes.IndexNode` instances only (which are referred to as "pages" in the context of a template.) Inside a template, a few global variables are pre-populated to provide access to the site and page content. Note that the content of other nodes *cannot* be referenced inside a template (as the order in which they get executed is unspecified), however, metadata of other nodes *is* available and can be used.
 
 - ``page`` references the current node, in form of a :py:class:`~liara.template.Page` instance.
 - ``node`` provides access to the current node directly, which will point to a  :py:class:`~liara.nodes.Node` instance.
 - ``site`` provides access to the site in form of the :py:class:`~liara.template.SiteTemplateProxy` object.
+
+In most cases, templates should only use the ``page`` reference as it's rarely useful to directly access the underlying node instances. One use case for accessing the nodes is for example to create a listing of all images in a folder, as images are instances of :py:class:`~liara.nodes.StaticNode`.
 
 Path patterns
 -------------

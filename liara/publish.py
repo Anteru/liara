@@ -20,12 +20,16 @@ def _publish_with_template(output_path: pathlib.Path,
                            site: Site,
                            site_template_proxy: SiteTemplateProxy,
                            template_repository) -> pathlib.Path:
+    log = logging.getLogger('liara.TemplatePublisher')
+
     page = Page(node)
     file_path = pathlib.Path(str(output_path) + str(node.path))
     file_path.mkdir(parents=True, exist_ok=True)
     file_path = file_path / 'index.html'
 
     template = template_repository.find_template(node.path, site)
+    log.debug('Publishing %s "%s" to "%s" using template "%s"',
+              node.kind.name.lower(), node.path, file_path, template.path)
     file_path.write_text(template.render(
         site=site_template_proxy,
         page=page,

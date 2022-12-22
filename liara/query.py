@@ -55,6 +55,34 @@ class ExcludeFilter(SelectionFilter):
         return self.__pattern.search(path) is None
 
 
+class NodeKindFilter(SelectionFilter):
+    """Filter items based on the node kind. Use exclude to invert.
+
+    .. versionadded:: 2.3.6"""
+    def __init__(self, kinds, *, exclude=False):
+        kind_map = {
+            'document': NodeKind.Document,
+            'index': NodeKind.Index,
+            'static': NodeKind.Static,
+            'generated': NodeKind.Generated,
+            'resource': NodeKind.Resource,
+            'data': NodeKind.Data,
+
+            # Additional shortcuts to match template patterns, see
+            # template._match_url
+            'doc': NodeKind.Document,
+            'idx': NodeKind.Index,
+        }
+
+        self.__kinds = {kind_map[kind] for kind in kinds}
+        self.__exclude = exclude
+
+    def match(self, node: Node) -> bool:
+        if self.__exclude:
+            return node.kind not in self.__kinds
+        return node.kind in self.__kinds
+
+
 class Sorter:
     """Base class for query sorters."""
     def __init__(self, reverse=False):
@@ -79,6 +107,15 @@ class MetadataSorter(Sorter):
 
     def get_key(self, item: Page):
         key = item.metadata.get(self.__item)
+        # We check if the key is None here, as we can't sort None with anything
+        # nor does it make much sense (i.e., if you sort by title, and an
+        # item has no title, that's probably because it was incorrectly
+        # included, not because someone wanted items without a title
+        # first/last)
+        if key is None:
+            raise RuntimeError(f'Cannot sort node "{item.path}" by key '
+                               f'"{self.__item}" as the node is missing that '
+                               'key from its metadata.')
         if isinstance(key, str) and self.__case_sensitive is False:
             return key.lower()
         return key
@@ -134,6 +171,20 @@ class Query(Iterable[Union[Node, Page]]):
         """Exclude nodes matching the provided regex pattern. The pattern will
         be applied to the full path."""
         self.__filters.append(ExcludeFilter(pattern))
+        return self
+
+    def without_node_kinds(self, *args) -> 'Query':
+        """Excludes nodes of a specific type. Multiple kinds can be passed in.
+
+        .. versionadded:: 2.3.6"""
+        self.__filters.append(NodeKindFilter(args, exclude=True))
+        return self
+
+    def with_node_kinds(self, *args) -> 'Query':
+        """Includes nodes of a specific type. Multiple kinds can be passed in.
+
+        .. versionadded:: 2.3.6"""
+        self.__filters.append(NodeKindFilter(args, exclude=False))
         return self
 
     def sorted_by_title(self, *, reverse=False) -> 'Query':

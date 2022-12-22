@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2.3.6 (unreleased)
+------------------
+
+* Add :py:meth:`Query.with_node_kinds <liara.query.Query.with_node_kinds>` and :py:meth:`Query.without_node_kinds <liara.query.Query.without_node_kinds>` to :py:class:`~liara.query.Query`. This allows lists of nodes (as returned by :py:meth:`~liara.template.SiteTemplateProxy.select` and other functions) to be filtered by node kind. This is useful if you want to mix static content and documents in the same folder.
+* Add :py:meth:`SiteTemplateProxy.select_pages <liara.template.SiteTemplateProxy.select_pages>` and :py:attr:`Page.children <liara.template.Page.children>` to select pages (i.e. document and index nodes) only without having to manually filter the result using ``with_node_kinds``/``without_node_kinds``.
+* Improve the debug output during publishing. The template publisher will now print which document is published using which template. As part of this change, :py:attr:`Template.path <liara.template.Template.path>` was added.
+* Improve error handling when trying to sort nodes which are missing the corresponding metadata key, for example, using :py:meth:`~liara.query.Query.sorted_by_title`. Previously, this would raise an exception about a failed comparison involving ``None``, now this raises a more useful exception which contains the path to the item missing the metadata key and which key was requested.
+
 2.3.5
 -----
 

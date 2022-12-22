@@ -31,14 +31,12 @@ def _match_url(url: pathlib.PurePosixPath, pattern: str, site: 'Site') \
         params = urllib.parse.parse_qs(params_str)
 
         if kinds := params.get('kind'):
-            for kind in kinds:
-                if kind in {'document', 'doc'} and \
-                        node.kind == NodeKind.Document:
-                    break
-                elif kind in {'index', 'idx'} and node.kind == NodeKind.Index:
-                    break
-            else:
-                return None
+            if node.kind == NodeKind.Document:
+                if 'document' not in kinds and 'doc' not in kinds:
+                    return None
+            elif node.kind == NodeKind.Index:
+                if 'index' not in kinds and 'idx' not in kinds:
+                    return None
 
     # Exact matches always win
     if pattern == str(url):
@@ -54,6 +52,13 @@ def _match_url(url: pathlib.PurePosixPath, pattern: str, site: 'Site') \
 
 
 class Template:
+    def __init__(self, template_path='<unknown>'):
+        self._template_path = template_path
+
+    @property
+    def path(self):
+        return self._template_path
+
     def render(self, **kwargs):
         pass
 
@@ -98,7 +103,8 @@ class TemplateRepository:
 
 
 class MakoTemplate(Template):
-    def __init__(self, template):
+    def __init__(self, template, template_path):
+        super().__init__(template_path)
         self.__template = template
 
     def render(self, **kwargs) -> str:
@@ -114,11 +120,12 @@ class MakoTemplateRepository(TemplateRepository):
     def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
             -> Template:
         template = self._match_template(url, site)
-        return MakoTemplate(self.__lookup.get_template(template))
+        return MakoTemplate(self.__lookup.get_template(template), template)
 
 
 class Jinja2Template(Template):
-    def __init__(self, template):
+    def __init__(self, template, template_path):
+        super().__init__(template_path)
         self.__template = template
 
     def render(self, **kwargs) -> str:
@@ -128,13 +135,14 @@ class Jinja2Template(Template):
 class Jinja2TemplateRepository(TemplateRepository):
     """Jinja2 based template repository."""
     def __init__(self, paths: Dict[str, str], path: pathlib.Path,
-                 cache: Cache = None, *, options: Dict[str, Any] = None):
+                 cache: Cache = None, *,
+                 options: Optional[Dict[str, Any]] = None):
         super().__init__(paths)
         self.__path = path
         self.__cache = cache
         self.__create_environment(options)
 
-    def __create_environment(self, options: Dict[str, Any] = None):
+    def __create_environment(self, options: Optional[Dict[str, Any]] = None):
         from jinja2 import FileSystemLoader, Environment, BytecodeCache
         from .util import readtime
         import io
@@ -190,7 +198,7 @@ class Jinja2TemplateRepository(TemplateRepository):
     def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
             -> Template:
         template = self._match_template(url, site)
-        return Jinja2Template(self.__env.get_template(template))
+        return Jinja2Template(self.__env.get_template(template), template)
 
 
 class Page:
@@ -258,6 +266,15 @@ class Page:
 
         return Query(self.__node.references)
 
+    @property
+    def children(self) -> 'Query':
+        """Return all child pages of this page, i.e. document and index
+        nodes.
+
+        .. versionadded:: 2.3.6"""
+        from .query import Query
+        return Query(self.__node.children).with_node_kinds('doc', 'idx')
+
 
 class SiteTemplateProxy:
     """A wrapper around :py:class:`Site` for use inside templates.
@@ -284,10 +301,17 @@ class SiteTemplateProxy:
         return self.__site.metadata
 
     def select(self, query) -> 'Query':
-        """Run a query on this site.
+        """Run a query on this site. Returns any node matching the query.
         """
         from .query import Query
         return Query(self.__site.select(query))
+
+    def select_pages(self, query) -> 'Query':
+        """Run a query on this site and return only matching pages, i.e.
+        document and index nodes.
+        
+        .. versionadded:: 2.3.6"""
+        return self.select(query).with_node_kinds('doc', 'idx')
 
     def get_page_by_url(self, url) -> Optional[Page]:
         """Return a page by URL. If the page cannot be found, return

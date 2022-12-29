@@ -22,7 +22,7 @@ def _match_url(url: pathlib.PurePosixPath, pattern: str, site: 'Site') \
     """
     import fnmatch
     import urllib.parse
-    from .nodes import NodeKind
+    from .nodes import _parse_node_kind
     if '?' in pattern and site:
         pattern, params_str = pattern.split('?')
 
@@ -31,12 +31,10 @@ def _match_url(url: pathlib.PurePosixPath, pattern: str, site: 'Site') \
         params = urllib.parse.parse_qs(params_str)
 
         if kinds := params.get('kind'):
-            if node.kind == NodeKind.Document:
-                if 'document' not in kinds and 'doc' not in kinds:
-                    return None
-            elif node.kind == NodeKind.Index:
-                if 'index' not in kinds and 'idx' not in kinds:
-                    return None
+            kinds = {_parse_node_kind(kind) for kind in kinds}
+
+            if node.kind not in kinds:
+                return None
 
     # Exact matches always win
     if pattern == str(url):

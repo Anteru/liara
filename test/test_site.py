@@ -59,6 +59,11 @@ class MockDocumentNode(nodes.DocumentNode):
         self.metadata = metadata
 
 
+class MockIndexNode(nodes.IndexNode):
+    def __init__(self, path):
+        super().__init__(pathlib.PurePosixPath(path))
+
+
 def test_content_filters():
     s = site.Site()
     cff = site.ContentFilterFactory()
@@ -92,3 +97,39 @@ def test_metadata_accessor():
 
     c = site._create_metadata_accessor('o.nested.bar')
     assert c(t) == 23
+
+
+def test_collection():
+    n1 = MockDocumentNode('/a', {'title': 'A'})
+    n2 = MockDocumentNode('/b', {'title': 'B'})
+    n3 = MockDocumentNode('/c', {'title': 'C'})
+
+    root = site.Site()
+    root.add_index(MockIndexNode('/'))
+    root.add_document(n1)
+    root.add_document(n2)
+    root.add_document(n3)
+    root.create_links()
+
+    collection = site.Collection(root, '/*')
+    nodes = collection.nodes
+
+    assert len(nodes) == 3
+
+
+def test_collection_sorted_by_removes_items():
+    n1 = MockDocumentNode('/a', {'title': 'A'})
+    n2 = MockDocumentNode('/b', {'title': 'B'})
+    n3 = MockDocumentNode('/c', {})
+
+    root = site.Site()
+    root.add_index(MockIndexNode('/'))
+    root.add_document(n1)
+    root.add_document(n2)
+    root.add_document(n3)
+    root.create_links()
+
+    collection = site.Collection(root, '/*', order_by=['title'])
+    nodes = collection.nodes
+
+    assert len(nodes) == 2

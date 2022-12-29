@@ -6,11 +6,12 @@ A collection in liara groups content together into an optionally ordered collect
 Definition
 ----------
 
-A collection definition consists of three elements:
+A collection definition consists of the following elements:
 
-- The name
-- The filter -- this is an :ref:`URL pattern <url-patterns>` which defines all elements that are in this collection.
-- The ordering -- optionally specifies how the collection should be ordered. This is a metadata accessor, to access nested fields, separate the individual accesses using ``.``. For instance, ``date.year`` will access the ``date`` metadata field first, and then the ``year`` attribute. If you want to reverse the order, add a leading ``-``, for example ``-date.year``.
+- The name (that's the key used in the YAML file)
+- ``filter``: The filter -- this is an :ref:`URL pattern <url-patterns>` which defines all elements that are in this collection.
+- ``order_by``: The ordering -- optionally specifies how the collection should be ordered. This is a metadata accessor, to access nested fields, separate the individual accesses using ``.``. For instance, ``date.year`` will access the ``date`` metadata field first, and then the ``year`` attribute. If you want to reverse the order, add a leading ``-``, for example ``-date.year``. If the metadata is missing, the node will be *removed* from the collection.
+- ``node_kinds``: The node kinds to include -- optionally, the kinds of nodes to include in the collection can be specified. If nothing is specified, only document nodes are included by default.
 
 For example:
 

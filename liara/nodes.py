@@ -289,7 +289,7 @@ class DocumentNode(Node):
     """These functions are called after a document has been processed
     (These should be called before :py:meth:`process` returns)."""
 
-    def __init__(self, src, path, metadata_path=None):
+    def __init__(self, src, path: pathlib.PurePosixPath, metadata_path=None):
         super().__init__()
         self.kind = NodeKind.Document
         self.src = src
@@ -406,7 +406,7 @@ class DataNode(Node):
     data as part of a :py:class:`liara.site.Site`, and make it available to
     templates (for instance, a menu structure could go into a data node.)
     """
-    def __init__(self, src, path):
+    def __init__(self, src, path: pathlib.PurePosixPath):
         super().__init__()
         self.kind = NodeKind.Data
         self.src = src
@@ -430,7 +430,8 @@ class IndexNode(Node):
     path of the parent node. The ``references`` list allows to reference nodes
     elsewhere in the site."""
 
-    def __init__(self, path, metadata: Optional[Dict] = None):
+    def __init__(self, path: pathlib.PurePosixPath,
+                 metadata: Optional[Dict] = None):
         super().__init__()
         self.kind = NodeKind.Index
         self.src = None
@@ -448,7 +449,8 @@ class IndexNode(Node):
 
 
 class GeneratedNode(Node):
-    def __init__(self, path, metadata: Optional[Dict] = None):
+    def __init__(self, path: pathlib.PurePosixPath,
+                 metadata: Optional[Dict] = None):
         super().__init__()
         self.kind = NodeKind.Generated
         self.src = None
@@ -517,7 +519,7 @@ class ResourceNode(Node):
     and requires some process first before it becomes usable -- for instance,
     ``SASS`` to ``CSS`` compilation.
     """
-    def __init__(self, src, path, metadata_path=None):
+    def __init__(self, src, path: pathlib.PurePosixPath, metadata_path=None):
         super().__init__()
         self.kind = NodeKind.Resource
         self.src = src
@@ -543,7 +545,7 @@ class SassResourceNode(ResourceNode):
     """
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
-    def __init__(self, src, path, metadata_path=None):
+    def __init__(self, src, path: pathlib.PurePosixPath, metadata_path=None):
         super().__init__(src, path, metadata_path)
         if src.suffix not in {'.scss', '.sass'}:
             raise Exception("SassResource can be only created for a .scss or "
@@ -726,7 +728,7 @@ class StaticNode(Node):
     Static nodes are suitable for large static data which never changes, for
     instance, binary files, videos, images etc.
     """
-    def __init__(self, src, path, metadata_path=None):
+    def __init__(self, src, path: pathlib.PurePosixPath, metadata_path=None):
         super().__init__()
         self.kind = NodeKind.Static
         self.src = src
@@ -758,7 +760,7 @@ class StaticNode(Node):
 
 
 class ThumbnailNode(ResourceNode):
-    def __init__(self, src, path, size):
+    def __init__(self, src, path: pathlib.PurePosixPath, size):
         super().__init__(src, path)
         self.__size = size
 
@@ -812,3 +814,26 @@ class ThumbnailNode(ResourceNode):
             raise Exception("Unsupported image type for thumbnails")
 
         cache.put(hash_key, bytes(self.content))
+
+
+def _parse_node_kind(kind) -> NodeKind:
+    """Parse a node kind from a string.
+
+    This allows certain shortcuts to be used in addition to the exact node kind
+    name.
+
+    .. versionadded:: 2.3.6"""
+    kind_map = {
+            'document': NodeKind.Document,
+            'index': NodeKind.Index,
+            'static': NodeKind.Static,
+            'generated': NodeKind.Generated,
+            'resource': NodeKind.Resource,
+            'data': NodeKind.Data,
+
+            # Additional shortcuts
+            'doc': NodeKind.Document,
+            'idx': NodeKind.Index,
+    }
+
+    return kind_map[kind]

@@ -121,6 +121,7 @@ liara.site module
     :members:
     :undoc-members:
     :show-inheritance:
+    :special-members: __init__
 
 liara.template module
 ---------------------

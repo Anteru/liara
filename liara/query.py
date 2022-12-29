@@ -1,5 +1,5 @@
 from typing import Iterable, List, Iterator, Optional
-from .nodes import Node, NodeKind
+from .nodes import Node, NodeKind, _parse_node_kind
 from .template import Page
 from typing import Union
 
@@ -60,21 +60,7 @@ class NodeKindFilter(SelectionFilter):
 
     .. versionadded:: 2.3.6"""
     def __init__(self, kinds, *, exclude=False):
-        kind_map = {
-            'document': NodeKind.Document,
-            'index': NodeKind.Index,
-            'static': NodeKind.Static,
-            'generated': NodeKind.Generated,
-            'resource': NodeKind.Resource,
-            'data': NodeKind.Data,
-
-            # Additional shortcuts to match template patterns, see
-            # template._match_url
-            'doc': NodeKind.Document,
-            'idx': NodeKind.Index,
-        }
-
-        self.__kinds = {kind_map[kind] for kind in kinds}
+        self.__kinds = {_parse_node_kind(kind) for kind in kinds}
         self.__exclude = exclude
 
     def match(self, node: Node) -> bool:
@@ -123,6 +109,10 @@ class MetadataSorter(Sorter):
 
 class Query(Iterable[Union[Node, Page]]):
     """A query modifies a list of nodes, by sorting and filtering entries.
+
+    Sorting requires the sort key to be present on all nodes that are to be
+    sorted, otherwise an error is raised. Nodes without a particular key can
+    be filtered out using :py:meth:`~liara.query.Query.with_metadata`.
 
     Index and document nodes will be wrapped in a
     :py:class:`~liara.template.Page` instance. Everything else will be returned

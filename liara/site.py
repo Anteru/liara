@@ -1,11 +1,12 @@
 from .nodes import (
     DataNode,
-    IndexNode,
     DocumentNode,
-    ResourceNode,
-    Node,
-    StaticNode,
     GeneratedNode,
+    IndexNode,
+    Node,
+    NodeKind,
+    ResourceNode,
+    StaticNode,
     ThumbnailNode,
 )
 import pathlib
@@ -16,6 +17,7 @@ from typing import (
     KeysView,
     List,
     Optional,
+    Union,
     ValuesView,
 )
 from .util import pairwise
@@ -55,8 +57,11 @@ class Collection:
 
     __log = logging.getLogger('liara.Collection')
 
-    def __init__(self, site, pattern, order_by: Optional[List[str]] = None):
+    def __init__(self, site, pattern, order_by: Optional[List[str]] = None,
+                 node_kinds: Optional[List[Union[str, NodeKind]]] = None):
         """
+        Create a new collection.
+
         :param pattern: The pattern to select nodes which belong to this
                         collection.
         :param order_by: A list of accessors for fields to order by. If
@@ -64,13 +69,25 @@ class Collection:
                          sorted by each in order using a stable sort. To
                          reverse the order, use a leading ``-``, for
                          example: ``-date``.
+        :param node_kinds: Only include nodes of that kinds. If not specified,
+                           ``NodeKind.Document`` will be used as the default.
 
         If an ordering is specified, and a particular node cannot support that
         ordering (for instance, as it's missing the field that is used to order
         by), the node will be *removed* from the collection.
         """
+        from .nodes import _parse_node_kind
         self.__site = site
         self.__filter = pattern
+        self.__node_kinds = set()
+        if node_kinds:
+            for kind in node_kinds:
+                if isinstance(kind, NodeKind):
+                    self.__node_kinds.add(kind)
+                else:
+                    self.__node_kinds.add(_parse_node_kind(kind))
+        else:
+            self.__node_kinds.add(NodeKind.Document)
 
         order_by = order_by if order_by else []
 
@@ -84,10 +101,15 @@ class Collection:
     def __build(self):
         nodes = self.__site.select(self.__filter)
 
+        def filter_kind(node):
+            return node.kind in self.__node_kinds
+
+        nodes = filter(filter_kind, nodes)
+
         # We want to remove all nodes that don't have the required fields,
         # as it doesn't make much sense to ask for ordering if some nodes
         # cannot be ordered
-        def filter_fun(o):
+        def filter_metadata(o):
             for ordering in self.__order_by:
                 # we need to match the metadata accessor logic below
                 if ordering.startswith('-'):
@@ -98,7 +120,7 @@ class Collection:
                     return False
             return True
 
-        nodes = filter(filter_fun, nodes)
+        nodes = filter(filter_metadata, nodes)
 
         for ordering in self.__order_by:
             if ordering.startswith('-'):
@@ -109,6 +131,11 @@ class Collection:
 
             key_fun = _create_metadata_accessor(ordering)
             nodes = sorted(nodes, key=key_fun, reverse=reverse)
+
+        # Need to convert to a list here, as we're going to iterate over it
+        # twice (once for the pairs, once for the nodes property)
+        nodes = list(nodes)
+
         pairs = list(pairwise(nodes))
         self.__next = {i[0].path: i[1] for i in pairs}
         self.__previous = {i[1].path: i[0] for i in pairs}
@@ -415,7 +442,8 @@ class Site:
 
     def __register_node(self, node: Node) -> None:
         if node.path in self.__nodes:
-            raise Exception(f'"{node.path}" already exists, cannot overwrite.')
+            raise Exception(f'"{node.path}" already exists, '
+                            'cannot overwrite.')
 
         signals.content_added.send(self, node=node)
         self.__nodes[node.path] = node
@@ -453,8 +481,9 @@ class Site:
         """Create collections."""
         for name, collection in collections.items():
             order_by = collection.get('order_by', [])
+            node_kinds = collection.get('node_kinds', [])
             self.__collections[name] = Collection(self, collection['filter'],
-                                                  order_by)
+                                                  order_by, node_kinds)
 
     def create_indices(self, indices):
         """Create indices."""

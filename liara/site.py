@@ -57,14 +57,15 @@ def _create_metadata_accessor(field_name):
         return key_fun
 
 
-def _create_metadata_filter(filter_by: List[Union[str, Tuple[str, Any]]]):
+def _create_metadata_filter(exclude_without:
+                            List[Union[str, Tuple[str, Any]]]):
     """Create a function to filter out nodes based on metadata fields.
 
     The filter function will check if the specified fields are present,
     and, if a tuple has been passed, if that field matches the expected
     value."""
     key_functions = []
-    for f in filter_by:
+    for f in exclude_without:
         if isinstance(f, str):
             key = f
 
@@ -77,7 +78,7 @@ def _create_metadata_filter(filter_by: List[Union[str, Tuple[str, Any]]]):
             key = f[0]
 
             def key_function(node: Node):
-                return _create_metadata_accessor(key)(node) != f[1]
+                return _create_metadata_accessor(key)(node) == f[1]
             key_functions.append(key_function)
 
     def filter_function(node: Node):
@@ -97,7 +98,8 @@ class Collection:
     __log = logging.getLogger('liara.Collection')
 
     def __init__(self, site, name, pattern, *,
-                 filter_by: Optional[List[Union[str, Tuple[str, Any]]]] = None,
+                 exclude_without: Optional[List[Union[str, Tuple[str, Any]]]]
+                 = None,
                  order_by: Optional[Union[str, List[str]]] = None,
                  node_kinds: Optional[List[Union[str, NodeKind]]] = None):
         """
@@ -105,8 +107,8 @@ class Collection:
 
         :param pattern: The pattern to select nodes which belong to this
                         collection.
-        :param filter_by: Only include items containing a specific metadata
-                          field. If a tuple is provided, the metadata field's
+        :param exclude_without: Exclude items without the specified metadata
+                          fields. If a tuple is provided, the metadata field's
                           value must match the requested value.
         :param order_by: A list of accessors for fields to order by. If
                          multiple entries are provided, the result will be
@@ -139,7 +141,7 @@ class Collection:
 
         self.__order_by = order_by if order_by else []
 
-        self.__filter_by = filter_by
+        self.__exclude_without = exclude_without
         self.__build()
 
     def __build(self):
@@ -150,8 +152,9 @@ class Collection:
 
         nodes = filter(filter_kind, nodes)
 
-        if self.__filter_by:
-            nodes = filter(_create_metadata_filter(self.__filter_by), nodes)
+        if self.__exclude_without:
+            nodes = filter(_create_metadata_filter(self.__exclude_without),
+                           nodes)
 
         for ordering in self.__order_by:
             if ordering.startswith('-'):
@@ -166,7 +169,7 @@ class Collection:
                 if result is None:
                     logging.error('Node "%s" is missing the metadata '
                                   'field "%s" which is required by a '
-                                  'order_by statement. Use filter_by to '
+                                  'order_by statement. Use exclude_without to '
                                   'excludes nodes which miss certain metadata '
                                   'fields.',
                                   node.path, ordering)
@@ -256,10 +259,11 @@ class Index:
     def __init__(self, collection: Collection,
                  path: str, *,
                  group_by: List[str],
-                 filter_by: Optional[List[Union[str, Tuple[str, Any]]]] = None,
+                 exclude_without: Optional[List[Union[str, Tuple[str, Any]]]]
+                 = None,
                  create_top_level_index=False):
         """
-        :param filter_by: Only include items containing a specific metadata
+        :param exclude_without: Exclude items without the specified metadata
                           field. If a tuple is provided, the metadata field's
                           value must match the requested value.
         """
@@ -267,8 +271,8 @@ class Index:
 
         self.__log = logging.getLogger('liara.site.Index')
 
-        if filter_by:
-            filter_function = _create_metadata_filter(filter_by)
+        if exclude_without:
+            filter_function = _create_metadata_filter(exclude_without)
             nodes = filter(filter_function, nodes)
 
         assert len(group_by) > 0
@@ -554,18 +558,19 @@ class Site:
             if isinstance(order_by, str):
                 order_by = [order_by]
 
-            filter_by = collection.get('filter_by', [])
-            if isinstance(filter_by, str):
-                filter_by = [filter_by]
+            exclude_without = collection.get('exclude_without', [])
+            if isinstance(exclude_without, str):
+                exclude_without = [exclude_without]
 
             node_kinds = collection.get('node_kinds', [])
 
             self.__log.debug('Creating collection "%s" ... ', name)
-            self.__collections[name] = Collection(self, name,
-                                                  collection['filter'],
-                                                  order_by=order_by,
-                                                  filter_by=filter_by,
-                                                  node_kinds=node_kinds)
+            collection = Collection(self, name,
+                                    collection['filter'],
+                                    order_by=order_by,
+                                    exclude_without=exclude_without,
+                                    node_kinds=node_kinds)
+            self.__collections[name] = collection
             self.__log.debug('... done creating collection "%s" ... ', name)
 
     def create_indices(self, indices):
@@ -581,15 +586,15 @@ class Site:
             if isinstance(group_by, str):
                 group_by = [group_by]
 
-            filter_by = index_definition.get('filter_by', [])
-            if isinstance(filter_by, str):
-                filter_by = [filter_by]
+            exclude_without = index_definition.get('exclude_without', [])
+            if isinstance(exclude_without, str):
+                exclude_without = [exclude_without]
 
             self.__log.debug('Creating index for path "%s" ...',
                              index_definition['path'])
             index = Index(collection, index_definition['path'],
                           group_by=group_by,
-                          filter_by=filter_by,
+                          exclude_without=exclude_without,
                           create_top_level_index=create_top_level_index)
             self.__indices.append(index)
             self.__log.debug('... done creating index for path "%s"',

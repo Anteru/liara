@@ -9,9 +9,9 @@ Definition
 An index definition consists of:
 
 - ``collection``: The name of the collection that is to be indexed.
-- ``group_by``: One or more grouping statements. At least one grouping statement must be present. If the metadata is missing, an error will be raised. Use ``filter_by`` if you want to remove items which don't have certain metadata fields. Multiple fields can be specified by using a list.
-- ``path``: The output path.
-- ``filter_by``: Optionally filter by metadata fields. Multiple fields can be specified by using a list.
+- ``group_by``: One or more grouping statements. At least one grouping statement must be present. If the metadata is missing, an error will be raised. Use ``exclude_without`` if you want to remove items which don't have certain metadata fields. Multiple fields can be specified by using a list.
+- ``path``: The output path. The output path must contain one numbered placeholder (``%1``, ``%2``, etc.) per ``group_by`` entry.
+- ``exclude_without``: Optionally exclude nodes without the specified metadata field(s). Multiple fields can be specified by using a list.
 - ``create_top_level_index``: Optionally, create an index node for the top-level
   path.
 

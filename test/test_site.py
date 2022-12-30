@@ -134,7 +134,7 @@ def test_collection_group_by_fails_on_missing_metadata():
         _ = site.Collection(root, 'test', '/*', order_by=['title'])
 
 
-def test_collection_filter_by_removes_items():
+def test_collection_exclude_without_removes_items():
     n1 = MockDocumentNode('/a', {'title': 'A'})
     n2 = MockDocumentNode('/b', {'title': 'B'})
     n3 = MockDocumentNode('/c', {})
@@ -147,7 +147,7 @@ def test_collection_filter_by_removes_items():
     root.create_links()
 
     collection = site.Collection(root, 'test', '/*',
-                                 filter_by=['title'], order_by=['title'])
+                                 exclude_without=['title'], order_by=['title'])
     nodes = collection.nodes
 
     assert len(nodes) == 2
@@ -170,7 +170,7 @@ def test_index_group_by_fails_on_missing_metadata():
         _ = site.Index(collection, '/index/%1', group_by=['title'])
 
 
-def test_index_filter_by_removes_items():
+def test_index_exclude_without_removes_items():
     n1 = MockDocumentNode('/a', {'year': 2022, 'title': 'A'})
     n2 = MockDocumentNode('/b', {'year': 2022, 'title': 'B'})
     n3 = MockDocumentNode('/c', {'year': 2023})
@@ -185,7 +185,30 @@ def test_index_filter_by_removes_items():
     collection = site.Collection(root, 'test', '/*')
 
     index = site.Index(collection, '/index/%1', group_by=['title'],
-                       filter_by=['title'],
+                       exclude_without=['title'],
+                       create_top_level_index=True)
+    index.create_nodes(root)
+
+    index_node = root.get_node('/index')
+    assert len(index_node.references) == 2
+
+
+def test_index_exclude_without_key_matching_removes_items():
+    n1 = MockDocumentNode('/a', {'year': 2022, 'title': 'A'})
+    n2 = MockDocumentNode('/b', {'year': 2022, 'title': 'B'})
+    n3 = MockDocumentNode('/c', {'year': 2023, 'title': 'C'})
+
+    root = site.Site()
+    root.add_index(MockIndexNode('/'))
+    root.add_document(n1)
+    root.add_document(n2)
+    root.add_document(n3)
+    root.create_links()
+
+    collection = site.Collection(root, 'test', '/*')
+
+    index = site.Index(collection, '/index/%1', group_by=['title'],
+                       exclude_without=[('year', 2022,)],
                        create_top_level_index=True)
     index.create_nodes(root)
 

@@ -8,7 +8,7 @@ Changelog
 
   This release contains breaking changes when using indices and collections. Make sure to review the changelog and the :doc:`collections` and :doc:`indices` pages when running into issues after updating.
 
-  The main change is that missing metadata fields in collections and indices result in an error now, instead of silently removing items. Use ``filter_by`` to filter nodes missing specific metadata fields. When updating from < 2.4, you can simply copy the ``order_by``/``group_by`` entry in the respective YAML file into ``filter_by`` to get the original behavior back.
+  The main change is that missing metadata fields in collections and indices result in an error now, instead of silently removing items. Use ``exclude_without`` to filter nodes missing specific metadata fields. When updating from < 2.4, you can simply copy the ``order_by``/``group_by`` entry in the respective YAML file into ``exclude_without`` to get the original behavior back.
 
 * Add :py:meth:`Query.with_node_kinds <liara.query.Query.with_node_kinds>` and :py:meth:`Query.without_node_kinds <liara.query.Query.without_node_kinds>` to :py:class:`~liara.query.Query`. This allows lists of nodes (as returned by :py:meth:`~liara.template.SiteTemplateProxy.select` and other functions) to be filtered by the node kind. This is useful if you want to mix static content and documents in the same folder.
 * Add :py:meth:`SiteTemplateProxy.select_pages <liara.template.SiteTemplateProxy.select_pages>` and :py:attr:`Page.children <liara.template.Page.children>` to select pages (i.e. document and index nodes) only without having to manually filter the result using ``with_node_kinds``/``without_node_kinds``.

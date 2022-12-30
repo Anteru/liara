@@ -1,6 +1,7 @@
 from liara import site, nodes
 from collections import namedtuple
 import pathlib
+import pytest
 
 item = namedtuple('item', ['metadata', 'name'])
 
@@ -111,13 +112,13 @@ def test_collection():
     root.add_document(n3)
     root.create_links()
 
-    collection = site.Collection(root, '/*')
+    collection = site.Collection(root, 'test', '/*')
     nodes = collection.nodes
 
     assert len(nodes) == 3
 
 
-def test_collection_sorted_by_removes_items():
+def test_collection_group_by_fails_on_missing_metadata():
     n1 = MockDocumentNode('/a', {'title': 'A'})
     n2 = MockDocumentNode('/b', {'title': 'B'})
     n3 = MockDocumentNode('/c', {})
@@ -129,7 +130,64 @@ def test_collection_sorted_by_removes_items():
     root.add_document(n3)
     root.create_links()
 
-    collection = site.Collection(root, '/*', order_by=['title'])
+    with pytest.raises(Exception):
+        _ = site.Collection(root, 'test', '/*', order_by=['title'])
+
+
+def test_collection_filter_by_removes_items():
+    n1 = MockDocumentNode('/a', {'title': 'A'})
+    n2 = MockDocumentNode('/b', {'title': 'B'})
+    n3 = MockDocumentNode('/c', {})
+
+    root = site.Site()
+    root.add_index(MockIndexNode('/'))
+    root.add_document(n1)
+    root.add_document(n2)
+    root.add_document(n3)
+    root.create_links()
+
+    collection = site.Collection(root, 'test', '/*',
+                                 filter_by=['title'], order_by=['title'])
     nodes = collection.nodes
 
     assert len(nodes) == 2
+
+
+def test_index_group_by_fails_on_missing_metadata():
+    n1 = MockDocumentNode('/a', {'title': 'A'})
+    n2 = MockDocumentNode('/b', {'title': 'B'})
+    n3 = MockDocumentNode('/c', {})
+
+    root = site.Site()
+    root.add_index(MockIndexNode('/'))
+    root.add_document(n1)
+    root.add_document(n2)
+    root.add_document(n3)
+    root.create_links()
+
+    collection = site.Collection(root, 'test', '/*')
+    with pytest.raises(Exception):
+        _ = site.Index(collection, '/index/%1', group_by=['title'])
+
+
+def test_index_filter_by_removes_items():
+    n1 = MockDocumentNode('/a', {'year': 2022, 'title': 'A'})
+    n2 = MockDocumentNode('/b', {'year': 2022, 'title': 'B'})
+    n3 = MockDocumentNode('/c', {'year': 2023})
+
+    root = site.Site()
+    root.add_index(MockIndexNode('/'))
+    root.add_document(n1)
+    root.add_document(n2)
+    root.add_document(n3)
+    root.create_links()
+
+    collection = site.Collection(root, 'test', '/*')
+
+    index = site.Index(collection, '/index/%1', group_by=['title'],
+                       filter_by=['title'],
+                       create_top_level_index=True)
+    index.create_nodes(root)
+
+    index_node = root.get_node('/index')
+    assert len(index_node.references) == 2

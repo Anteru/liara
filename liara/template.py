@@ -269,7 +269,7 @@ class Page:
         """Return all child pages of this page, i.e. document and index
         nodes.
 
-        .. versionadded:: 2.3.6"""
+        .. versionadded:: 2.4"""
         from .query import Query
         return Query(self.__node.children).with_node_kinds('doc', 'idx')
 
@@ -308,7 +308,7 @@ class SiteTemplateProxy:
         """Run a query on this site and return only matching pages, i.e.
         document and index nodes.
         
-        .. versionadded:: 2.3.6"""
+        .. versionadded:: 2.4"""
         return self.select(query).with_node_kinds('doc', 'idx')
 
     def get_page_by_url(self, url) -> Optional[Page]:

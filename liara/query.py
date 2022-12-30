@@ -58,7 +58,7 @@ class ExcludeFilter(SelectionFilter):
 class NodeKindFilter(SelectionFilter):
     """Filter items based on the node kind. Use exclude to invert.
 
-    .. versionadded:: 2.3.6"""
+    .. versionadded:: 2.4"""
     def __init__(self, kinds, *, exclude=False):
         self.__kinds = {_parse_node_kind(kind) for kind in kinds}
         self.__exclude = exclude
@@ -166,14 +166,14 @@ class Query(Iterable[Union[Node, Page]]):
     def without_node_kinds(self, *args) -> 'Query':
         """Excludes nodes of a specific type. Multiple kinds can be passed in.
 
-        .. versionadded:: 2.3.6"""
+        .. versionadded:: 2.4"""
         self.__filters.append(NodeKindFilter(args, exclude=True))
         return self
 
     def with_node_kinds(self, *args) -> 'Query':
         """Includes nodes of a specific type. Multiple kinds can be passed in.
 
-        .. versionadded:: 2.3.6"""
+        .. versionadded:: 2.4"""
         self.__filters.append(NodeKindFilter(args, exclude=False))
         return self
 

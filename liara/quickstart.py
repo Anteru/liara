@@ -88,20 +88,20 @@ __TEMPLATES_JINJA2 = {
 <h1>Blog archive {% if page.metadata.key %}for {{ page.metadata.key }}{% endif %}</h1>
 {{ page.content }}
 <ul>
-    {% if page.references %}
+    {% if not page.metadata.top_level_index %}
         {% for ref in page.references %}
         <li>
             <a href="{{ ref.url }}">{{ ref.meta.title }}</a>
         </li>
         {% endfor %}
     {% else %}
-        {% for page in
-        node.select_children().sorted_by_metadata('key') %}
+        {% for child_page in
+        page.children.sorted_by_metadata('key') %}
         <li>
-            <a href="{{ page.url }}">{{ page.metadata.key }}</a>
-            ({{ page.references|length }} posts)
+            <a href="{{ child_page.url }}">{{ child_page.metadata.key }}</a>
+            ({{ child_page.references|length }} posts)
             <ul>
-                {% for ref in page.references.sorted_by_date(reverse=True) %}
+                {% for ref in child_page.references.sorted_by_date(reverse=True) %}
                 <li>
                     <a href="{{ ref.url }}">{{ ref.meta.title}}</a>
                 </li>
@@ -207,14 +207,14 @@ __TEMPLATES_MAKO = {
 </h1>
 ${page.content}
 <ul>
-    % if page.references:
+    % if not page.metadata.get('top_level_index', False):
         % for ref in page.references:
         <li>
             <a href="${ref.url}">${ref.metadata['title']}</a>
         </li>
         % endfor
     % else:
-        % for child_page in node.select_children().sorted_by_metadata('key'):
+        % for child_page in page.children.sorted_by_metadata('key'):
         <li>
             <a href="${child_page.url}">${child_page.metadata['key']}</a>
             (${len(child_page.references)} posts)

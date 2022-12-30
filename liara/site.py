@@ -17,6 +17,7 @@ from typing import (
     KeysView,
     List,
     Optional,
+    Tuple,
     Union,
     ValuesView,
 )
@@ -32,22 +33,60 @@ def _create_metadata_accessor(field_name):
     an accessor ``foo.bar.baz`` will access ``foo['bar']['baz]`` and
     ``foo.bar.baz``, and any combination thereof. Attributes will be preferred
     over dictionary access.
+
+    If the field is not present, this function returns ``None``.
     """
     if '.' in field_name:
         def key_fun(o):
             field = field_name.split('.')
-            o = o.metadata[field[0]]
+            o = o.metadata.get(field[0])
+            if o is None:
+                return None
             for f in field[1:]:
                 if hasattr(o, f):
                     o = getattr(o, f)
-                else:
+                elif f in o:
                     o = o[f]
+                else:
+                    return None
             return o
         return key_fun
     else:
         def key_fun(o):
-            return o.metadata[field_name]
+            return o.metadata.get(field_name)
         return key_fun
+
+
+def _create_metadata_filter(filter_by: List[Union[str, Tuple[str, Any]]]):
+    """Create a function to filter out nodes based on metadata fields.
+
+    The filter function will check if the specified fields are present,
+    and, if a tuple has been passed, if that field matches the expected
+    value."""
+    key_functions = []
+    for f in filter_by:
+        if isinstance(f, str):
+            key = f
+
+            def key_function(node: Node):
+                return _create_metadata_accessor(key)(node) is not None
+            key_functions.append(key_function)
+        else:
+            assert isinstance(f, tuple)
+            assert len(f) == 2
+            key = f[0]
+
+            def key_function(node: Node):
+                return _create_metadata_accessor(key)(node) != f[1]
+            key_functions.append(key_function)
+
+    def filter_function(node: Node):
+        for key_function in key_functions:
+            if not key_function(node):
+                return False
+        return True
+
+    return filter_function
 
 
 class Collection:
@@ -57,13 +96,18 @@ class Collection:
 
     __log = logging.getLogger('liara.Collection')
 
-    def __init__(self, site, pattern, order_by: Optional[List[str]] = None,
+    def __init__(self, site, name, pattern, *,
+                 filter_by: Optional[List[Union[str, Tuple[str, Any]]]] = None,
+                 order_by: Optional[Union[str, List[str]]] = None,
                  node_kinds: Optional[List[Union[str, NodeKind]]] = None):
         """
         Create a new collection.
 
         :param pattern: The pattern to select nodes which belong to this
                         collection.
+        :param filter_by: Only include items containing a specific metadata
+                          field. If a tuple is provided, the metadata field's
+                          value must match the requested value.
         :param order_by: A list of accessors for fields to order by. If
                          multiple entries are provided, the result will be
                          sorted by each in order using a stable sort. To
@@ -74,9 +118,13 @@ class Collection:
 
         If an ordering is specified, and a particular node cannot support that
         ordering (for instance, as it's missing the field that is used to order
-        by), the node will be *removed* from the collection.
+        by), an error will be raised.
         """
         from .nodes import _parse_node_kind
+
+        self.__log = logging.getLogger('liara.site.Collection')
+        self.__name = name
+
         self.__site = site
         self.__filter = pattern
         self.__node_kinds = set()
@@ -89,13 +137,9 @@ class Collection:
         else:
             self.__node_kinds.add(NodeKind.Document)
 
-        order_by = order_by if order_by else []
+        self.__order_by = order_by if order_by else []
 
-        # We accept a string as well to simplify configuration files
-        if isinstance(order_by, str):
-            self.__order_by = [order_by]
-        else:
-            self.__order_by = order_by
+        self.__filter_by = filter_by
         self.__build()
 
     def __build(self):
@@ -106,21 +150,8 @@ class Collection:
 
         nodes = filter(filter_kind, nodes)
 
-        # We want to remove all nodes that don't have the required fields,
-        # as it doesn't make much sense to ask for ordering if some nodes
-        # cannot be ordered
-        def filter_metadata(o):
-            for ordering in self.__order_by:
-                # we need to match the metadata accessor logic below
-                if ordering.startswith('-'):
-                    ordering = ordering[1:]
-                if '.' in ordering:
-                    ordering = ordering.split('.')[0]
-                if ordering not in o.metadata:
-                    return False
-            return True
-
-        nodes = filter(filter_metadata, nodes)
+        if self.__filter_by:
+            nodes = filter(_create_metadata_filter(self.__filter_by), nodes)
 
         for ordering in self.__order_by:
             if ordering.startswith('-'):
@@ -129,7 +160,21 @@ class Collection:
             else:
                 reverse = False
 
-            key_fun = _create_metadata_accessor(ordering)
+            def key_fun(node):
+                accessor = _create_metadata_accessor(ordering)
+                result = accessor(node)
+                if result is None:
+                    logging.error('Node "%s" is missing the metadata '
+                                  'field "%s" which is required by a '
+                                  'order_by statement. Use filter_by to '
+                                  'excludes nodes which miss certain metadata '
+                                  'fields.',
+                                  node.path, ordering)
+                    raise RuntimeError(
+                        f'Cannot order collection "{self.__name}" '
+                        f'by key "{ordering}"')
+                return result
+
             nodes = sorted(nodes, key=key_fun, reverse=reverse)
 
         # Need to convert to a list here, as we're going to iterate over it
@@ -204,23 +249,36 @@ class Index:
 
     The index structure requires a grouping schema -- for instance, all nodes
     containing some tag can get grouped under one index node.
+
+    If ``group_by`` is specified, but a node doesn't contain the metadata
+    key, the node will be omitted from the index.
     """
     def __init__(self, collection: Collection,
-                 path: str, group_by: Optional[List] = None, *,
+                 path: str, *,
+                 group_by: List[str],
+                 filter_by: Optional[List[Union[str, Tuple[str, Any]]]] = None,
                  create_top_level_index=False):
+        """
+        :param filter_by: Only include items containing a specific metadata
+                          field. If a tuple is provided, the metadata field's
+                          value must match the requested value.
+        """
         nodes = collection.nodes
 
-        group_by = group_by if group_by else []
+        self.__log = logging.getLogger('liara.site.Index')
 
+        if filter_by:
+            filter_function = _create_metadata_filter(filter_by)
+            nodes = filter(filter_function, nodes)
+
+        assert len(group_by) > 0
         self.__groups = _group_recursive(nodes, group_by)
         self.__path = path
         self.__create_top_level_index = create_top_level_index
+        self.__top_level_node = None
 
     def create_nodes(self, site: 'Site'):
         """Create the index nodes inside the specified site."""
-        self._create_nodes_recursive(site, self.__path,
-                                     self.__groups, 1)
-
         if self.__create_top_level_index:
             url = self.__path
             # Strip off components until we have no parameter left
@@ -231,8 +289,16 @@ class Index:
                 'top_level_index': True
             })
             site.add_index(node)
+            self.__top_level_node = node
+            self.__log.debug('Created top-level index at "%s"',
+                             self.__path)
 
-    def _create_nodes_recursive(self, site: 'Site', path, d, index):
+        self._create_nodes_recursive(site, self.__path,
+                                     self.__groups, 1,
+                                     self.__top_level_node)
+
+    def _create_nodes_recursive(self, site: 'Site', path, d, index,
+                                parent: Optional[Node] = None):
         for k, v in d.items():
             url = pathlib.PurePosixPath(path.replace(f'%{index}', str(k)))
             # TODO Find out what to do here -- either don't create intermediate
@@ -240,8 +306,12 @@ class Index:
             # the URL.
             node = IndexNode(url, {'key': k})
             site.add_index(node)
+
+            if parent:
+                parent.add_reference(node)
+
             if isinstance(v, dict):
-                self._create_nodes_recursive(site, url, v, index+1)
+                self._create_nodes_recursive(site, url, v, index+1, node)
             else:
                 for reference in v:
                     node.add_reference(reference)
@@ -481,17 +551,49 @@ class Site:
         """Create collections."""
         for name, collection in collections.items():
             order_by = collection.get('order_by', [])
+            if isinstance(order_by, str):
+                order_by = [order_by]
+
+            filter_by = collection.get('filter_by', [])
+            if isinstance(filter_by, str):
+                filter_by = [filter_by]
+
             node_kinds = collection.get('node_kinds', [])
-            self.__collections[name] = Collection(self, collection['filter'],
-                                                  order_by, node_kinds)
+
+            self.__log.debug('Creating collection "%s" ... ', name)
+            self.__collections[name] = Collection(self, name,
+                                                  collection['filter'],
+                                                  order_by=order_by,
+                                                  filter_by=filter_by,
+                                                  node_kinds=node_kinds)
+            self.__log.debug('... done creating collection "%s" ... ', name)
 
     def create_indices(self, indices):
         """Create indices."""
         for index_definition in indices:
             collection = self.get_collection(index_definition['collection'])
             del index_definition['collection']
-            index = Index(collection, **index_definition)
+            create_top_level_index = index_definition.get(
+                'create_top_level_index', False
+            )
+
+            group_by = index_definition.get('group_by')
+            if isinstance(group_by, str):
+                group_by = [group_by]
+
+            filter_by = index_definition.get('filter_by', [])
+            if isinstance(filter_by, str):
+                filter_by = [filter_by]
+
+            self.__log.debug('Creating index for path "%s" ...',
+                             index_definition['path'])
+            index = Index(collection, index_definition['path'],
+                          group_by=group_by,
+                          filter_by=filter_by,
+                          create_top_level_index=create_top_level_index)
             self.__indices.append(index)
+            self.__log.debug('... done creating index for path "%s"',
+                             index_definition['path'])
 
         for index in self.__indices:
             index.create_nodes(self)
@@ -552,8 +654,11 @@ class Site:
         """Get a collection."""
         return self.__collections[collection]
 
-    def get_node(self, path: pathlib.PurePosixPath) -> Optional[Node]:
+    def get_node(self, path: Union[str, pathlib.PurePosixPath]) \
+            -> Optional[Node]:
         """Get a node based on the URL, or ``None`` if no such node exists."""
+        if isinstance(path, str):
+            path = pathlib.PurePosixPath(path)
         return self.__nodes.get(path)
 
     def select(self, query: str) -> Iterable[Node]:

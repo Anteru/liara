@@ -822,7 +822,7 @@ def _parse_node_kind(kind) -> NodeKind:
     This allows certain shortcuts to be used in addition to the exact node kind
     name.
 
-    .. versionadded:: 2.3.6"""
+    .. versionadded:: 2.4"""
     kind_map = {
             'document': NodeKind.Document,
             'index': NodeKind.Index,

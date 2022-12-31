@@ -97,7 +97,7 @@ class Collection:
 
     __log = logging.getLogger('liara.Collection')
 
-    def __init__(self, site, name, pattern, *,
+    def __init__(self, site: 'Site', name: str, pattern: str, *,
                  exclude_without: Optional[List[Union[str, Tuple[str, Any]]]]
                  = None,
                  order_by: Optional[Union[str, List[str]]] = None,
@@ -190,11 +190,11 @@ class Collection:
         self.__nodes = {n.path: n for n in nodes}
 
     @property
-    def nodes(self):
+    def nodes(self) -> Iterable[Node]:
         """Get the (sorted) nodes in this collection."""
         return self.__nodes.values()
 
-    def get_next(self, node):
+    def get_next(self, node: Node) -> Node:
         """Get the next node in this collection with regard to the specified
         order, or ``None`` if this is the last node."""
         if not self.__order_by:
@@ -203,7 +203,7 @@ class Collection:
                 'undefined results')
         return self.__next.get(node.path)
 
-    def get_previous(self, node):
+    def get_previous(self, node: Node) -> Node:
         """Get the previous node in this collection with regard to the
         specified order, or ``None`` if this is the first node."""
         if not self.__order_by:
@@ -252,20 +252,27 @@ class Index:
 
     The index structure requires a grouping schema -- for instance, all nodes
     containing some tag can get grouped under one index node.
-
-    If ``group_by`` is specified, but a node doesn't contain the metadata
-    key, the node will be omitted from the index.
     """
     def __init__(self, collection: Collection,
-                 path: str, *,
-                 group_by: List[str],
+                 path: str, group_by: List[str], *,
                  exclude_without: Optional[List[Union[str, Tuple[str, Any]]]]
                  = None,
                  create_top_level_index=False):
         """
+        Create a new index.
+
+        :param collection: The collection to use for this index.
+        :param path: The path pattern to create index entries at. This must
+                     contain one numbered placeholder (``%1``, etc.) per entry
+                     in ``group_by``
+        :param group_by: The grouping statements. The nodes are grouped by each
+                         entry in this array in-order.
         :param exclude_without: Exclude items without the specified metadata
                           field. If a tuple is provided, the metadata field's
                           value must match the requested value.
+        :param create_top_level_index: Create a node at the top-level path as
+                                       well instead of only creating nodes
+                                       per grouping statement.
         """
         nodes = collection.nodes
 
@@ -302,7 +309,7 @@ class Index:
                                      self.__top_level_node)
 
     def _create_nodes_recursive(self, site: 'Site', path, d, index,
-                                parent: Optional[Node] = None):
+                                parent: Optional[IndexNode] = None):
         for k, v in d.items():
             url = pathlib.PurePosixPath(path.replace(f'%{index}', str(k)))
             # TODO Find out what to do here -- either don't create intermediate

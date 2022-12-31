@@ -133,7 +133,7 @@ class Jinja2Template(Template):
 class Jinja2TemplateRepository(TemplateRepository):
     """Jinja2 based template repository."""
     def __init__(self, paths: Dict[str, str], path: pathlib.Path,
-                 cache: Cache = None, *,
+                 cache: Optional[Cache] = None, *,
                  options: Optional[Dict[str, Any]] = None):
         super().__init__(paths)
         self.__path = path

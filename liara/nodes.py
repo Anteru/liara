@@ -270,8 +270,8 @@ class FixupDateTimezone:
         self.__tz = tzlocal.get_localzone()
 
     def __call__(self, document: 'DocumentNode'):
-        '''If the date in the document has no timezone info, set it to the local
-        timezone.'''
+        '''If the date in the document has no timezone info, set it to the
+        local timezone.'''
         if 'date' in document.metadata:
             date = document.metadata['date']
             if date.tzinfo is None:

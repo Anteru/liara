@@ -32,7 +32,7 @@ from .cache import Cache, FilesystemCache, NullCache, Sqlite3Cache, RedisCache
 from .util import FilesystemWalker, flatten_dictionary
 from .yaml import load_yaml
 
-__version__ = '2.3.5'
+__version__ = '2.4.0'
 __all__ = [
     'actions',
     'cache',

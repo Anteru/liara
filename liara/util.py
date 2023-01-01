@@ -43,7 +43,7 @@ def flatten_dictionary(d, sep='.', parent_key=None,
     """Flatten a nested dictionary. This uses the separator to combine keys
     together, so a dictionary access like ``['a']['b']`` with a separator
     ``'.'`` turns into ``'a.b'``.
-    
+
     If ``ignore_keys`` is set, it must be a list of fully flattened key names
     at which the flattening should stop. For instance, if a dictionary
     ``{'a': {'b': {'c': 1}}}`` is provided, and ``ignore_keys`` is ``{'a.b'}``,
@@ -77,6 +77,7 @@ def create_slug(s: str) -> str:
 
 __TZ = tzlocal.get_localzone()
 __override_now = None
+
 
 def set_local_now(dt: datetime.datetime):
     """

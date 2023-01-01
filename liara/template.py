@@ -307,7 +307,7 @@ class SiteTemplateProxy:
     def select_pages(self, query) -> 'Query':
         """Run a query on this site and return only matching pages, i.e.
         document and index nodes.
-        
+
         .. versionadded:: 2.4"""
         return self.select(query).with_node_kinds('doc', 'idx')
 

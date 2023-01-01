@@ -129,7 +129,8 @@ def _check_external_link(url: str):
         return None
 
 
-def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]) -> int:
+def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]) \
+        -> int:
     """Validate external links.
 
     This issues a request for each link, and checks if it connects correctly.

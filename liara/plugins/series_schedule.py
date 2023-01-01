@@ -1,6 +1,7 @@
 from liara import signals
 import click
 
+
 def register():
     signals.commandline_prepared.connect(_register_cli)
 
@@ -28,7 +29,10 @@ def _register_cli(cli):
 
         known_dates = set()
 
-        for document in sorted(documents_in_series, key=lambda x: (x.metadata['date'], x.metadata['title'],)):
+        def get_sort_key(node):
+            return (node.metadata['date'], node.metadata['title'], )
+
+        for document in sorted(documents_in_series, key=get_sort_key):
             date_format = '%x' if day_only else '%x %X'
             date = document.metadata['date']
             if date in known_dates:

@@ -182,12 +182,21 @@ class Node:
         called separately instead of being executed as part of some other
         operation.
 
-        By convention this method should populate ``self.content``.  If it
-        returns an ``_AsyncTask``, that task is executed on a separate thread/
-        process. Otherwise, the function is assumed to have updated
-        ``self.content``.
+        By convention this method should populate ``self.content`` if executed
+        synchronously. If asynchronous execution is supported, this method
+        must return an ``_AsyncTask`` which is then executed later. In this
+        case, ``self.content`` will be populated by the task runner.
         """
         pass
+
+    def process_sync(self, cache: Cache) -> None:
+        """
+        Call ``process`` and execute it synchronously, even if it supports
+        asynchronous execution.
+        """
+        if task := self.process(cache):
+            self.content = task.process()
+            task.update_cache(self.content, cache)
 
 
 _metadata_marker = re.compile(r'(---|\+\+\+)\n')
@@ -564,6 +573,61 @@ class ResourceNode(Node):
 _SASS_COMPILER = Literal['cli', 'libsass']
 
 
+class _AsyncSassTask(_AsyncTask):
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
+
+    def __init__(self, cache_key: str,
+                 compiler: _SASS_COMPILER,
+                 src: pathlib.Path):
+        self.__cache_key = cache_key
+        self.__src = src
+        self.__compiler = compiler
+
+    def _compile_using_cli(self):
+        import subprocess
+        import sys
+
+        self.__log.debug('Processing "%s" using "sass" binary', self.__src)
+
+        result = subprocess.run(
+            ['sass', str(self.__src)],
+            # On Windows, we need to set shell=True, otherwise, the
+            # sass binary installed using npm install -g sass won't
+            # be found.
+            shell=sys.platform == 'win32',
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL)
+
+        result.check_returncode()
+
+        self.__log.debug('Done processing "%s"', self.__src)
+        return result.stdout
+
+    def _compile_using_libsass(self):
+        import sass
+        self.__log.debug(f'Processing "{self.__src}" using "libsass"')
+
+        result = sass.compile(
+            filename=str(self.__src)).encode('utf-8')
+
+        self.__log.debug(f'Done processing "{self.__src}"')
+
+        return result
+
+    def process(self):
+        try:
+            if self.__compiler == 'cli':
+                return self._compile_using_cli()
+            elif self.__compiler == 'libsass':
+                return self._compile_using_libsass()
+        except Exception as e:
+            self.__log.warning(f'Failed to compile SCSS file "{self.__src}"',
+                               exc_info=e)
+
+    def update_cache(self, content: object, cache: Cache):
+        cache.put(self.__cache_key, content)
+
+
 class SassResourceNode(ResourceNode):
     """This resource node compiles ``.sass`` and ``.scss`` files to CSS
     when built.
@@ -591,46 +655,13 @@ class SassResourceNode(ResourceNode):
             return
 
         assert self.src
-        hash_key = hashlib.sha256(self.src.open('rb').read()).digest()
+        cache_key = hashlib.sha256(self.src.open('rb').read()).digest()
 
-        if (value := cache.get(hash_key)) is not None:
+        if (value := cache.get(cache_key)) is not None:
             self.content = value
             return
 
-        try:
-            if self.__compiler == 'cli':
-                self._compile_using_cli()
-            elif self.__compiler == 'libsass':
-                self._compile_using_libsass()
-            cache.put(hash_key, self.content)
-        except Exception as e:
-            self.__log.warning(f'Failed to compile SCSS file "{self.src}"',
-                               exc_info=e)
-
-    def _compile_using_cli(self):
-        import subprocess
-        import sys
-
-        self.__log.debug(f'Processing "{self.src}" using "sass" binary')
-
-        result = subprocess.run(
-            ['sass', str(self.src)],
-            # On Windows, we need to set shell=True, otherwise, the
-            # sass binary installed using npm install -g sass won't
-            # be found.
-            shell=sys.platform == 'win32',
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL)
-
-        result.check_returncode()
-        self.content = result.stdout
-
-    def _compile_using_libsass(self):
-        import sass
-        self.__log.debug(f'Processing "{self.src}" using "libsass"')
-
-        self.content = sass.compile(
-            filename=str(self.src)).encode('utf-8')
+        return _AsyncSassTask(cache_key, self.__compiler, self.src)
 
 
 class NodeFactory(Generic[T]):
@@ -785,20 +816,21 @@ class StaticNode(Node):
 
 
 class _AsyncThumbnailTask(_AsyncTask):
-    def __init__(self, hash_key, src: pathlib.Path,
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
+
+    def __init__(self, cache_key, src: pathlib.Path,
                  size: Dict[str, int],
                  format: Optional[str] = None):
-        self.src = src
+        self.__src = src
         self.__size = size
-        self.__hash_key = hash_key
+        self.__cache_key = cache_key
         self.__format = format
-        self.__log = logging.getLogger('liara.nodes._AsyncThumbnailTask')
 
     def process(self):
         from PIL import Image
         import io
-        self.__log.debug('Processing "%s"', self.src)
-        image = Image.open(self.src)
+        self.__log.debug('Processing "%s"', self.__src)
+        image = Image.open(self.__src)
         width, height = image.size
 
         scale = 1
@@ -811,18 +843,22 @@ class _AsyncThumbnailTask(_AsyncTask):
 
         image.thumbnail((width, height,))
         storage = io.BytesIO()
-        assert self.src
-        if self.src.suffix == '.jpg':
+        assert self.__src
+        result = None
+        if self.__src.suffix == '.jpg':
             image.save(storage, 'JPEG')
-            return storage.getvalue()
-        elif self.src.suffix == '.png':
+            result = storage.getvalue()
+        elif self.__src.suffix == '.png':
             image.save(storage, 'PNG')
-            return storage.getvalue()
+            result = storage.getvalue()
         else:
             raise Exception("Unsupported image type for thumbnails")
 
+        self.__log.debug('Done processing "%s"', self.__src)
+        return result
+
     def update_cache(self, content: object, cache: Cache):
-        cache.put(self.__hash_key, bytes(content))
+        cache.put(self.__cache_key, bytes(content))
 
 
 class ThumbnailNode(ResourceNode):
@@ -830,30 +866,30 @@ class ThumbnailNode(ResourceNode):
         super().__init__(src, path)
         self.__size = size
 
-    def __get_hash_key(self) -> bytes:
+    def __get_cache_key(self) -> bytes:
         import hashlib
         assert self.src
-        hash_key = hashlib.sha256(self.src.open('rb').read()).digest()
+        cache_key = hashlib.sha256(self.src.open('rb').read()).digest()
 
         if 'height' in self.__size:
-            hash_key += self.__size['height'].to_bytes(4, 'little')
+            cache_key += self.__size['height'].to_bytes(4, 'little')
         else:
-            hash_key += bytes([0, 0, 0, 0])
+            cache_key += bytes([0, 0, 0, 0])
 
         if 'width' in self.__size:
-            hash_key += self.__size['width'].to_bytes(4, 'little')
+            cache_key += self.__size['width'].to_bytes(4, 'little')
         else:
-            hash_key += bytes([0, 0, 0, 0])
+            cache_key += bytes([0, 0, 0, 0])
 
-        return hash_key
+        return cache_key
 
     def process(self, cache: Cache) -> _AsyncThumbnailTask:
-        hash_key = self.__get_hash_key()
-        if content := cache.get(hash_key):
+        cache_key = self.__get_cache_key()
+        if content := cache.get(cache_key):
             self.content = content
             return
 
-        async_task = _AsyncThumbnailTask(hash_key, self.src,
+        async_task = _AsyncThumbnailTask(cache_key, self.src,
                                          self.__size)
 
         return async_task

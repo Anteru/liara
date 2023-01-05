@@ -78,6 +78,17 @@ def _create_relative_path(path: pathlib.Path, root: pathlib.Path) \
 def _process_resource_task(t):
     return t.process()
 
+
+def _setup_multiprocessing_worker(log_level):
+    from .cmdline import _setup_logging
+    if log_level == logging.DEBUG:
+        _setup_logging(True, False)
+    elif log_level == logging.INFO:
+        _setup_logging(False, True)
+    else:
+        _setup_logging(False, False)
+
+
 class Liara:
     """Main entry point for Liara. This class handles all the state required
     to process and build a site."""
@@ -555,7 +566,8 @@ class Liara:
         self.__log.debug(f'{len(async_resource_tasks)} async resource tasks '
                          'pending ...')
 
-        with multiprocessing.Pool() as pool:
+        with multiprocessing.Pool(initializer=_setup_multiprocessing_worker,
+                                  initargs=(logging.root.level,)) as pool:
             async_resource_results = pool.map(
                 _process_resource_task,
                 [r[1] for r in async_resource_tasks])

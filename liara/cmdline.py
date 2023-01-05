@@ -30,15 +30,7 @@ class Environment:
 pass_environment = click.make_pass_decorator(Environment, ensure=True)
 
 
-@click.group(name='Built-in commands')
-@click.option('--debug/--no-debug', default=False, help='Enable debug output.')
-@click.option('--verbose', is_flag=True, help='Enable verbose output.')
-@click.option('--config', default='config.yaml', type=click.Path(),
-              help='Set the path to the configuration file.')
-@click.option('--date', default=None, help='Override the current date.')
-@click.version_option()
-@pass_environment
-def cli(env, debug, verbose, config, date):
+def _setup_logging(debug, verbose):
     if debug:
         logging.basicConfig(
             level=logging.DEBUG,
@@ -59,6 +51,18 @@ def cli(env, debug, verbose, config, date):
         logging.basicConfig(
             level=logging.WARN,
             format='%(asctime)s %(levelname)-7s %(message)s')
+
+
+@click.group(name='Built-in commands')
+@click.option('--debug/--no-debug', default=False, help='Enable debug output.')
+@click.option('--verbose', is_flag=True, help='Enable verbose output.')
+@click.option('--config', default='config.yaml', type=click.Path(),
+              help='Set the path to the configuration file.')
+@click.option('--date', default=None, help='Override the current date.')
+@click.version_option()
+@pass_environment
+def cli(env, debug, verbose, config, date):
+    _setup_logging(debug, verbose)
 
     if date:
         from .util import set_local_now

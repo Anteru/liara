@@ -57,9 +57,7 @@ class HttpServer:
             assert isinstance(node, DocumentNode) \
                    or isinstance(node, ResourceNode)
             node.reload()
-            if async_task := node.process(self.__cache):
-                node.content = async_task.process()
-                async_task.update_cache(node.content, self.__cache)
+            node.process(self.__cache)
             cache = False
         elif node.kind in {NodeKind.Generated}:
             assert isinstance(node, GeneratedNode)

@@ -189,15 +189,6 @@ class Node:
         """
         pass
 
-    def process_sync(self, cache: Cache) -> None:
-        """
-        Call ``process`` and execute it synchronously, even if it supports
-        asynchronous execution.
-        """
-        if task := self.process(cache):
-            self.content = task.process()
-            task.update_cache(self.content, cache)
-
 
 _metadata_marker = re.compile(r'(---|\+\+\+)\n')
 
@@ -596,9 +587,15 @@ class _AsyncSassTask(_AsyncTask):
             # be found.
             shell=sys.platform == 'win32',
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL)
+            stderr=subprocess.PIPE)
 
+        try:
         result.check_returncode()
+        except Exception:
+            self.__log.error('SASS compilation of file "%s" failed: "%s"',
+                             self.__src,
+                             result.stderr.decode('utf-8'))
+            raise
 
         self.__log.debug('Done processing "%s"', self.__src)
         return result.stdout
@@ -916,3 +913,12 @@ def _parse_node_kind(kind) -> NodeKind:
     }
 
     return kind_map[kind]
+
+
+def _process_node_sync(node: Node, cache: Cache):
+    """
+    Process a node synchronously, even if it returned an async result.
+    """
+    if task := node.process(cache):
+        node.content = task.process()
+        task.update_cache(node.content, cache)

@@ -27,6 +27,8 @@ from .nodes import (
     DocumentNodeFactory,
     RedirectionNode,
     ResourceNodeFactory,
+
+    _process_node_sync
 )
 
 from .cache import Cache, FilesystemCache, NullCache, Sqlite3Cache, RedisCache
@@ -606,7 +608,7 @@ class Liara:
         cache = self.__cache if not disable_cache else NullCache()
         self.__log.debug(f'Using {cache.__class__.__name__} for caching')
         for document in site.documents:
-            document.process(cache)
+            _process_node_sync(document, cache)
         self.__log.info(f'Processed {len(site.documents)} documents')
         signals.documents_processed.send(self, site=self.__site)
 
@@ -633,7 +635,7 @@ class Liara:
 
         for static in site.static:
             static.publish(publisher)
-        self.__log.info(f'Published {len(site.static)} static file(s)')
+        self.__log.info('Published %d static file(s)', len(site.static))
 
         if site.generated:
             for generated in site.generated:

@@ -4,7 +4,9 @@ from .nodes import (
     IndexNode,
     NodeKind,
     ResourceNode,
-    StaticNode
+    StaticNode,
+
+    _process_node_sync
 )
 import pathlib
 from .site import Site
@@ -57,7 +59,7 @@ class HttpServer:
             assert isinstance(node, DocumentNode) \
                    or isinstance(node, ResourceNode)
             node.reload()
-            node.process(self.__cache)
+            _process_node_sync(node, self.__cache)
             cache = False
         elif node.kind in {NodeKind.Generated}:
             assert isinstance(node, GeneratedNode)

@@ -681,7 +681,7 @@ class NodeFactory(Generic[T]):
         :param suffixes: Either one suffix, or a list of suffixes to be
                          registered for this type. For instance, a node
                          representing an image could be registered to
-                         ``[.jpg, .png]``.
+                         ``[.jpg, .png, .webp]``.
         :param node_type: The type of the node to be created.
         """
         if isinstance(suffixes, str):
@@ -805,7 +805,7 @@ class StaticNode(Node):
     @property
     def is_image(self):
         """Return ``True`` if this static file is pointing to an image."""
-        return self.src.suffix in {'.jpg', '.png'}
+        return self.src.suffix in {'.jpg', '.png', '.webp'}
 
     def publish(self, publisher: Publisher) -> pathlib.Path:
         """Publish this node using the provided publisher."""
@@ -846,7 +846,8 @@ class _AsyncThumbnailTask(_AsyncTask):
 
         format_from_suffix = {
             '.jpg': 'JPEG',
-            '.png': 'PNG'
+            '.png': 'PNG',
+            '.webp': 'WEBP'
         }
 
         if self.__format:

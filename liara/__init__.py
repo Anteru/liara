@@ -3,6 +3,7 @@ import logging
 import os
 import pathlib
 import time
+import multiprocessing
 
 from typing import (
         IO,
@@ -73,6 +74,9 @@ def _create_relative_path(path: pathlib.Path, root: pathlib.Path) \
     path = path.relative_to(root)
     return __ROOT_PATH / pathlib.PurePosixPath(path.with_name(path.stem))
 
+
+def _process_resource_task(t):
+    return t.process()
 
 class Liara:
     """Main entry point for Liara. This class handles all the state required
@@ -538,6 +542,34 @@ class Liara:
             shutil.rmtree(output_directory)
         self.__log.info('Output directory cleaned')
 
+    def __build_resources(self, site: Site, cache: Cache):
+        self.__log.info('Processing resources ...')
+
+        async_resource_tasks = []
+        async_resource_results = []
+
+        for resource in site.resources:
+            if async_task := resource.process(cache):
+                async_resource_tasks.append((resource, async_task,))
+
+        self.__log.debug(f'{len(async_resource_tasks)} async resource tasks '
+                         'pending ...')
+
+        with multiprocessing.Pool() as pool:
+            async_resource_results = pool.map(
+                _process_resource_task,
+                [r[1] for r in async_resource_tasks])
+
+        self.__log.debug(f'Processed {len(async_resource_tasks)} async '
+                         'resource tasks')
+
+        for ((resource, task), result) in zip(async_resource_tasks,
+                                              async_resource_results):
+            resource.content = result
+            task.update_cache(result, cache)
+
+        self.__log.info(f'Processed {len(site.resources)} resources')
+
     def build(self, discover_content=True, *, disable_cache=False):
         """Build the site.
 
@@ -566,10 +598,7 @@ class Liara:
         self.__log.info(f'Processed {len(site.documents)} documents')
         signals.documents_processed.send(self, site=self.__site)
 
-        self.__log.info('Processing resources ...')
-        for resource in site.resources:
-            resource.process(cache)
-        self.__log.info(f'Processed {len(site.resources)} resources')
+        self.__build_resources(site, cache)
 
         output_path = pathlib.Path(self.__configuration['output_directory'])
 

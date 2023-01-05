@@ -74,6 +74,28 @@ class NodeKind(Enum):
     Generated = auto()
 
 
+class _AsyncTask:
+    """A node can return an ``_AsyncTask`` from process, in which case the
+    processing is split into two steps: The process itself (which can be
+    executed on a separate process/in parallel), and a post-process step which
+    can update the cache (in case the cache does not allow concurrent access.)
+
+    The function must return the new content of the node.
+    """
+    def process(self) -> object:
+        """
+        Process the task and return the new content for the node.
+        """
+        pass
+
+    def update_cache(self, content: object, cache: Cache):
+        """
+        After processing, an async task may update the cache in a separate
+        step.
+        """
+        pass
+
+
 class Node:
     kind: NodeKind
     """The node kind, must be set in the constructor."""
@@ -153,14 +175,17 @@ class Node:
             if recursive:
                 yield from child.get_children(recursive=True)
 
-    def process(self, cache: Cache) -> None:
+    def process(self, cache: Cache) -> Optional[_AsyncTask]:
         """Some nodes -- resources, documents, etc. need to be processed. As
         this can be a resource-intense process (for instance, it may require
         generating images), processing can cache results and has to be
         called separately instead of being executed as part of some other
         operation.
 
-        By convention this method should populate ``self.content``.
+        By convention this method should populate ``self.content``.  If it
+        returns an ``_AsyncTask``, that task is executed on a separate thread/
+        process. Otherwise, the function is assumed to have updated
+        ``self.content``.
         """
         pass
 
@@ -759,6 +784,47 @@ class StaticNode(Node):
         return publisher.publish_static(self)
 
 
+class _AsyncThumbnailTask(_AsyncTask):
+    def __init__(self, hash_key, src: pathlib.Path,
+                 size: Dict[str, int],
+                 format: Optional[str] = None):
+        self.src = src
+        self.__size = size
+        self.__hash_key = hash_key
+        self.__format = format
+        self.__log = logging.getLogger('liara.nodes._AsyncThumbnailTask')
+
+    def process(self):
+        from PIL import Image
+        import io
+        self.__log.debug('Processing "%s"', self.src)
+        image = Image.open(self.src)
+        width, height = image.size
+
+        scale = 1
+        if 'height' in self.__size:
+            scale = min(self.__size['height'] / height, scale)
+        if 'width' in self.__size:
+            scale = min(self.__size['width'] / width, scale)
+        width *= scale
+        height *= scale
+
+        image.thumbnail((width, height,))
+        storage = io.BytesIO()
+        assert self.src
+        if self.src.suffix == '.jpg':
+            image.save(storage, 'JPEG')
+            return storage.getvalue()
+        elif self.src.suffix == '.png':
+            image.save(storage, 'PNG')
+            return storage.getvalue()
+        else:
+            raise Exception("Unsupported image type for thumbnails")
+
+    def update_cache(self, content: object, cache: Cache):
+        cache.put(self.__hash_key, bytes(content))
+
+
 class ThumbnailNode(ResourceNode):
     def __init__(self, src, path: pathlib.PurePosixPath, size):
         super().__init__(src, path)
@@ -781,39 +847,16 @@ class ThumbnailNode(ResourceNode):
 
         return hash_key
 
-    def process(self, cache: Cache):
-        from PIL import Image
-        import io
-
+    def process(self, cache: Cache) -> _AsyncThumbnailTask:
         hash_key = self.__get_hash_key()
         if content := cache.get(hash_key):
             self.content = content
             return
 
-        image = Image.open(self.src)
-        width, height = image.size
+        async_task = _AsyncThumbnailTask(hash_key, self.src,
+                                         self.__size)
 
-        scale = 1
-        if 'height' in self.__size:
-            scale = min(self.__size['height'] / height, scale)
-        if 'width' in self.__size:
-            scale = min(self.__size['width'] / width, scale)
-        width *= scale
-        height *= scale
-
-        image.thumbnail((width, height,))
-        storage = io.BytesIO()
-        assert self.src
-        if self.src.suffix == '.jpg':
-            image.save(storage, 'JPEG')
-            self.content = storage.getbuffer()
-        elif self.src.suffix == '.png':
-            image.save(storage, 'PNG')
-            self.content = storage.getbuffer()
-        else:
-            raise Exception("Unsupported image type for thumbnails")
-
-        cache.put(hash_key, bytes(self.content))
+        return async_task
 
 
 def _parse_node_kind(kind) -> NodeKind:

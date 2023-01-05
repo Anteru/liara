@@ -622,25 +622,67 @@ class Site:
         thumbnail nodes as required.
         """
         from .util import add_suffix
+
+        def create_thumbnail(new_path, format, size):
+            if format == 'original':
+                format = None
+            else:
+                new_path = new_path.with_suffix(
+                    f'.{format.lower()}'
+                )
+
+            if self.get_node(new_path):
+                self.__log.warning(
+                    'Skipping ".%s" thumbnail creation for "%s" as '
+                    'that image already exists',
+                    format if format else static.src.suffix[1:],
+                    static.src)
+                return
+
+            thumbnail = ThumbnailNode(
+                static.src,
+                new_path,
+                size,
+                format)
+            self.add_resource(thumbnail)
+
         new_static = []
         for static in self.static:
             if not static.is_image:
                 continue
             static.update_metadata()
             width, height = static.metadata['image_size']
-            for k, v in thumbnail_definition.items():
+            for k, v in thumbnail_definition['sizes'].items():
                 new_url = add_suffix(static.path, k)
                 thumbnail_width = v.get('width', width)
                 thumbnail_height = v.get('height', height)
                 if width <= thumbnail_width and height <= thumbnail_height:
-                    # The image has the right size already (smaller or equal
-                    # to the thumbnail), so we just link a new static node
-                    copy = StaticNode(static.src, new_url)
-                    copy.metadata = static.metadata
-                    new_static.append(copy)
+                    # Check for any other formats present and generate those
+                    # as needed
+                    for format in thumbnail_definition['formats']:
+                        if format == 'original':
+                            # The image has the right size already (smaller or
+                            # equal to the thumbnail), so we just link a new
+                            # static node
+                            self.__log.debug(
+                                'Copying image "%s" for thumbnail as size '
+                                '%d x %d is larger or equal than image size '
+                                '%d x %d',
+                                static.src,
+                                width, height,
+                                thumbnail_width, thumbnail_height)
+                            copy = StaticNode(static.src, new_url)
+                            copy.metadata = static.metadata
+                            new_static.append(copy)
+                        else:
+                            self.__log.debug(
+                                'Converting image "%s" for thumbnail due to '
+                                'format change request to ".%s"',
+                                static.src, format)
+                            create_thumbnail(new_url, format, {})
                 else:
-                    thumbnail = ThumbnailNode(static.src, new_url, v)
-                    self.add_resource(thumbnail)
+                    for format in thumbnail_definition['formats']:
+                        create_thumbnail(new_url, format, v)
 
         for static in new_static:
             self.add_static(static)

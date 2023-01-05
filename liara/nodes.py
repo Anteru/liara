@@ -590,7 +590,7 @@ class _AsyncSassTask(_AsyncTask):
             stderr=subprocess.PIPE)
 
         try:
-        result.check_returncode()
+            result.check_returncode()
         except Exception:
             self.__log.error('SASS compilation of file "%s" failed: "%s"',
                              self.__src,
@@ -817,10 +817,11 @@ class _AsyncThumbnailTask(_AsyncTask):
 
     def __init__(self, cache_key, src: pathlib.Path,
                  size: Dict[str, int],
-                 format: Optional[str] = None):
+                 format: Optional[str]):
         self.__src = src
         self.__size = size
         self.__cache_key = cache_key
+        assert format != 'original'
         self.__format = format
 
     def process(self):
@@ -842,14 +843,22 @@ class _AsyncThumbnailTask(_AsyncTask):
         storage = io.BytesIO()
         assert self.__src
         result = None
-        if self.__src.suffix == '.jpg':
-            image.save(storage, 'JPEG')
-            result = storage.getvalue()
-        elif self.__src.suffix == '.png':
-            image.save(storage, 'PNG')
-            result = storage.getvalue()
+
+        format_from_suffix = {
+            '.jpg': 'JPEG',
+            '.png': 'PNG'
+        }
+
+        if self.__format:
+            format = self.__format.upper()
         else:
+            format = format_from_suffix.get(self.__src.suffix.lower())
+
+        if format is None:
             raise Exception("Unsupported image type for thumbnails")
+
+        image.save(storage, format)
+        result = storage.getvalue()
 
         self.__log.debug('Done processing "%s"', self.__src)
         return result
@@ -859,9 +868,11 @@ class _AsyncThumbnailTask(_AsyncTask):
 
 
 class ThumbnailNode(ResourceNode):
-    def __init__(self, src, path: pathlib.PurePosixPath, size):
+    def __init__(self, src, path: pathlib.PurePosixPath, size: Dict[str, int],
+                 format: str = 'original'):
         super().__init__(src, path)
         self.__size = size
+        self.__format = format
 
     def __get_cache_key(self) -> bytes:
         import hashlib
@@ -878,6 +889,9 @@ class ThumbnailNode(ResourceNode):
         else:
             cache_key += bytes([0, 0, 0, 0])
 
+        if self.__format:
+            cache_key += self.__format.encode('utf-8')
+
         return cache_key
 
     def process(self, cache: Cache) -> _AsyncThumbnailTask:
@@ -887,7 +901,8 @@ class ThumbnailNode(ResourceNode):
             return
 
         async_task = _AsyncThumbnailTask(cache_key, self.src,
-                                         self.__size)
+                                         self.__size,
+                                         self.__format)
 
         return async_task
 

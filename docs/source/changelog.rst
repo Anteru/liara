@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.4.1 (unreleased)
+------------------
+
+* Add support for parallel node processing.
+* Add support for additional thumbnail formats.
+
 2.4.0
 -----
 

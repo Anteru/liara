@@ -247,6 +247,7 @@ class Liara:
 
         ignore_list = {
             'image_thumbnail_sizes',
+            'image_thumbnail_formats',
             'backend_options',
             'paths'
         }
@@ -258,8 +259,11 @@ class Liara:
         backend = configuration['backend']
         paths = configuration['paths']
 
-        self.__thumbnail_definition = configuration.get(
-            'image_thumbnail_sizes', {})
+        self.__thumbnail_definition = {
+            'sizes': configuration.get('image_thumbnail_sizes', {}),
+            'formats': configuration.get('image_thumbnail_formats',
+                                         ['original'])
+        }
 
         if backend == 'jinja2':
             self.__template_repository = Jinja2TemplateRepository(

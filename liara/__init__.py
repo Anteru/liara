@@ -559,36 +559,43 @@ class Liara:
             shutil.rmtree(output_directory)
         self.__log.info('Output directory cleaned')
 
-    def __build_resources(self, site: Site, cache: Cache):
+    def __build_resources(self, site: Site, cache: Cache,
+                          parallel_build=True):
         self.__log.info('Processing resources ...')
 
-        async_resource_tasks = []
-        async_resource_results = []
+        if parallel_build:
+            async_resource_tasks = []
+            async_resource_results = []
 
-        for resource in site.resources:
-            if async_task := resource.process(cache):
-                async_resource_tasks.append((resource, async_task,))
+            for resource in site.resources:
+                if async_task := resource.process(cache):
+                    async_resource_tasks.append((resource, async_task,))
 
-        self.__log.debug(f'{len(async_resource_tasks)} async resource tasks '
-                         'pending ...')
+            self.__log.debug('%d async resource tasks pending ...',
+                             len(async_resource_tasks))
 
-        with multiprocessing.Pool(initializer=_setup_multiprocessing_worker,
-                                  initargs=(logging.root.level,)) as pool:
-            async_resource_results = pool.map(
-                _process_resource_task,
-                [r[1] for r in async_resource_tasks])
+            with multiprocessing.Pool(
+                    initializer=_setup_multiprocessing_worker,
+                    initargs=(logging.root.level,)) as pool:
+                async_resource_results = pool.map(
+                    _process_resource_task,
+                    [r[1] for r in async_resource_tasks])
 
-        self.__log.debug(f'Processed {len(async_resource_tasks)} async '
-                         'resource tasks')
+            self.__log.debug('Processed %d async resource tasks',
+                             len(async_resource_tasks))
 
-        for ((resource, task), result) in zip(async_resource_tasks,
-                                              async_resource_results):
-            resource.content = result
-            task.update_cache(result, cache)
+            for ((resource, task), result) in zip(async_resource_tasks,
+                                                  async_resource_results):
+                resource.content = result
+                task.update_cache(result, cache)
+        else:
+            for resource in site.resources:
+                _process_node_sync(resource, cache)
 
         self.__log.info(f'Processed {len(site.resources)} resources')
 
-    def build(self, discover_content=True, *, disable_cache=False):
+    def build(self, discover_content=True, *, disable_cache=False,
+              parallel_build=True):
         """Build the site.
 
         :param bool discover_content: If `True`, :py:meth:`discover_content`
@@ -616,7 +623,7 @@ class Liara:
         self.__log.info(f'Processed {len(site.documents)} documents')
         signals.documents_processed.send(self, site=self.__site)
 
-        self.__build_resources(site, cache)
+        self.__build_resources(site, cache, parallel_build)
 
         output_path = pathlib.Path(self.__configuration['output_directory'])
 

@@ -49,6 +49,9 @@ Template definitions also support the following fields:
 
   This will resize any static image file (from the template or the site itself) to a maximum width of 640 pixels. The thumbnail will be stored using the same file path as the original, but with  ``thumbnail`` added to the suffix. For instance, an input file named ``foo.png`` with width 800 would be resized to ``foo.thumbnail.png`` with a width of 640. Files which are below the size will get copied, so it's always safe to use the ``.thumbnail`` suffix.
 
+* ``image_thumbnail_formats`` is a list of formats to use for the thumbnails.
+  ``original`` means the original format is used (determine from the file extension). Additional supported formats are: ``JPG``, ``PNG`` and ``WEBP``.
+
 .. note::
 
    There is nothing special about ``thumbnail`` in the example above -- any suffix can be used, and multiple suffixes are support.

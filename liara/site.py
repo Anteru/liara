@@ -617,9 +617,9 @@ class Site:
         """Create thumbnails.
 
         Based on the thumbnail definition -- which is assumed to be a
-        dictionary containing the suffix and the desired size -- this function
-        iterates over all static nodes that contain images, and creates new
-        thumbnail nodes as required.
+        dictionary containing the suffix, the desired size and the target
+        formats  -- this function iterates over all static nodes that contain
+        images, and creates new thumbnail nodes as required.
         """
         from .util import add_suffix
 
@@ -632,11 +632,17 @@ class Site:
                 )
 
             if self.get_node(new_path):
-                self.__log.warning(
+                # This happens when the thumbnail format is the same as the
+                # image format, and both 'original' and the format are
+                # specified
+                # This isn't really a problem and fixing this at a higher level
+                # isn't any easier than doing it here
+                self.__log.debug(
                     'Skipping ".%s" thumbnail creation for "%s" as '
-                    'that image already exists',
+                    'that image already exists as "%s"',
                     format if format else static.src.suffix[1:],
-                    static.src)
+                    static.src,
+                    new_path)
                 return
 
             thumbnail = ThumbnailNode(

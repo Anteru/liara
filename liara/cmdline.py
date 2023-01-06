@@ -93,13 +93,16 @@ def _create_liara(config):
               default='build.prof')
 @click.option('--cache/--no-cache', default=True,
               help='Enable or disable the configured cache')
+@click.option('--parallel/--no-parallel', default=True,
+              help='Enable or disable parallel processing.')
 @pass_environment
-def build(env, profile, profile_file, cache):
+def build(env, profile, profile_file, cache, parallel):
     """Build a site."""
     if profile:
         pr = cProfile.Profile()
         pr.enable()
-    env.liara.build(disable_cache=not cache)
+    env.liara.build(disable_cache=not cache,
+                    parallel_build=parallel)
     if profile:
         pr.disable()
         pr.dump_stats(profile_file)

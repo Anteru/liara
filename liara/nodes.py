@@ -2,7 +2,12 @@ from enum import auto, Enum
 import logging
 import pathlib
 from .yaml import load_yaml
-import tomli
+
+try:
+    import tomllib as toml
+except ImportError:
+    import tomli as toml
+
 from .cache import Cache
 from .signals import document_loaded
 from typing import (
@@ -247,7 +252,7 @@ def extract_metadata_content(text: str):
     if metadata_kind == MetadataKind.Yaml:
         metadata = load_yaml(text[meta_start:meta_end])
     elif metadata_kind == MetadataKind.Toml:
-        metadata = tomli.loads(text[meta_start:meta_end])
+        metadata = toml.loads(text[meta_start:meta_end])
     else:
         # We didn't find any metadata here, so everything must be content
         return {}, text

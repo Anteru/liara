@@ -5,7 +5,8 @@ Changelog
 ------------------
 
 * Add support for parallel node processing. This can result in significantly faster build times for sites with many resources. You can use ``--no-parallel`` to disable parallel processing in case this causes problems.
-* Add support for additional thumbnail formats. See :doc:`Templates` for more details.
+* Add support for additional thumbnail formats. See :doc:`templates` for more details.
+* Use ``tomllib`` on Python 3.11 instead of ``tomli``.
 
 2.4.0
 -----

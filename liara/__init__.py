@@ -246,8 +246,12 @@ class Liara:
         configuration = load_yaml(open(configuration_file))
 
         ignore_list = {
+            # Legacy
             'image_thumbnail_sizes',
             'image_thumbnail_formats',
+            # Since 2.4.1
+            'image_thumbnails',
+
             'backend_options',
             'paths'
         }
@@ -259,11 +263,21 @@ class Liara:
         backend = configuration['backend']
         paths = configuration['paths']
 
-        self.__thumbnail_definition = {
-            'sizes': configuration.get('image_thumbnail_sizes', {}),
-            'formats': configuration.get('image_thumbnail_formats',
-                                         ['original'])
-        }
+        # Legacy option
+        if 'image_thumbnail_sizes' in configuration:
+            self.__log.warning(
+                "'image_thumbnail_sizes' is deprecated. Please use "
+                "'image_thumbnails.sizes' instead.")
+            self.__thumbnail_definition = {
+                'sizes': configuration.get('image_thumbnail_sizes', {}),
+                'formats': ['original']
+            }
+        else:
+            self.__thumbnail_definition = configuration.get('image_thumbnails',
+                {
+                    'sizes': {},
+                    'formats': ['original']
+                })
 
         if backend == 'jinja2':
             self.__template_repository = Jinja2TemplateRepository(

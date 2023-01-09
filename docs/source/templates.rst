@@ -40,16 +40,21 @@ Template definitions also support the following fields:
 
 * ``static_directory`` specifies static files which will be deployed to the output. This can be used for images etc.
 * ``resource_directory`` specifies resource files to be deployed, for instance ``SASS`` files. See :doc:`resources` for more details.
-* ``image_thumbnail_sizes`` is a dictionary which provides suffixes and the sizes to which images get resized. For instance, assume the following configuration:
+* ``image_thumbnails`` is a dictionary used to configure image thumbnails:
 
   .. code:: yaml
 
-     image_thumbnail_sizes:
-       thumbnail: {width: 640}
+     image_thumbnails:
+      sizes:
+        thumbnail: {width: 640}
+      formats:
+        - original
+        - webp
+
 
   This will resize any static image file (from the template or the site itself) to a maximum width of 640 pixels. The thumbnail will be stored using the same file path as the original, but with  ``thumbnail`` added to the suffix. For instance, an input file named ``foo.png`` with width 800 would be resized to ``foo.thumbnail.png`` with a width of 640. Files which are below the size will get copied, so it's always safe to use the ``.thumbnail`` suffix.
 
-* ``image_thumbnail_formats`` is a list of formats to use for the thumbnails.
+  ``formats`` is a list of formats to use for the thumbnails.
   ``original`` means the original format is used (determine from the file extension). Additional supported formats are: ``JPG``, ``PNG`` and ``WEBP``.
 
 .. note::

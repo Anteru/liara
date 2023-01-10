@@ -182,30 +182,30 @@ class RedisCache(Cache):
             object_type = 'obj'
             value = pickle.dumps(value)
 
-        self.__redis.set(self.__make_key(key, 'content'),
-                         value, ex=self.__expiration_time)
-        self.__redis.set(self.__make_key(key, 'type'),
-                         object_type, ex=self.__expiration_time)
+        pipeline = self.__redis.pipeline()
+        pipeline.set(self.__make_key(key, 'content'),
+                     value, ex=self.__expiration_time)
+        pipeline.set(self.__make_key(key, 'type'),
+                     object_type, ex=self.__expiration_time)
 
-        return True
+        return all(pipeline.execute())
 
     def get(self, key) -> Optional[object]:
-        object_type = self.__redis.get(self.__make_key(key, 'type'))
-        value = self.__redis.get(self.__make_key(key, 'content'))
+        pipeline = self.__redis.pipeline()
 
-        # If the type has expired, we can't make sense of the value, so we
-        # early out here
-        if object_type is None:
+        pipeline.get(self.__make_key(key, 'type'))
+        pipeline.get(self.__make_key(key, 'content'))
+
+        object_type, value = pipeline.execute()
+
+        # Can't continue if any of those is None: Without the type we don't
+        # know what to decode, and without a value the result is None anyways
+        if object_type is None or value is None:
             return None
 
-        # return values from redis are binary
-        # We check for value here just in case the value expired between
-        # reading the object type and the value
-        if object_type == b'obj' and value:
+        if object_type == b'obj':
             return pickle.loads(value)
 
-        # This is safe -- if the key has expired, we'll return None here,
-        # and we can only get here if the type was binary to start with
         return value
 
 

@@ -1,12 +1,12 @@
 Resources
 =========
 
-Liara supports resource nodes which get pre-processed before getting placed into the output. Site-wide resources can be specified in the :doc:`configuration <configuration>`. Per-template resources can be specified in the :doc:`template <templates>` configuration.
+Liara supports resource nodes which get processed before getting placed into the output. Site-wide resources can be specified in the :doc:`configuration <../configuration>`. Per-template resources can be specified in the :doc:`template <../publish/templates>` configuration.
 
 Currently, Liara supports the following resource types:
 
 * `SASS <https://sass-lang.com/>`_ files
-* Image thumbnails for ``JPEG`` and ``PNG`` images
+* Image thumbnails for various image formats.
 
 Resource files get processed using resource-specific compilers.
 

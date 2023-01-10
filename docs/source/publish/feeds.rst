@@ -11,9 +11,10 @@ A feed definition consists of:
 - The type of the feed to be generated.
 - The output path.
 - An optional limit on the number of elements that will be included in the feed.
-- An optional collection to restrict the feed to.
+- An optional :doc:`collection <../content/collections>` to restrict the feed to.
 
-For example:
+Example
+-------
 
 .. code:: yaml
 

@@ -6,40 +6,18 @@
 Welcome to Liara's documentation!
 =================================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+Liara is a static page generator, written in `Python <https://python.org>`_. It creates web sites which can be deployed to any web server and require no server-side logic. Liara is ideally suited for blogs or personal pages, especially if you need good syntax highlighting.
 
-   quickstart
+Getting started with Liara is easy: Everything is configured through a small set of text files, and the output can be customized using templates. See :doc:`quickstart` for a short introduction.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Documentation
 
-   changelog
-
-.. toctree::
-   :maxdepth: 2
-
-   collections
+   quickstart
+   changelog/index
    configuration
-   content
-   feeds
-   generators
-   indices
-   metadata
-   plugins
-   processing
-   resources
-   static-routes
-   templates
-   url-patterns
 
-   modules
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   content/index
+   publish/index
+   reference/index

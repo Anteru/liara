@@ -265,6 +265,7 @@ class Liara:
 
         # Legacy option
         if 'image_thumbnail_sizes' in configuration:
+            # Deprecated since 2.4.1
             self.__log.warning(
                 "'image_thumbnail_sizes' is deprecated. Please use "
                 "'image_thumbnails.sizes' instead.")
@@ -273,7 +274,8 @@ class Liara:
                 'formats': ['original']
             }
         else:
-            self.__thumbnail_definition = configuration.get('image_thumbnails',
+            self.__thumbnail_definition = configuration.get(
+                'image_thumbnails',
                 {
                     'sizes': {},
                     'formats': ['original']

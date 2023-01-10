@@ -48,7 +48,7 @@ Exploring the quick-start template
 
 The quickstart produces a bunch of folders and files:
 
-* ``content`` holds the content, which for the quickstart sample consists of a few blog posts. See :doc:`content` for more details on how to structure the content.
-* ``templates`` holds the template files. The quickstart sample uses `Jinja2 <https://jinja.palletsprojects.com>`_ for its templates, but you can select the template engine using the command line to use `Mako <https://www.makotemplates.org/>`_ instead. ``default.yaml`` in that folder contains the default routes for the templates. See :doc:`templates` for more information on how to use templates.
-* ``generators`` contains a sample generator to create new blog posts. See :doc:`generators` for more information.
+* ``content`` holds the content, which for the quickstart sample consists of a few blog posts. See :doc:`content/content` for more details on how to structure the content.
+* ``templates`` holds the template files. The quickstart sample uses `Jinja2 <https://jinja.palletsprojects.com>`_ for its templates, but you can select the template engine using the command line to use `Mako <https://www.makotemplates.org/>`_ instead. ``default.yaml`` in that folder contains the default routes for the templates. See :doc:`publish/templates` for more information on how to use templates.
+* ``generators`` contains a sample generator to create new blog posts. See :doc:`content/generators` for more information.
 * A few :ref:`configuration files <configuration>`.

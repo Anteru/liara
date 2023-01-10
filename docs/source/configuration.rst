@@ -22,11 +22,11 @@ Liara is driven through configuration files. The main file is ``config.yaml``, w
 Directory settings
 ------------------
 
-* ``content_directory``: The root directory for all content. Output paths will be build relative to this folder. See :doc:`content` for more details.
-* ``resource_directory``: The folder containing resources, i.e. ``SASS`` or other files that need to get processed before they can be written to the output. See :doc:`resources` for more details.
+* ``content_directory``: The root directory for all content. Output paths will be build relative to this folder. See :doc:`content/content` for more details.
+* ``resource_directory``: The folder containing resources, i.e. ``SASS`` or other files that need to get processed before they can be written to the output. See :doc:`content/resources` for more details.
 * ``static_directory``: The folder containing static files, for instance downloads, images, videos etc.
 * ``output_directory``: The output directory.
-* ``generator_directory``: The folder containing :any:`generators`.
+* ``generator_directory``: The folder containing :doc:`content/generators`.
 
 Build settings
 --------------
@@ -40,6 +40,12 @@ Build settings
   - ``fs`` stores files in a directory, using one file per cache entry.
   - ``redis`` uses Redis as the backend.
   - ``none`` disables caching
+
+  .. note::
+
+    The ``fs`` cache is a good default for most users. If creating files is expensive, ``db`` will perform better as it stores all data in a single file. Both ``fs`` and ``db`` caches are single-user only and don't remove old entries -- if the cache grows too big, you'll want to delete the cache directory.
+    
+    ``redis`` is useful if you have an existing instance already, want to benefit from automatic cache clearing, or have multiple concurrent instances of Liara (for example, an automated build server in addition to a local client.)
 
 * .. _`sass-compiler-option`:
 
@@ -78,16 +84,16 @@ Content settings
 ----------------
 
 * ``content.filters``: Specifies which :any:`content filters <content-filters>`  will be applied while discovering content.
-* ``template``: The :any:`template <templates>` definition to apply to the content.
-* ``collections``: Points to the file containing the :any:`collection <collections>` definitions.
-* ``feeds``: Points to the file containing the :doc:`feed definitions <feeds>`.
-* ``indices``: Points to the file containing the :doc:`index definitions <indices>`.
-* ``metadata``: Points to the file containing the :doc:`site metadata <metadata>`.
+* ``template``: The :any:`template <publish/templates>` definition to apply to the content.
+* ``collections``: Points to the file containing the :doc:`collection <content/collections>` definitions.
+* ``feeds``: Points to the file containing the :doc:`feed definitions <publish/feeds>`.
+* ``indices``: Points to the file containing the :doc:`index definitions <content/indices>`.
+* ``metadata``: Points to the file containing the :doc:`site metadata <content/metadata>`.
 * ``relaxed_date_parsing``: If enabled, metadata fields named ``date`` will be processed twice. By default, Liara assumes that ``date`` contains a markup-specific date field. If this option is on, and the ``date`` field is pointing at a string, Liara will try to parse that string into a timestamp.
 * ``allow_relative_links``: Allow the usage of relative links in content files. This has a negative build time impact on any file containing relative links and is thus recommended to be left off.
 
 Other settings
 --------------
 
-* ``routes.static``: Points to the file containing :any:`static routes <static-routes>`.
+* ``routes.static``: Points to the file containing :any:`static routes <publish/static-routes>`.
 * ``ignore_files``: A list of file patterns to ignore, for instance, ``["*.backup"]``. The default is ``*~`` which ignores all files with a trailing ``~``. The file matching supports Unix-style wildcards: ``?`` matches a single character, ``*`` matches everything.

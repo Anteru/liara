@@ -92,7 +92,7 @@ liara.server module
 liara.signals module
 --------------------
 
-See :doc:`processing` for an overview of the processing stages.
+See :doc:`../publish/processing` for an overview of the processing stages.
 
 .. automodule:: liara.signals
 

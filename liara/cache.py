@@ -193,13 +193,19 @@ class RedisCache(Cache):
         object_type = self.__redis.get(self.__make_key(key, 'type'))
         value = self.__redis.get(self.__make_key(key, 'content'))
 
+        # If the type has expired, we can't make sense of the value, so we
+        # early out here
+        if object_type is None:
+            return None
+
         # return values from redis are binary
         # We check for value here just in case the value expired between
         # reading the object type and the value
         if object_type == b'obj' and value:
             return pickle.loads(value)
 
-        # This is safe -- if the key has expired, we'll return None here
+        # This is safe -- if the key has expired, we'll return None here,
+        # and we can only get here if the type was binary to start with
         return value
 
 

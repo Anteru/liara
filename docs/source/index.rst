@@ -10,6 +10,8 @@ Liara is a static page generator, written in `Python <https://python.org>`_. It 
 
 Getting started with Liara is easy: Everything is configured through a small set of text files, and the output can be customized using templates. See :doc:`quickstart` for a short introduction.
 
+Liara is also very fast -- it can process sites with hundreds of pages and images within seconds. Where possible, Liara will not copy files, making it particularly suitable for sites having large amounts of binary data (videos, executables, etc.) Finally, Liara is also extensible using :doc:`reference/plugins` allowing you to add new functionality to tailor it for your particular use case.
+
 .. toctree::
    :maxdepth: 1
    :caption: Documentation

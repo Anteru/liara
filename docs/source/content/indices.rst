@@ -1,7 +1,7 @@
 Indices
 =======
 
-Liara can generate indices for :any:`collections`, for instance, to create a post archive. This is a two step process -- first, a collection needs to be defined, then an index can be built on top of that collection.
+Liara can generate indices for :any:`collections`, for instance, to create a post archive. This is a two step process -- first, a collection needs to be defined, then, an index can be built on top of that collection.
 
 Definition
 ----------

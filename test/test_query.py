@@ -73,3 +73,12 @@ def test_query_sort_by():
 
     assert s1[0].url == '/a'
     assert s2[1].url == '/a'
+
+def test_query_limit():
+    root = Node()
+    root.path = pathlib.PurePosixPath('/')
+
+    for i in range(256):
+        root.add_child(MockDocumentNode(f'/{i}', {'title': f'Page {i}'}))
+
+    assert len(list(root.select_children().limit(10))) == 10

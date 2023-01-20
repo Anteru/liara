@@ -50,3 +50,12 @@ document_loaded = signal('document-loaded')
   When this signal is raised, the content has been loaded, but no
   templates etc. have been applied to the document yet.
 """
+
+register_markdown_calls = signal('register-markdown-calls')
+"""Raised while initializing the Markdown processor.
+
+:param liara.md.CallPreprocessor preprocessor: The call preprocessor
+
+  When this signal is raised, you can register Markdown function calls by
+  calling :py:meth:`liara.md.CallPreprocessor.register_function`.
+"""

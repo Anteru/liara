@@ -395,7 +395,7 @@ class MarkdownDocumentNode(DocumentNode):
     """A node representing a Markdown document."""
     def process(self, cache: Cache):
         import markdown
-        from .md import HeadingLevelFixupExtension
+        from .md import LiaraMarkdownExtensions
         import hashlib
 
         byte_content = self._raw_content.encode('utf-8')
@@ -406,7 +406,7 @@ class MarkdownDocumentNode(DocumentNode):
 
         extensions = [
             'pymdownx.arithmatex',
-            HeadingLevelFixupExtension(),
+            LiaraMarkdownExtensions(),
             'fenced_code',
             'codehilite',
             'smarty',

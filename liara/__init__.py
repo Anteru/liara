@@ -106,6 +106,7 @@ class Liara:
     __registered_plugins: Set[str] = set()
     __filesystem_walker: FilesystemWalker
     __template_repository: TemplateRepository
+    __plugin_modules = Dict[pathlib.Path, object]
 
     def __init__(self,
                  configuration: Optional[
@@ -139,6 +140,7 @@ class Liara:
             flatten_dictionary(default_configuration))
 
         Liara.setup_plugins()
+        self._load_plugins('./plugins')
 
         self.__resource_node_factory = ResourceNodeFactory(
             self.__configuration
@@ -703,12 +705,30 @@ class Liara:
 
     def create_document(self, t):
         """Create a new document using a generator."""
-        import importlib
-
-        source_path = os.path.join(self.__configuration['generator_directory'],
-                                   t + '.py')
-        spec = importlib.util.spec_from_file_location(t, source_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        source_path = pathlib.Path(
+            self.__configuration['generator_directory']) / (t + '.py')
+        module = self._load_module(source_path, t)
         path = module.generate(self.__site, self.__configuration)
         self.__log.info(f'Generated "{path}"')
+
+    def _load_plugins(self, folder):
+        plugin_path = pathlib.Path(folder)
+        for plugin in plugin_path.rglob('*.py'):
+            module = self._load_module(plugin)
+            if hasattr(module, 'register'):
+                module.register()
+                # Keep it around to prevent garbage collection
+                self.__plugin_modules.append(module)
+
+    def _load_module(self, path, name=''):
+        import importlib
+        # Prevent modules from being loaded twice
+        if module := self.__plugin_modules.get(path):
+            return module
+
+        if not name:
+            name = path.stem
+        spec = importlib.util.spec_from_file_location(name, path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module

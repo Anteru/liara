@@ -27,6 +27,9 @@ Directory settings
 * ``static_directory``: The folder containing static files, for instance downloads, images, videos etc.
 * ``output_directory``: The output directory.
 * ``generator_directory``: The folder containing :doc:`content/generators`.
+* ``plugin_directories``: A list of directories to be scanned for :doc:`reference/plugins`.
+
+  This option was added in Liara 2.5.
 
 Build settings
 --------------

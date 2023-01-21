@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.5.0 (unreleased)
+------------------
+
+* Add a new configuration option to load plugins from a directory. See :doc:`../reference/plugins` for more details.
+
 2.4.1
 -----
 

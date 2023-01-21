@@ -103,10 +103,9 @@ class Liara:
     __document_post_processors: List[Callable]
     # When running using 'serve', this will be set to the local URL
     __base_url_override: Optional[str] = None
-    __registered_plugins: Set[str] = set()
+    __registered_plugins: Dict[object, object] = dict()
     __filesystem_walker: FilesystemWalker
     __template_repository: TemplateRepository
-    __plugin_modules = Dict[pathlib.Path, object]
 
     def __init__(self,
                  configuration: Optional[
@@ -140,7 +139,13 @@ class Liara:
             flatten_dictionary(default_configuration))
 
         Liara.setup_plugins()
-        self._load_plugins('./plugins')
+
+        plugin_directories = self.__configuration['plugin_directories']
+        if isinstance(plugin_directories, str):
+            plugin_directories = [plugin_directories]
+
+        for directory in plugin_directories:
+            self._load_plugins(directory)
 
         self.__resource_node_factory = ResourceNodeFactory(
             self.__configuration
@@ -182,7 +187,7 @@ class Liara:
             self.__log.debug(f'Initializing plugin: {name}')
             assert hasattr(module, 'register')
             module.register()
-            self.__registered_plugins.add(name)
+            self.__registered_plugins[name] = module
 
     def __setup_cache(self) -> None:
         # Deprecated since version 2.2
@@ -718,12 +723,14 @@ class Liara:
             if hasattr(module, 'register'):
                 module.register()
                 # Keep it around to prevent garbage collection
-                self.__plugin_modules.append(module)
+                self.__registered_plugins[plugin] = module
 
     def _load_module(self, path, name=''):
         import importlib
+        self.__log.debug(f'Initializing plugin from module: "{path}"')
         # Prevent modules from being loaded twice
-        if module := self.__plugin_modules.get(path):
+        if module := self.__registered_plugins.get(path):
+            self.__log.debug(f'Module "{path}" already registered, skipping')
             return module
 
         if not name:

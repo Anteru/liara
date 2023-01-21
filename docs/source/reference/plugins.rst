@@ -16,6 +16,8 @@ In practice this means you can provide a plugin by placing it in the ``liara.plu
 
 Of course, a completely empty plugin doesn't provide any functionality. To hook into Liara, you can connect event handlers to signals. The signals are defined in the :py:mod:`liara.signals` module.
 
+Additionally, plugins can be loaded directly from a folder by specifying the ``plugin_directories`` configuration option. In this case, each ``.py`` file in that directory containing a ``register`` method will be loaded as a plugin.
+
 Extending the command line
 --------------------------
 

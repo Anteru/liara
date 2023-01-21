@@ -13,6 +13,7 @@ def create_default_configuration() -> Dict[str, Any]:
         'static_directory': 'static',
         'output_directory': 'output',
         'generator_directory': 'generators',
+        'plugin_directories': [],
         'build': {
             'clean_output': True,
             'cache.fs.directory': 'cache',

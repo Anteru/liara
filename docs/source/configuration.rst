@@ -29,14 +29,22 @@ Directory settings
 * ``generator_directory``: The folder containing :doc:`content/generators`.
 * ``plugin_directories``: A list of directories to be scanned for :doc:`reference/plugins`.
 
-  This option was added in Liara 2.5.
+  .. versionadded:: 2.5
 
 Build settings
 --------------
 
 * ``build.clean_output``: If set to ``True``, the output directory will be deleted on every build.
-* ``build.cache_directory``: The directory where the cache will be stored. Only used by ``db`` and ``fs`` caches. This option is deprecated as of version 2.2.0, use ``build.cache.db.directory`` and ``build.cache.fs.directory`` instead.
-* ``build.cache_type``: The cache type to use. Deprecated as of version 2.2, use ``build.cache.type`` instead.
+* ``build.cache_directory``: The directory where the cache will be stored. Only used by ``db`` and ``fs`` caches.
+
+  .. deprecated:: 2.2
+    Use ``build.cache.db.directory`` and ``build.cache.fs.directory`` instead.
+
+* ``build.cache_type``: The cache type to use.
+
+  .. deprecated:: 2.2
+     Use ``build.cache.type``.
+
 * ``build.cache.type``: The cache type to use. One of:
 
   - ``db`` uses a local database cache, which stores everything in a single file.
@@ -57,7 +65,7 @@ Build settings
   - ``cli`` uses the ``sass`` command, which must be available in the path.
   - ``libsass`` uses ``libsass``, which is `deprecated <https://sass-lang.com/libsass>`_, but does not depend on external binaries.
 
-  This option was added in Liara 2.3.4.
+  .. versionadded:: 2.3.4
 
 Database cache options
 ^^^^^^^^^^^^^^^^^^^^^^

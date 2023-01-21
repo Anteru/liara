@@ -54,7 +54,7 @@ document_loaded = signal('document-loaded')
 register_markdown_shortcodes = signal('register-markdown-shortcodes')
 """Raised while initializing the Markdown processor.
 
-  :param liara.md.CallPreprocessor preprocessor: The call preprocessor
+  :param liara.md.ShortcodePreprocessor preprocessor: The shortcode preprocessor
 
   When this signal is raised, you can register shortcode function calls by
   calling :py:meth:`liara.md.ShortcodePreprocessor.register`.

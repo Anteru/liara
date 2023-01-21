@@ -15,4 +15,5 @@ Once you've written the content, you'll need to set up templates and publishers 
    indices
    metadata
    resources
+   shortcodes
    url-patterns

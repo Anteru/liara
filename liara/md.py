@@ -79,6 +79,10 @@ class ShortcodePreprocessor(Preprocessor):
         Shortcode function calls must accept all arguments as named arguments.
         Names (both function names and argument names) starting with ``$`` are
         reserved for built-in functions.
+
+        Shortcode handlers must accept a final ``**kwargs`` argument to handle
+        any context Liara may pass in. Liara context variables will be prefixed
+        with ``$`` which is disallowed as an parameter name otherwise.
         """
         assert name and name[0] != '$'
         self.__functions[name] = function

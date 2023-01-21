@@ -36,6 +36,8 @@ Documents
 
 The bulk of the content are document nodes -- Markdown or Html files which get processed by Liara to Html and which get templates applied. Liara supports some common Markdown extensions to handle tables and code snippets.
 
+Liara's Markdown processing can be also extended by user-provided function calls. See :doc:`shortcodes` for more details.
+
 Index files
 -----------
 

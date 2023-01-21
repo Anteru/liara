@@ -51,11 +51,11 @@ document_loaded = signal('document-loaded')
   templates etc. have been applied to the document yet.
 """
 
-register_markdown_calls = signal('register-markdown-calls')
+register_markdown_shortcodes = signal('register-markdown-shortcodes')
 """Raised while initializing the Markdown processor.
 
-:param liara.md.CallPreprocessor preprocessor: The call preprocessor
+  :param liara.md.CallPreprocessor preprocessor: The call preprocessor
 
-  When this signal is raised, you can register Markdown function calls by
-  calling :py:meth:`liara.md.CallPreprocessor.register_function`.
+  When this signal is raised, you can register shortcode function calls by
+  calling :py:meth:`liara.md.ShortcodePreprocessor.register`.
 """

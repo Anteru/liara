@@ -114,6 +114,9 @@ See :doc:`../publish/processing` for an overview of the processing stages.
     .. autodata:: document_loaded
         :annotation:
 
+    .. autodata:: register_markdown_shortcodes
+        :annotation:
+
 liara.site module
 -----------------
 

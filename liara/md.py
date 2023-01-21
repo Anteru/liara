@@ -3,6 +3,7 @@ from markdown.treeprocessors import Treeprocessor
 from markdown.preprocessors import Preprocessor
 from enum import Enum
 import re
+import logging
 
 
 class HeadingLevelFixupProcessor(Treeprocessor):
@@ -39,7 +40,30 @@ class HeadingLevelFixupProcessor(Treeprocessor):
             self._demote_header(e)
 
 
-class CallPreprocessor(Preprocessor):
+class ShortcodePreprocessor(Preprocessor):
+    """
+    A Wordpress-inspired "shortcode" preprocessor which allows calling
+    functions before the markup processing starts.
+
+    Shortcodes are delimited by ``<%`` and ``/%>``. The content must start with
+    the function name, followed by ``key=value`` pairs. The values are passed
+    as strings, the calling function must do the type conversion.
+
+    .. note::
+      Freestanding keys are not supported as it's ambiguous whether this should
+      be a considered a plain argument (i.e. passed as a non-named argument) or
+      a defaulted argument (i.e. named, but set to ``True`` or some other
+      value.) For example, you can't write a shortcode like this::
+
+        <% alert message="This is important" blink /%>
+
+      Instead, you'll have to use something like::
+
+        <% alert message="This is important" blink=yes /%>
+    """
+
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
+
     def __init__(self, md=None):
         super().__init__(md)
         self.__functions = dict()
@@ -49,7 +73,14 @@ class CallPreprocessor(Preprocessor):
         self.__arg = re.compile(r'^([\w_]+)(?:\s*)=(?:\s*)')
         self.__value = re.compile(r'(\w+)(?:\s*)')
 
-    def register_function(self, name, function):
+    def register(self, name, function):
+        """Register a new Markdown shortcode function.
+
+        Shortcode function calls must accept all arguments as named arguments.
+        Names (both function names and argument names) starting with ``$`` are
+        reserved for built-in functions.
+        """
+        assert name and name[0] != '$'
         self.__functions[name] = function
 
     class ParseState(Enum):
@@ -57,6 +88,13 @@ class CallPreprocessor(Preprocessor):
         Inside = 1
 
     def _parse_line(self, line, pending, state):
+        """Return a tuple with:
+
+        * Anything that should be output immediately
+        * The content to be parsed next
+        * The accumulated content inside <% /%>
+        * The next parse state.
+        """
         if state == self.ParseState.Inside:
             if match := self.__tag_end.search(line):
                 content = line[:match.start()]
@@ -118,6 +156,10 @@ class CallPreprocessor(Preprocessor):
             # Throw exception: Missing function name
             pass
 
+        # Undo string escapes in the strings
+        function_args = {k: v.replace('\\"', '"')
+                         for k, v in function_args.items()}
+
         return self.__functions[function](**function_args)
 
     def run(self, lines):
@@ -125,9 +167,11 @@ class CallPreprocessor(Preprocessor):
         temp = ''
 
         for line in lines:
-            while line:
+            # Must use `is not None` checks here because we want to emit
+            # whitespace lines/empty lines
+            while line is not None:
                 output, line, temp, state = self._parse_line(line, temp, state)
-                if output:
+                if output is not None:
                     yield output
 
 
@@ -135,16 +179,18 @@ class LiaraMarkdownExtensions(Extension):
     """Markdown extension for the :py:class:`HeadingLevelFixupProcessor`.
     """
     def extendMarkdown(self, md):
-        from .signals import register_markdown_calls
+        from .signals import register_markdown_shortcodes
 
-        cp = CallPreprocessor(md)
+        shortcode_preprocessor = ShortcodePreprocessor(md)
 
-        register_markdown_calls.send(self, preprocessor=cp)
+        register_markdown_shortcodes.send(
+            self,
+            preprocessor=shortcode_preprocessor)
 
         md.treeprocessors.register(HeadingLevelFixupProcessor(md),
                                    'heading-level-fixup',
                                    100)
-        md.preprocessors.register(cp,
-                                  'call-preprocessor',
+        md.preprocessors.register(shortcode_preprocessor,
+                                  'shortcode-preprocessor',
                                   100)
         md.registerExtension(self)

@@ -4,6 +4,7 @@ Changelog
 2.5.0 (unreleased)
 ------------------
 
+* Add support for "shortcodes", that is, function calls embedded in the document source. See
 * Add a new configuration option to load plugins from a directory. See :doc:`../reference/plugins` for more details.
 
 2.4.1

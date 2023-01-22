@@ -12,8 +12,8 @@ For example, you may want to create a small snippet of HTML like this:
 .. code:: html
 
     <figure>
-        <a href="/path/to/image">
-            <img src="/path/to/image">
+        <a href="/path/to/image.jpg">
+            <img src="/path/to/image.thumbnail.jpg">
         </a>
         <figcaption>The caption</figcaption>
     </figure>
@@ -30,7 +30,7 @@ For this to work, you would register a new function:
 
     def figure_shortcode(link, caption, **kwargs):
         return f"""<figure>
-                      <a href="{link}"><img src="{link}"></a>
+                      <a href="{link}.jpg"><img src="{link}.thumbnail.jpg"></a>
                       <figcaption>{caption}</figcaption>
                    </figure>"""
 

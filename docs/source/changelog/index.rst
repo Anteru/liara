@@ -1,8 +1,8 @@
 Changelog
 =========
 
-2.4.1 (unreleased)
-------------------
+2.4.1
+-----
 
 * Add support for parallel node processing. This can result in significantly faster build times for sites with many resources. You can use ``--no-parallel`` to disable parallel processing in case this causes problems.
 * Add support for additional thumbnail formats. This also replaces the old mechanism using ``image_thumbnail_sizes`` with a new configuration setting, ``image_thumbnails``. See :doc:`../publish/templates` for more details.

@@ -61,6 +61,8 @@ Template definitions also support the following fields:
 
    There is nothing special about ``thumbnail`` in the example above -- any suffix can be used, and multiple suffixes are support.
 
+   .. versionadded:: 2.4.1
+
 Authoring Templates
 -------------------
 

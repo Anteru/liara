@@ -57,11 +57,13 @@ Template definitions also support the following fields:
   ``formats`` is a list of formats to use for the thumbnails.
   ``original`` means the original format is used (determined from the file extension). Additional supported formats are: ``JPG``, ``PNG`` and ``WEBP``.
 
+  .. versionadded:: 2.4.1
+
 .. note::
 
    There is nothing special about ``thumbnail`` in the example above -- any suffix can be used, and multiple suffixes are support.
 
-   .. versionadded:: 2.4.1
+
 
 Authoring Templates
 -------------------

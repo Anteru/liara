@@ -1,4 +1,5 @@
 from liara.md import ShortcodePreprocessor
+import pytest
 
 
 def test_shortcode_parse():
@@ -15,3 +16,16 @@ def test_shortcode_parse():
     assert len(output) == 2
     assert output[0] == '*23*'
     assert output[1] == '_52_'
+
+def test_shortcode_register_requires_kwargs():
+    def h1(arg1):
+        pass
+
+    def h2(arg1, **a):
+        pass
+
+    sp = ShortcodePreprocessor()
+    with pytest.raises(Exception):
+        sp.register('h1', h1)
+
+    sp.register('h2', h2)

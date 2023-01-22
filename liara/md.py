@@ -84,6 +84,15 @@ class ShortcodePreprocessor(Preprocessor):
         any context Liara may pass in. Liara context variables will be prefixed
         with ``$`` which is disallowed as an parameter name otherwise.
         """
+        import inspect
+
+        signature = inspect.signature(function)
+        if not any([p.kind == p.VAR_KEYWORD
+                    for p in signature.parameters.values()]):
+            raise Exception(f'Cannot register function "{name}" as a '
+                             'shortcode handler as the function signature '
+                             'is missing a **kwargs parameter.')
+
         assert name and name[0] != '$'
         self.__functions[name] = function
 

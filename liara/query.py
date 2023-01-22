@@ -99,9 +99,9 @@ class MetadataSorter(Sorter):
         # included, not because someone wanted items without a title
         # first/last)
         if key is None:
-            raise RuntimeError(f'Cannot sort node "{item.path}" by key '
-                               f'"{self.__item}" as the node is missing that '
-                               'key from its metadata.')
+            raise Exception(f'Cannot sort node "{item.path}" by key '
+                            f'"{self.__item}" as the node is missing that '
+                             'key from its metadata.')
         if isinstance(key, str) and self.__case_sensitive is False:
             return key.lower()
         return key

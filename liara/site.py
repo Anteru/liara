@@ -173,9 +173,8 @@ class Collection:
                                   'excludes nodes which miss certain metadata '
                                   'fields.',
                                   node.path, ordering)
-                    raise RuntimeError(
-                        f'Cannot order collection "{self.__name}" '
-                        f'by key "{ordering}"')
+                    raise Exception(f'Cannot order collection "{self.__name}" '
+                                    f'by key "{ordering}"')
                 return result
 
             nodes = sorted(nodes, key=key_fun, reverse=reverse)

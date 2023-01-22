@@ -71,7 +71,7 @@ class ShortcodePreprocessor(Preprocessor):
         self.__tag_end = re.compile(r'/%>')
         self.__name = re.compile(r'^([\w_]+)(?:\s+)')
         self.__arg = re.compile(r'^([\w_]+)(?:\s*)=(?:\s*)')
-        self.__value = re.compile(r'(\w+)(?:\s*)')
+        self.__value = re.compile(r'(\S+)(?:\s*)')
 
     def register(self, name, function):
         """Register a new Markdown shortcode function.
@@ -145,7 +145,7 @@ class ShortcodePreprocessor(Preprocessor):
                             args[string_start:string_end]
                         args = args[string_end+1:]
                     else:
-                        args = args[arg_match.end()]
+                        args = args[arg_match.end():]
                         if value_match := self.__value.match(args):
                             args = args[value_match.end():]
                             function_args[arg_match.group(
@@ -176,7 +176,7 @@ class ShortcodePreprocessor(Preprocessor):
             while line is not None:
                 output, line, temp, state = self._parse_line(line, temp, state)
                 if output is not None:
-                    yield output
+                    yield from output.splitlines()
 
 
 class LiaraMarkdownExtensions(Extension):

@@ -739,3 +739,6 @@ class Liara:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
+
+    def _get_cache(self) -> Cache:
+        return self.__cache

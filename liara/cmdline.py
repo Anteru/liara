@@ -311,5 +311,22 @@ def serve(env, browser, port, cache):
     liara.serve(open_browser=browser, port=port, disable_cache=not cache)
 
 
+@cli.command()
+@click.argument('action', type=click.Choice(['clear', 'inspect']))
+@pass_environment
+def cache(env, action):
+    """Modify or inspect the cache."""
+    import humanfriendly
+
+    if action == 'clear':
+        env.liara._get_cache().clear()
+    elif action == 'inspect':
+        info = env.liara._get_cache().inspect()
+        size = humanfriendly.format_size(info.size, binary=True)
+        print(f'Cache type:   {info.name}')
+        print(f'Size:         {size}')
+        print(f'Object count: {info.entry_count}')
+
+
 if __name__ == '__main__':
     main()

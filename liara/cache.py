@@ -1,11 +1,28 @@
-import pathlib
-import hashlib
-import pickle
-from typing import Dict, Optional
-import os
-import sqlite3
+from dataclasses import dataclass
 from datetime import timedelta
+from typing import Dict, Optional
 import abc
+import hashlib
+import logging
+import os
+import pathlib
+import pickle
+import sqlite3
+
+
+@dataclass
+class CacheInfo:
+    """Information about a cache. Note that the information can be approximated
+    as getting the exact numbers may be costly."""
+
+    size: int = 0
+    """Approximate number of objects stored in the cache."""
+
+    entry_count: int = 0
+    """Approximate number of objects stored in the cache."""
+
+    name: str = ""
+    """A human-friendly name for this cache."""
 
 
 class Cache(abc.ABC):
@@ -38,6 +55,19 @@ class Cache(abc.ABC):
         """
         return None
 
+    @abc.abstractmethod
+    def clear(self) -> None:
+        """Clear the contents of the cache.
+
+        .. versionadded:: 2.5
+        """
+
+    @abc.abstractmethod
+    def inspect(self) -> CacheInfo:
+        """Get an overview of the cached data.
+
+        .. versionadded:: 2.5"""
+
 
 class FilesystemCache(Cache):
     """A :py:class:`Cache` implementation which uses the filesystem to cache
@@ -47,6 +77,8 @@ class FilesystemCache(Cache):
     :py:meth:`persist` to write the cache index to disk.
     """
     __index: Dict[bytes, pathlib.Path]
+
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self, path: pathlib.Path):
         self.__path = path
@@ -59,6 +91,13 @@ class FilesystemCache(Cache):
             except Exception:
                 # Not being able to load the cache is not an error
                 pass
+
+    def clear(self) -> None:
+        import shutil
+        self.__log.debug('Clearing cache')
+        self.__index = {}
+        shutil.rmtree(self.__path, ignore_errors=True)
+        os.makedirs(self.__path, exist_ok=True)
 
     def persist(self):
         pickle.dump(self.__index, self.__index_file.open('wb'))
@@ -80,6 +119,15 @@ class FilesystemCache(Cache):
         cache_object_path = self.__index[key]
         return pickle.load(cache_object_path.open('rb'))
 
+    def inspect(self):
+        count = len(self.__index)
+
+        size = 0
+        for path in self.__index.values():
+            size += pathlib.Path(path).stat().st_size
+
+        return CacheInfo(size, count, 'Filesystem')
+
 
 class Sqlite3Cache(Cache):
     """A :py:class:`Cache` implementation which uses SQLite to store the data.
@@ -89,6 +137,8 @@ class Sqlite3Cache(Cache):
     This cache tries to load a previously generated index. Use
     :py:meth:`persist` to write the cache index to disk.
     """
+
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self, path: pathlib.Path):
         self.__path = path
@@ -101,13 +151,13 @@ class Sqlite3Cache(Cache):
                 data BLOB NOT NULL,
                 object_type VARCHAR NOT NULL);""")
 
-    def persist(self):
-        """Persists this cache to disk.
+    def clear(self) -> None:
+        self.__log.debug('Clearing cache')
+        self.__cursor.execute("DELETE FROM cache;")
+        self.__connection.commit()
+        self.__cursor.execute("VACUUM;")
 
-        This function should be called after the cache has been populated. On
-        the next run, the constructor will then pick up the index and return
-        cached data.
-        """
+    def persist(self):
         self.__connection.commit()
 
     def put(self, key: bytes, value: object) -> bool:
@@ -141,6 +191,20 @@ class Sqlite3Cache(Cache):
 
         return None
 
+    def inspect(self):
+        size, count = self.__cursor.execute(
+            'SELECT SUM(LENGTH(data)), COUNT(*) FROM cache;'
+        ).fetchone()
+
+        # If there is no data stored, the query above will return None, None
+        if size is None:
+            size = 0
+
+        if count is None:
+            count = 0
+
+        return CacheInfo(size, count, 'Sqlite3')
+
 
 class MemoryCache(Cache):
     """An in-memory :py:class:`Cache` implementation.
@@ -161,6 +225,20 @@ class MemoryCache(Cache):
 
     def get(self, key: bytes) -> Optional[object]:
         return self.__index.get(key, None)
+
+    def clear(self):
+        self.__index = {}
+
+    def inspect(self):
+        import sys
+        size = sys.getsizeof(self.__index)
+
+        size += sum([sys.getsizeof(k) + sys.getsizeof(v)
+                     for k, v in self.__index.value()])
+
+        count = len(self.__index)
+
+        return CacheInfo(size, count, 'In-Memory')
 
 
 class RedisCache(Cache):
@@ -208,6 +286,10 @@ class RedisCache(Cache):
 
         return value
 
+    def clear(self):
+        for key in self.__redis.scan_iter('liara/*'):
+            self.__redis.delete(key)
+
 
 class NullCache(Cache):
     """The null cache drops all requests and does not cache any data.
@@ -220,3 +302,9 @@ class NullCache(Cache):
 
     def get(self, key: bytes) -> Optional[object]:
         return None
+
+    def clear(self) -> None:
+        pass
+
+    def inspect(self) -> CacheInfo:
+        return CacheInfo(0, 0, 'Null')

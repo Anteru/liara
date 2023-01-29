@@ -40,3 +40,15 @@ def test_shortcode_error_handling():
 
     with pytest.raises(Exception):
         _ = list(sp.run([r"""<% /%>"""]))
+
+
+def test_shortcode_preprocessor_preserves_empty_lines():
+    document = r"""Header
+======
+
+Body"""
+
+    sp = ShortcodePreprocessor()
+    output = '\n'.join(sp.run(document.splitlines()))
+
+    assert output == document

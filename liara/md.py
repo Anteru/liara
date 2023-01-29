@@ -116,10 +116,16 @@ class ShortcodePreprocessor(Preprocessor):
         * The accumulated content inside <% /%>
         * The next parse state.
         """
+        # We set the line to None here if there's a call in there and nothing
+        # before/after it, so we can discern an actually empty line (which
+        # must be preserved) from a generated empty line (because the shortcode
+        # was cut out)
         if state == self.ParseState.Inside:
             if match := self.__tag_end.search(line):
                 content = line[:match.start()]
                 line = line[match.end():]
+                if line == '':
+                    line = None
                 if shortcode_starting_line != -1:
                     line_number = shortcode_starting_line
                 content = self._call_function(pending + content,
@@ -133,6 +139,8 @@ class ShortcodePreprocessor(Preprocessor):
             if match := self.__tag_start.search(line):
                 content = line[match.end():]
                 line = line[:match.start()]
+                if line == '':
+                    line = None
                 return (line, content, "", self.ParseState.Inside,)
             else:
                 return (line, None, None, self.ParseState.Outside,)
@@ -212,7 +220,12 @@ class ShortcodePreprocessor(Preprocessor):
                 elif state == self.ParseState.Outside:
                     first_inside_line = -1
                 if output is not None:
-                    yield from output.splitlines()
+                    # Functions can return multiple lines, and we want to
+                    # preserve that so the parser can find multi-line constructs
+                    if '\n' in output:
+                        yield from output.splitlines()
+                    else:
+                        yield output
 
         if state == self.ParseState.Inside:
             raise ShortcodeException('Shortcode open at end of file.',

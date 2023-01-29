@@ -40,6 +40,12 @@ class HeadingLevelFixupProcessor(Treeprocessor):
             self._demote_header(e)
 
 
+class ShortcodeException(Exception):
+    def __init__(self, error_message, line_number):
+        super().__init__(f'Line {line_number}: {error_message}')
+        self.__line_number = line_number
+
+
 class ShortcodePreprocessor(Preprocessor):
     """
     A Wordpress-inspired "shortcode" preprocessor which allows calling
@@ -64,7 +70,7 @@ class ShortcodePreprocessor(Preprocessor):
 
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
-    def __init__(self, md=None):
+    def __init__(self, line_offset: int = 1, md=None):
         super().__init__(md)
         self.__functions = dict()
         self.__tag_start = re.compile(r'<%')
@@ -72,8 +78,9 @@ class ShortcodePreprocessor(Preprocessor):
         self.__name = re.compile(r'^([\w_]+)(?:\s+)')
         self.__arg = re.compile(r'^([\w_]+)(?:\s*)=(?:\s*)')
         self.__value = re.compile(r'(\S+)(?:\s*)')
+        self.__line_offset = line_offset
 
-    def register(self, name, function):
+    def register(self, name: str, function):
         """Register a new Markdown shortcode function.
 
         Shortcode function calls must accept all arguments as named arguments.
@@ -90,8 +97,8 @@ class ShortcodePreprocessor(Preprocessor):
         if not any([p.kind == p.VAR_KEYWORD
                     for p in signature.parameters.values()]):
             raise Exception(f'Cannot register function "{name}" as a '
-                             'shortcode handler as the function signature '
-                             'is missing a **kwargs parameter.')
+                            'shortcode handler as the function signature '
+                            'is missing a **kwargs parameter.')
 
         assert name and name[0] != '$'
         self.__functions[name] = function
@@ -100,7 +107,8 @@ class ShortcodePreprocessor(Preprocessor):
         Outside = 0
         Inside = 1
 
-    def _parse_line(self, line, pending, state):
+    def _parse_line(self, line: str, pending: str, state: ParseState,
+                    line_number: int, shortcode_starting_line: int):
         """Return a tuple with:
 
         * Anything that should be output immediately
@@ -112,7 +120,10 @@ class ShortcodePreprocessor(Preprocessor):
             if match := self.__tag_end.search(line):
                 content = line[:match.start()]
                 line = line[match.end():]
-                content = self._call_function(pending + content)
+                if shortcode_starting_line != -1:
+                    line_number = shortcode_starting_line
+                content = self._call_function(pending + content,
+                                              line_number)
                 return (content, line, None, self.ParseState.Outside,)
             else:
                 # No end tag, so append the whole line to the current state
@@ -126,7 +137,7 @@ class ShortcodePreprocessor(Preprocessor):
             else:
                 return (line, None, None, self.ParseState.Outside,)
 
-    def _call_function(self, content: str):
+    def _call_function(self, content: str, line_number: int):
         content = content.strip()
 
         function_args = dict()
@@ -161,13 +172,23 @@ class ShortcodePreprocessor(Preprocessor):
                                 1)] = value_match.group(1)
                         else:
                             # Raise error
-                            pass
+                            raise ShortcodeException(
+                                'Invalid function argument value while trying '
+                                f'to call "{function}".',
+                                line_number + self.__line_offset
+                            )
                 else:
-                    # Throw exception: Missing arg=
-                    pass
+                    raise ShortcodeException(
+                        'Error parsing argument while parsing call to '
+                        f'"{function}". Arguments must have the form '
+                        'key=value or key="value".',
+                        line_number + self.__line_offset
+                    )
         else:
-            # Throw exception: Missing function name
-            pass
+            raise ShortcodeException(
+                'No function name in shortcode',
+                line_number + self.__line_offset
+            )
 
         # Undo string escapes in the strings
         function_args = {k: v.replace('\\"', '"')
@@ -178,23 +199,37 @@ class ShortcodePreprocessor(Preprocessor):
     def run(self, lines):
         state = self.ParseState.Outside
         temp = ''
+        first_inside_line = -1
 
-        for line in lines:
+        for line_number, line in enumerate(lines):
             # Must use `is not None` checks here because we want to emit
             # whitespace lines/empty lines
             while line is not None:
-                output, line, temp, state = self._parse_line(line, temp, state)
+                output, line, temp, state = self._parse_line(
+                    line, temp, state, line_number, first_inside_line)
+                if state == self.ParseState.Inside and first_inside_line == -1:
+                    first_inside_line = line_number
+                elif state == self.ParseState.Outside:
+                    first_inside_line = -1
                 if output is not None:
                     yield from output.splitlines()
+
+        if state == self.ParseState.Inside:
+            raise ShortcodeException('Shortcode open at end of file.',
+                                     first_inside_line + self.__line_offset)
 
 
 class LiaraMarkdownExtensions(Extension):
     """Markdown extension for the :py:class:`HeadingLevelFixupProcessor`.
     """
+    def __init__(self, line_offset: int = 1):
+        super().__init__()
+        self.__line_offset = line_offset
+
     def extendMarkdown(self, md):
         from .signals import register_markdown_shortcodes
 
-        shortcode_preprocessor = ShortcodePreprocessor(md)
+        shortcode_preprocessor = ShortcodePreprocessor(self.__line_offset, md)
 
         register_markdown_shortcodes.send(
             self,

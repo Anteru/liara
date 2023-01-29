@@ -9,9 +9,10 @@ a = "b"
 
 content
 """
-    metadata, content = extract_metadata_content(document)
+    metadata, content, first_content_line = extract_metadata_content(document)
     assert 'a' in metadata
     assert metadata['a'] == 'b'
+    assert first_content_line == 4
     assert content == """
 content
 """
@@ -24,9 +25,10 @@ a: "b"
 
 content
 """
-    metadata, content = extract_metadata_content(document)
+    metadata, content, first_content_line = extract_metadata_content(document)
     assert 'a' in metadata
     assert metadata['a'] == 'b'
+    assert first_content_line == 4
     assert content == """
 content
 """
@@ -41,7 +43,7 @@ content
 """
 
     with pytest.raises(Exception):
-        m, c = extract_metadata_content(document)
+        m, c, _ = extract_metadata_content(document)
 
 
 def test_extract_no_metadata():
@@ -49,11 +51,12 @@ def test_extract_no_metadata():
 content
 """
 
-    metadata, content = extract_metadata_content(document)
+    metadata, content, first_content_line = extract_metadata_content(document)
     assert content == """
 content
 """
     assert metadata == {}
+    assert first_content_line == 1
 
 
 def test_extract_metadata_no_trailing_newline():
@@ -61,7 +64,8 @@ def test_extract_metadata_no_trailing_newline():
 a: "b"
 ---"""
 
-    metadata, content = extract_metadata_content(document)
+    metadata, content, first_content_line = extract_metadata_content(document)
     assert 'a' in metadata
     assert metadata['a'] == 'b'
     assert content == ''
+    assert first_content_line == 4

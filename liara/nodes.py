@@ -208,7 +208,7 @@ def extract_metadata_content(text: str):
     """Extract metadata and content.
 
     Metadata is stored at the beginning of the file, separated using a metadata
-    seperation marker, for instance::
+    separation marker, for instance::
 
       +++
       this_is_toml = True
@@ -255,10 +255,13 @@ def extract_metadata_content(text: str):
         metadata = toml.loads(text[meta_start:meta_end])
     else:
         # We didn't find any metadata here, so everything must be content
-        return {}, text
+        return {}, text, 1
 
     content = text[content_start:content_end]
-    return metadata, content
+    # +2 for the start/end marker, which is excluded from the
+    # meta_start/meta_end
+    # +1 because we start counting at 1
+    return metadata, content, text[meta_start:meta_end].count('\n') + 3
 
 
 def fixup_relative_links(document: 'DocumentNode'):
@@ -328,6 +331,7 @@ class DocumentNode(Node):
         self.content = None
         self._load_fixups = []
         self._process_fixups = []
+        self._content_line_start = None
 
     def set_fixups(self, *, load_fixups, process_fixups) -> None:
         """Set the fixups that should be applied to this document node.
@@ -365,8 +369,9 @@ class DocumentNode(Node):
         if self.metadata_path:
             self.metadata = load_yaml(self.metadata_path.read_text())
             self._raw_content = self.src.read_text('utf-8')
+            self._content_line_start = 1
         else:
-            self.metadata, self._raw_content = \
+            self.metadata, self._raw_content, self._content_line_start = \
                 extract_metadata_content(self.src.read_text('utf-8'))
 
     def reload(self):
@@ -406,7 +411,7 @@ class MarkdownDocumentNode(DocumentNode):
 
         extensions = [
             'pymdownx.arithmatex',
-            LiaraMarkdownExtensions(),
+            LiaraMarkdownExtensions(self._content_line_start),
             'fenced_code',
             'codehilite',
             'smarty',

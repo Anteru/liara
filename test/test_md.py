@@ -17,6 +17,7 @@ def test_shortcode_parse():
     assert output[0] == '*23*'
     assert output[1] == '_52_'
 
+
 def test_shortcode_register_requires_kwargs():
     def h1(arg1):
         pass
@@ -29,3 +30,13 @@ def test_shortcode_register_requires_kwargs():
         sp.register('h1', h1)
 
     sp.register('h2', h2)
+
+
+def test_shortcode_error_handling():
+    sp = ShortcodePreprocessor()
+
+    with pytest.raises(Exception):
+        _ = list(sp.run([r"""<% code foo /%>"""]))
+
+    with pytest.raises(Exception):
+        _ = list(sp.run([r"""<% /%>"""]))

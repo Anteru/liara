@@ -642,7 +642,13 @@ class Liara:
         cache = self.__cache if not disable_cache else NullCache()
         self.__log.debug(f'Using {cache.__class__.__name__} for caching')
         for document in site.documents:
-            _process_node_sync(document, cache)
+            try:
+                _process_node_sync(document, cache)
+            except Exception as e:
+                self.__log.warning('Failed to process document "%s". Document '
+                                   'content will be empty.',
+                                   document.src,
+                                   exc_info=e)
         self.__log.info(f'Processed {len(site.documents)} documents')
         signals.documents_processed.send(self, site=self.__site)
 

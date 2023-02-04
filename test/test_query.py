@@ -74,6 +74,14 @@ def test_query_sort_by():
     assert s1[0].url == '/a'
     assert s2[1].url == '/a'
 
+    with pytest.raises(Exception):
+        _ = list(root.select_children().sorted_by_metadata('non-existant'))
+
+    s3 = list(root.select_children().sorted_by_metadata('title'))
+    assert s3[0].url == '/a'
+    assert s3[1].url == '/b'
+
+
 def test_query_limit():
     root = Node()
     root.path = pathlib.PurePosixPath('/')

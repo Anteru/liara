@@ -91,7 +91,7 @@ class MetadataSorter(Sorter):
         self.__item = item
         self.__case_sensitive = case_sensitive
 
-    def get_key(self, item: Page):
+    def get_key(self, item: Node):
         key = item.metadata.get(self.__item)
         # We check if the key is None here, as we can't sort None with anything
         # nor does it make much sense (i.e., if you sort by title, and an
@@ -99,7 +99,7 @@ class MetadataSorter(Sorter):
         # included, not because someone wanted items without a title
         # first/last)
         if key is None:
-            raise Exception(f'Cannot sort node "{item.url}" by key '
+            raise Exception(f'Cannot sort node "{item.path}" by key '
                             f'"{self.__item}" as the node is missing that '
                             'key from its metadata.')
         if isinstance(key, str) and self.__case_sensitive is False:
@@ -124,7 +124,7 @@ class Query(Iterable[Union[Node, Page]]):
     __sorters: List[Sorter]
     __limit: int
     __reversed: bool
-    __result: Optional[List[Page]]
+    __result: Optional[List[Union[Node, Page]]]
 
     def __init__(self, nodes: Iterable[Node]):
         """Create a query object for the list of specified nodes."""
@@ -212,7 +212,7 @@ class Query(Iterable[Union[Node, Page]]):
         if self.__reversed:
             result = reversed(result)
 
-        def Wrap(n: Node):
+        def Wrap(n: Node) -> Union[Node, Page]:
             if n.kind in {NodeKind.Document, NodeKind.Index}:
                 return Page(n)
 

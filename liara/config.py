@@ -27,7 +27,26 @@ def create_default_configuration() -> Dict[str, Any]:
         },
         'ignore_files': ['*~'],
         'content': {
-            'filters': ['date', 'status']
+            'filters': ['date', 'status'],
+            'markdown': {
+                'extensions': [
+                    'pymdownx.arithmatex',
+                    'fenced_code',
+                    'codehilite',
+                    'smarty',
+                    'tables',
+                    'admonition'
+                ],
+                'config': {
+                    'codehilite': {
+                        'css_class': 'code'
+                    },
+                    'pymdownx.arithmatex': {
+                        'generic': True
+                    }
+                },
+                'output': 'html5'
+            }
         },
         'template': 'templates/default.yaml',
         'routes': {

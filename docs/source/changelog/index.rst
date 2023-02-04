@@ -7,6 +7,7 @@ Changelog
 * Add support for "shortcodes", that is, function calls embedded in the document source. See :doc:`../content/shortcodes` for more details.
 * Add a new configuration option to load plugins from a directory. See :doc:`../reference/plugins` for more details.
 * Documents which fail to parse don't abort the build any more. Instead, a warning will be printed pointing to the broken document, and the processing will continue.
+* Markdown extensions can be configured now. See :doc:`../configuration` for more details.
 
 2.4.1
 -----

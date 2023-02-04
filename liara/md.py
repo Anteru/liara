@@ -4,6 +4,7 @@ from markdown.preprocessors import Preprocessor
 from enum import Enum
 import re
 import logging
+from typing import Optional
 
 
 class HeadingLevelFixupProcessor(Treeprocessor):
@@ -41,9 +42,25 @@ class HeadingLevelFixupProcessor(Treeprocessor):
 
 
 class ShortcodeException(Exception):
-    def __init__(self, error_message, line_number):
-        super().__init__(f'Line {line_number}: {error_message}')
+    def __init__(self, error_message, line_number,
+                 line_offset: Optional[int] = None):
+        super().__init__(self._format_message(error_message, line_number,
+                                              line_offset))
+        self.__error_message = error_message
         self.__line_number = line_number
+
+    def with_line_offset(self, offset):
+        return ShortcodeException(
+            self.__error_message,
+            self.__line_number,
+            offset
+        )
+
+    def _format_message(self, error_message, line_number, line_offset):
+        if line_offset is not None:
+            return f'Line {line_number + line_offset}: {error_message}'
+        else:
+            return error_message
 
 
 class ShortcodePreprocessor(Preprocessor):
@@ -70,7 +87,7 @@ class ShortcodePreprocessor(Preprocessor):
 
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
-    def __init__(self, line_offset: int = 1, md=None):
+    def __init__(self, md=None):
         super().__init__(md)
         self.__functions = dict()
         self.__tag_start = re.compile(r'<%')
@@ -78,7 +95,6 @@ class ShortcodePreprocessor(Preprocessor):
         self.__name = re.compile(r'^([\w_]+)(?:\s+)')
         self.__arg = re.compile(r'^([\w_]+)(?:\s*)=(?:\s*)')
         self.__value = re.compile(r'(\S+)(?:\s*)')
-        self.__line_offset = line_offset
 
     def register(self, name: str, function):
         """Register a new Markdown shortcode function.
@@ -183,19 +199,19 @@ class ShortcodePreprocessor(Preprocessor):
                             raise ShortcodeException(
                                 'Invalid function argument value while trying '
                                 f'to call "{function}".',
-                                line_number + self.__line_offset
+                                line_number
                             )
                 else:
                     raise ShortcodeException(
                         'Error parsing argument while parsing call to '
                         f'"{function}". Arguments must have the form '
                         'key=value or key="value".',
-                        line_number + self.__line_offset
+                        line_number
                     )
         else:
             raise ShortcodeException(
                 'No function name in shortcode',
-                line_number + self.__line_offset
+                line_number
             )
 
         # Undo string escapes in the strings
@@ -221,7 +237,8 @@ class ShortcodePreprocessor(Preprocessor):
                     first_inside_line = -1
                 if output is not None:
                     # Functions can return multiple lines, and we want to
-                    # preserve that so the parser can find multi-line constructs
+                    # preserve that so the parser can find multi-line
+                    # constructs
                     if '\n' in output:
                         yield from output.splitlines()
                     else:
@@ -229,20 +246,19 @@ class ShortcodePreprocessor(Preprocessor):
 
         if state == self.ParseState.Inside:
             raise ShortcodeException('Shortcode open at end of file.',
-                                     first_inside_line + self.__line_offset)
+                                     first_inside_line)
 
 
 class LiaraMarkdownExtensions(Extension):
     """Markdown extension for the :py:class:`HeadingLevelFixupProcessor`.
     """
-    def __init__(self, line_offset: int = 1):
+    def __init__(self):
         super().__init__()
-        self.__line_offset = line_offset
 
     def extendMarkdown(self, md):
         from .signals import register_markdown_shortcodes
 
-        shortcode_preprocessor = ShortcodePreprocessor(self.__line_offset, md)
+        shortcode_preprocessor = ShortcodePreprocessor(md)
 
         register_markdown_shortcodes.send(
             self,

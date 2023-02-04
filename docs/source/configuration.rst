@@ -102,6 +102,15 @@ Content settings
 * ``metadata``: Points to the file containing the :doc:`site metadata <content/metadata>`.
 * ``relaxed_date_parsing``: If enabled, metadata fields named ``date`` will be processed twice. By default, Liara assumes that ``date`` contains a markup-specific date field. If this option is on, and the ``date`` field is pointing at a string, Liara will try to parse that string into a timestamp.
 * ``allow_relative_links``: Allow the usage of relative links in content files. This has a negative build time impact on any file containing relative links and is thus recommended to be left off.
+* ``content.markdown``: Configures the Markdown processor. Liara uses `Python-Markdown <https://python-markdown.github.io/>`_ with  `PyMdown Extensions <https://facelessuser.github.io/pymdown-extensions/>`_ for Markdown processing. You can set the extension list, the extension configuration, and the output format here.
+
+  This option is a dictionary with three keys:
+
+  - ``extensions``: A list of extensions to enable.
+  - ``config``: This is mapped to the ``extension_config`` variable and can be used to fine-tune the extension behavior.
+  - ``output``: Configures the output type. The default is ``html5``.
+
+  .. versionadded:: 2.5
 
 Other settings
 --------------

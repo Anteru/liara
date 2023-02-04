@@ -19,6 +19,7 @@ from typing import (
     List,
     Literal,
     Optional,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -29,9 +30,6 @@ import dateparser
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .query import Query
-
-
-T = TypeVar('T')
 
 
 class Publisher:
@@ -322,7 +320,8 @@ class DocumentNode(Node):
     """These functions are called after a document has been processed
     (These should be called before :py:meth:`process` returns)."""
 
-    def __init__(self, src, path: pathlib.PurePosixPath, metadata_path=None):
+    def __init__(self, src, path: pathlib.PurePosixPath,
+                 metadata_path: Optional[pathlib.Path] = None):
         super().__init__()
         self.kind = NodeKind.Document
         self.src = src
@@ -398,10 +397,13 @@ class HtmlDocumentNode(DocumentNode):
 
 class MarkdownDocumentNode(DocumentNode):
     """A node representing a Markdown document."""
+    def __init__(self, md, **kwargs):
+        super().__init__(**kwargs)
+        self.__md = md
+
     def process(self, cache: Cache):
-        import markdown
-        from .md import LiaraMarkdownExtensions
         import hashlib
+        from .md import ShortcodeException
 
         byte_content = self._raw_content.encode('utf-8')
         content_hash = hashlib.sha256(byte_content).digest()
@@ -409,26 +411,14 @@ class MarkdownDocumentNode(DocumentNode):
             self.content = content
             return
 
-        extensions = [
-            'pymdownx.arithmatex',
-            LiaraMarkdownExtensions(self._content_line_start),
-            'fenced_code',
-            'codehilite',
-            'smarty',
-            'tables',
-            'admonition'
-        ]
-        extension_configs = {
-            'codehilite': {
-                'css_class': 'code'
-            },
-            'pymdownx.arithmatex': {
-                'generic': True
-            }
-        }
-        self.content = markdown.markdown(self._raw_content,
-                                         extensions=extensions,
-                                         extension_configs=extension_configs)
+        # We re-raise shortcode exceptions to adjust the line number to
+        # make debugging easier
+        try:
+            self.content = self.__md.convert(self._raw_content)
+            self.__md.reset()
+        except ShortcodeException as sx:
+            raise sx.with_line_offset(self._content_line_start) from sx
+
         self._apply_process_fixups()
 
         cache.put(content_hash, self.content)
@@ -441,7 +431,7 @@ class DataNode(Node):
     data as part of a :py:class:`liara.site.Site`, and make it available to
     templates (for instance, a menu structure could go into a data node.)
     """
-    def __init__(self, src, path: pathlib.PurePosixPath):
+    def __init__(self, src: pathlib.Path, path: pathlib.PurePosixPath):
         super().__init__()
         self.kind = NodeKind.Data
         self.src = src
@@ -577,7 +567,7 @@ _SASS_COMPILER = Literal['cli', 'libsass']
 class _AsyncSassTask(_AsyncTask):
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
-    def __init__(self, cache_key: str,
+    def __init__(self, cache_key: bytes,
                  compiler: _SASS_COMPILER,
                  src: pathlib.Path):
         self.__cache_key = cache_key
@@ -671,10 +661,13 @@ class SassResourceNode(ResourceNode):
         return _AsyncSassTask(cache_key, self.__compiler, self.src)
 
 
-class NodeFactory(Generic[T]):
+NT = TypeVar('NT', bound=Node)
+
+
+class NodeFactory(Generic[NT]):
     """A generic factory for nodes, which builds nodes based on the file
     type."""
-    __known_types: Dict[str, Type]
+    __known_types: Dict[str, Tuple[Type, Any]]
 
     def __init__(self):
         self.__known_types = {}
@@ -685,7 +678,9 @@ class NodeFactory(Generic[T]):
 
     def register_type(self,
                       suffixes: Union[str, Iterable[str]],
-                      node_type: type) -> None:
+                      node_type: type,
+                      *,
+                      extra_args: Dict[str, Any] = dict()) -> None:
         """Register a new node type.
 
         :param suffixes: Either one suffix, or a list of suffixes to be
@@ -693,36 +688,49 @@ class NodeFactory(Generic[T]):
                          representing an image could be registered to
                          ``[.jpg, .png, .webp]``.
         :param node_type: The type of the node to be created.
+        :param extra_args: A dictionary of additional arguments for the
+                           node constructor. This dictionary gets passed
+                           as ``**kwargs`` into the node constructor.
         """
         if isinstance(suffixes, str):
             suffixes = [suffixes]
 
         for suffix in suffixes:
-            self.__known_types[suffix] = node_type
+            self.__known_types[suffix] = (node_type, extra_args,)
 
-    def _create_node(self, cls, src, path, metadata_path) -> T:
+    def _create_node(self,
+                     cls,
+                     src: pathlib.Path,
+                     path: pathlib.PurePosixPath,
+                     metadata_path: Optional[pathlib.Path] = None,
+                     **kwargs) -> NT:
         """This is the actual creation function.
 
         :param cls: The class of the node to instantiate.
         :param src: The source file path.
         :param path: The output path.
         :param metadata_path: The path to a metadata file.
+        :param kwargs: Any additional arguments are passed though.
         :return: An instance of ``cls``.
 
         Derived classes can use this function to customize the node creation.
+        This call uses named arguments so derived classes can easily extract
+        arguments specific to them.
         """
-        return cls(src, path, metadata_path)
+        # We call the constructor with all keyword arguments which makes it
+        # easier to manipulate the argument list/remove arguments
+        return cls(src=src, path=path, metadata_path=metadata_path, **kwargs)
 
     def create_node(self, suffix: str,
                     src: pathlib.Path,
                     path: pathlib.PurePosixPath,
-                    metadata_path: Optional[pathlib.Path] = None) -> T:
+                    metadata_path: Optional[pathlib.Path] = None) -> NT:
         """Create a node using the provided parameters."""
-        cls = self.__known_types[suffix]
-        node = self._create_node(cls, src, path, metadata_path)
+        cls, extra_args = self.__known_types[suffix]
+        node = self._create_node(cls, src, path, metadata_path, **extra_args)
         return self._on_node_created(node)
 
-    def _on_node_created(self, node: T):
+    def _on_node_created(self, node: NT):
         """Called after a node has been created.
 
         This can be used to further configure the node from the factory
@@ -750,7 +758,7 @@ class ResourceNodeFactory(NodeFactory[ResourceNode]):
                 'Please check the documentation how to use the SASS '
                 'command line compiler.')
 
-    def _on_node_created(self, node: T):
+    def _on_node_created(self, node: NT):
         if isinstance(node, SassResourceNode):
             node.set_compiler(self.__sass_compiler)
         return node
@@ -774,7 +782,11 @@ class DocumentNodeFactory(NodeFactory[DocumentNode]):
 
         self.__setup_fixups(configuration)
 
-        self.register_type(['.md'], MarkdownDocumentNode)
+        self.register_type(
+            ['.md'], MarkdownDocumentNode,
+            extra_args={
+                'md': self._create_markdown_processor(configuration)
+            })
         self.register_type(['.html'], HtmlDocumentNode)
 
     def _on_node_created(self, node):
@@ -783,6 +795,21 @@ class DocumentNodeFactory(NodeFactory[DocumentNode]):
             process_fixups=self.__process_fixups)
         node.load()
         return node
+
+    def _create_markdown_processor(self, configuration):
+        from markdown import Markdown
+        from .md import LiaraMarkdownExtensions
+
+        extensions = [
+            LiaraMarkdownExtensions()
+        ] + configuration['content.markdown.extensions']
+
+        extension_configs = configuration['content.markdown.config']
+        output = configuration['content.markdown.output']
+
+        return Markdown(extensions=extensions,
+                        extension_configs=extension_configs,
+                        output=output)
 
 
 class StaticNode(Node):
@@ -909,7 +936,7 @@ class ThumbnailNode(ResourceNode):
         cache_key = self.__get_cache_key()
         if content := cache.get(cache_key):
             self.content = content
-            return
+            return None
 
         async_task = _AsyncThumbnailTask(cache_key, self.src,
                                          self.__size,
@@ -941,7 +968,7 @@ def _parse_node_kind(kind) -> NodeKind:
     return kind_map[kind]
 
 
-def _process_node_sync(node: Node, cache: Cache):
+def _process_node_sync(node: Union[ResourceNode, DocumentNode], cache: Cache):
     """
     Process a node synchronously, even if it returned an async result.
     """

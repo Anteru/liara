@@ -290,6 +290,9 @@ class RedisCache(Cache):
         for key in self.__redis.scan_iter('liara/*'):
             self.__redis.delete(key)
 
+    def inspect(self):
+        return CacheInfo(name='Redis')
+
 
 class NullCache(Cache):
     """The null cache drops all requests and does not cache any data.

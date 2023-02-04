@@ -12,7 +12,6 @@ from typing import (
         Callable,
         Dict,
         Optional,
-        Set,
         Text,
         Union,
     )
@@ -132,11 +131,17 @@ class Liara:
         if project_configuration is None:
             project_configuration = dict()
 
+        ignore_list = {
+            'content.markdown.extensions',
+            'content.markdown.config',
+            'content.markdown.output'
+        }
+
         self.__configuration = collections.ChainMap(
             # Must be flattened already
             configuration_overrides,
-            flatten_dictionary(project_configuration),
-            flatten_dictionary(default_configuration))
+            flatten_dictionary(project_configuration, ignore_keys=ignore_list),
+            flatten_dictionary(default_configuration, ignore_keys=ignore_list))
 
         Liara.setup_plugins()
 

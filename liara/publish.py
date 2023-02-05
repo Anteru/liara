@@ -5,6 +5,7 @@ from .nodes import (
     ResourceNode,
     StaticNode,
     GeneratedNode,
+    NodeKind,
 )
 from .template import Page, SiteTemplateProxy, TemplateRepository
 from .site import Site
@@ -13,6 +14,37 @@ from typing import (
     Union
 )
 import logging
+from .util import local_now
+from . import __version__ as liara_version
+import datetime
+
+
+class BuildContext:
+    """Provides information about the current build."""
+    version: str
+    """The Liara version string (i.e. ``a.b.c``)"""
+
+    timestamp: datetime.datetime
+    """The current time when this node was processed"""
+
+    def __init__(self, node: Union[DocumentNode, IndexNode]):
+        self.timestamp = local_now()
+        self.version = liara_version
+        self.__node = node
+
+    @property
+    def last_modified_time(self):
+        """Get the last modified time of the source file (if present)
+        as a ``datetime`` instance. If there's no source file (for example,
+        for indices), this returns the timestamp of the build itself."""
+
+        if p := self.__node.src:
+            # We want all timestamps to be in the same timezone
+            return datetime.datetime.fromtimestamp(
+                p.stat().st_mtime,
+                tz=self.timestamp.tzinfo)
+
+        return self.timestamp
 
 
 def _publish_with_template(output_path: pathlib.Path,
@@ -33,7 +65,9 @@ def _publish_with_template(output_path: pathlib.Path,
     file_path.write_text(template.render(
         site=site_template_proxy,
         page=page,
-        node=node), encoding='utf-8')
+        node=node,
+        build_context=BuildContext(node)
+        ), encoding='utf-8')
 
     return file_path
 

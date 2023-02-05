@@ -73,6 +73,7 @@ Templates get applied to :py:class:`~liara.nodes.DocumentNode` and :py:class:`~l
 - ``page`` references the current node, in form of a :py:class:`~liara.template.Page` instance.
 - ``node`` provides access to the current node directly, which will point to a  :py:class:`~liara.nodes.Node` instance.
 - ``site`` provides access to the site in form of the :py:class:`~liara.template.SiteTemplateProxy` object.
+- ``build_context`` provides access to the :py:class:`~liara.publish.BuildContext`, which provides information about the current build like the last-modified-date of the source file.
 
 In most cases, templates should only use the ``page`` reference as it's rarely useful to directly access the underlying node instances. One use case for accessing the nodes is for example to create a listing of all images in a folder, as images are instances of :py:class:`~liara.nodes.StaticNode`.
 

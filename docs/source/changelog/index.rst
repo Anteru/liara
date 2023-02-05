@@ -8,6 +8,7 @@ Changelog
 * Add a new configuration option to load plugins from a directory. See :doc:`../reference/plugins` for more details.
 * Documents which fail to parse don't abort the build any more. Instead, a warning will be printed pointing to the broken document, and the processing will continue.
 * Markdown extensions can be configured now. See :doc:`../configuration` for more details.
+* Add a new ``build_context`` global variable to templates. See :doc:`../publish/templates` for more details.
 
 2.4.1
 -----

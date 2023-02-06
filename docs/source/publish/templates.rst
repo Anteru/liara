@@ -61,7 +61,7 @@ Template definitions also support the following fields:
 
 .. note::
 
-   There is nothing special about ``thumbnail`` in the example above -- any suffix can be used, and multiple suffixes are support.
+   There is nothing special about ``thumbnail`` in the example above -- any suffix can be used, and multiple suffixes are supported (for example, ``thumbnail-1x`` and ``thumbnail-2x`` for normal and high density screens.)
 
 
 

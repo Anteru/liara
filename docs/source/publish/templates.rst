@@ -40,6 +40,10 @@ Template definitions also support the following fields:
 
 * ``static_directory`` specifies static files which will be deployed to the output. This can be used for images etc.
 * ``resource_directory`` specifies resource files to be deployed, for instance ``SASS`` files. See :doc:`../content/resources` for more details.
+* ``image_thumbnail_sizes``: Replaced by ``image_thumbnails.sizes``, see below.
+
+  .. deprecated:: 2.4.1
+
 * ``image_thumbnails`` is a dictionary used to configure image thumbnails:
 
   .. code:: yaml

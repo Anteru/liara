@@ -108,7 +108,7 @@ Content settings
 
   - ``extensions``: A list of extensions to enable.
   - ``config``: This is mapped to the ``extension_config`` variable and can be used to fine-tune the extension behavior.
-  - ``output``: Configures the output type. The default is ``html5``.
+  - ``output``: Configures the `output format <https://python-markdown.github.io/reference/#output_format>`_. The default is ``html5``.
 
   .. versionadded:: 2.5
 

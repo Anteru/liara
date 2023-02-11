@@ -1,8 +1,8 @@
 Changelog
 =========
 
-2.5.0 (unreleased)
-------------------
+2.5.0
+-----
 
 * Add support for "shortcodes", that is, function calls embedded in the document source. See :doc:`../content/shortcodes` for more details.
 * Add a new configuration option to load plugins from a directory. See :doc:`../reference/plugins` for more details.

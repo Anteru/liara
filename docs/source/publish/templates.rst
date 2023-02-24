@@ -50,22 +50,29 @@ Template definitions also support the following fields:
 
      image_thumbnails:
       sizes:
-        thumbnail: {width: 640}
+        thumbnail-md: {width: 640}
+        thumbnail-xs: {width: 320, exclude: "*.preview.*"}
+        hero: {width: 960, include: "*.hero.*"}
       formats:
         - original
         - webp
 
 
-  This will resize any static image file (from the template or the site itself) to a maximum width of 640 pixels. The thumbnail will be stored using the same file path as the original, but with  ``thumbnail`` added to the suffix. For instance, an input file named ``foo.png`` with width 800 would be resized to ``foo.thumbnail.png`` with a width of 640. Files which are below the size will get copied, so it's always safe to use the ``.thumbnail`` suffix.
+  This definition will create three kinds of thumbnails. The first entry will resize any static image file (from the template or the site itself) to a maximum width of 640 pixels. The thumbnail will be stored using the same file path as the original, but with  ``thumbnail-md`` added to the suffix. For instance, an input file named ``foo.png`` with width 800 would be resized to ``foo.thumbnail-md.png`` with a width of 640. Files which are below the size will get copied, so it's always safe to use the ``.thumbnail-md`` suffix.
+
+  Additionally, it will create files with a ``thumbnail-xs`` suffix for all files which *don't* match the exclude pattern, and ``hero`` thumbnails for all files with *do* match the include pattern. This is useful to exclude manually created thumbnails, or only create thumbnails for files which are particularly large. ``include`` and ``exclude`` are mutually exclusive, only one can be set per thumbnail size.
 
   ``formats`` is a list of formats to use for the thumbnails.
   ``original`` means the original format is used (determined from the file extension). Additional supported formats are: ``JPG``, ``PNG`` and ``WEBP``.
 
   .. versionadded:: 2.4.1
+      ``formats`` and ``sizes`` were added.
+  .. versionadded:: 2.5.0
+      ``exclude`` and ``include`` were added.
 
 .. note::
 
-   There is nothing special about ``thumbnail`` in the example above -- any suffix can be used, and multiple suffixes are supported (for example, ``thumbnail-1x`` and ``thumbnail-2x`` for normal and high density screens.)
+   There is nothing special about ``thumbnail-md`` in the example above -- any suffix can be used, and multiple suffixes are supported (for example, ``thumb-1x`` and ``thumb-2x`` for normal and high density screens.)
 
 
 

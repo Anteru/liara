@@ -24,6 +24,7 @@ from typing import (
 from .util import pairwise
 from . import signals
 import logging
+import fnmatch
 
 
 def _create_metadata_accessor(field_name):
@@ -658,6 +659,26 @@ class Site:
             static.update_metadata()
             width, height = static.metadata['image_size']
             for k, v in thumbnail_definition['sizes'].items():
+                if 'exclude' in v and 'include' in v:
+                    self.__log.warning('Thumbnail size "%s" has both '
+                                       '"include" and "exclude" filters '
+                                       'enabled, "include" will be ignored.')
+
+                if pattern := v.get('exclude'):
+                    if fnmatch.fnmatch(static.src, pattern):
+                        self.__log.debug(
+                                'Skipping thumbnail creation for "%s" due to '
+                                'exclude filter "%s"',
+                                static.src, pattern)
+                        continue
+                elif pattern := v.get('include'):
+                    if not fnmatch.fnmatch(static.src, pattern):
+                        self.__log.debug(
+                                'Skipping thumbnail creation for "%s" due to '
+                                'include filter "%s"',
+                                static.src, pattern)
+                        continue
+
                 new_url = add_suffix(static.path, k)
                 thumbnail_width = v.get('width', width)
                 thumbnail_height = v.get('height', height)

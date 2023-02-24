@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.5.1
+-----
+
+* Add ``exclude`` and ``include`` to thumbnail definitions to skip creation of thumbnails for some images. See :doc:`../publish/templates` for more details.
+
 2.5.0
 -----
 

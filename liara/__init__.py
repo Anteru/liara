@@ -200,7 +200,7 @@ class Liara:
         if cache_directory:
             self.__log.warning(
                 "'build.cache_directory' is deprecated. Please "
-                "use build.cache.<cache_type>.directory' instead.")
+                "use 'build.cache.<cache_type>.directory' instead.")
             cache_directory = pathlib.Path(cache_directory)
 
         # Deprecated since version 2.2

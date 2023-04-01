@@ -18,23 +18,17 @@ class HeadingLevelFixupProcessor(Treeprocessor):
         return self._demote_header(root)
 
     def _demote_header(self, element):
-        if element.tag == 'h1':
-            element.tag = 'h2'
-            element.set('class', 'demoted')
-        elif element.tag == 'h2':
-            element.tag = 'h3'
-            element.set('class', 'demoted')
-        elif element.tag == 'h3':
-            element.tag = 'h4'
-            element.set('class', 'demoted')
-        elif element.tag == 'h4':
-            element.tag = 'h5'
-            element.set('class', 'demoted')
-        elif element.tag == 'h5':
-            element.tag = 'h6'
-            element.set('class', 'demoted')
-        elif element.tag == 'h6':
-            element.tag = 'h6'
+        _demotions = {
+            'h1': 'h2',
+            'h2': 'h3',
+            'h3': 'h4',
+            'h4': 'h5',
+            'h5': 'h6',
+            'h6': 'h6',
+        }
+
+        if demotion := _demotions.get(element.tag):
+            element.tag = demotion
             element.set('class', 'demoted')
 
         for e in element:

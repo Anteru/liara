@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.5.2
+-----
+(unreleased)
+
+* Fix the :py:data:`~liara.signals.commandline_prepared` signal not specifying a ``sender``, unlike all other signals.
+* Improve documentation of signals & plugins. See :doc:`../reference/plugins` for more details.
+
 2.5.1
 -----
 

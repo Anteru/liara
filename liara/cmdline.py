@@ -76,7 +76,7 @@ def main():
     from .signals import commandline_prepared
 
     Liara.setup_plugins()
-    commandline_prepared.send(cli)
+    commandline_prepared.send(cli=cli)
     cli()
 
 

@@ -45,7 +45,7 @@ The command line is special as it needs to get extended at a very early stage --
     def register():
         commandline_prepared.connect(_register_cli)
 
-    def _register_cli(cli):
+    def _register_cli(sender, cli):
         from liara.cmdline import pass_environment
 
         @cli.command()

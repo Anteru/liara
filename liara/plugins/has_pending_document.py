@@ -5,7 +5,7 @@ def register():
     signals.commandline_prepared.connect(_register_cli)
 
 
-def _register_cli(cli):
+def _register_cli(sender, cli):
     from liara.cmdline import pass_environment
     import sys
 

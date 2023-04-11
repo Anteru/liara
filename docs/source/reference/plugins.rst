@@ -14,9 +14,23 @@ In practice this means you can provide a plugin by placing it in the ``liara.plu
         pass
 
 
-Of course, a completely empty plugin doesn't provide any functionality. To hook into Liara, you can connect event handlers to signals. The signals are defined in the :py:mod:`liara.signals` module.
+Of course, a completely empty plugin doesn't provide any functionality. To hook into Liara, you can connect event handlers to signals. See below for more details.
 
 Additionally, plugins can be loaded directly from a folder by specifying the ``plugin_directories`` configuration option. In this case, each ``.py`` file in that directory containing a ``register`` method will be loaded as a plugin.
+
+Signals
+-------
+
+Signals are provided by using the `Blinker <https://blinker.readthedocs.io/en/stable/>`_ module. The signals are defined in the :py:mod:`liara.signals` module. You can think of a signal as a callback mechanism -- it calls back into the function registered to the signal (possibly multiple of them, i.e. if each plugin registers with the same signal. In that case the order of execution is undefined.)
+
+A signal handler is a function which must accept parameters as defined in the documentation, with an extra first `sender` parameter. I.e. for :py:data:`~liara.signals.content_added`, which has one documented parameter of type :py:class:`~liara.nodes.Node`, the function signature would be:
+
+.. code:: python
+
+    def on_content_added(sender, node: liara.nodes.Node):
+        pass
+
+The first parameter is always the sender of the signal, but is not further specified (it could be a wrapper or proxy for instance of the class you would expect to make the call), so you should always rely on the named, documented parameters.
 
 Extending the command line
 --------------------------

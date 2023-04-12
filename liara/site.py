@@ -168,12 +168,13 @@ class Collection:
                 accessor = _create_metadata_accessor(ordering)
                 result = accessor(node)
                 if result is None:
-                    logging.error('Node "%s" is missing the metadata '
-                                  'field "%s" which is required by a '
-                                  'order_by statement. Use exclude_without to '
-                                  'excludes nodes which miss certain metadata '
-                                  'fields.',
-                                  node.path, ordering)
+                    self.__log.error(
+                        'Node "%s" is missing the metadata '
+                        'field "%s" which is required by a '
+                        'order_by statement. Use exclude_without to '
+                        'excludes nodes which miss certain metadata '
+                        'fields.',
+                        node.path, ordering)
                     raise Exception(f'Cannot order collection "{self.__name}" '
                                     f'by key "{ordering}"')
                 return result

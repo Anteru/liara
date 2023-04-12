@@ -21,7 +21,7 @@ Additionally, plugins can be loaded directly from a folder by specifying the ``p
 Signals
 -------
 
-Signals are provided by using the `Blinker <https://blinker.readthedocs.io/en/stable/>`_ module. The signals are defined in the :py:mod:`liara.signals` module. You can think of a signal as a callback mechanism -- it calls back into the function registered to the signal (possibly multiple of them, i.e. if each plugin registers with the same signal. In that case the order of execution is undefined.)
+Liara uses signals as the extension mechanism. Signals are provided by `Blinker <https://blinker.readthedocs.io/en/stable/>`_. All signals are defined in the :py:mod:`liara.signals` module. You can think of a signal as a callback mechanism -- it calls back into the function registered to the signal (possibly multiple of them, i.e. if each plugin registers with the same signal. In that case the order of execution is undefined.)
 
 A signal handler is a function which must accept parameters as defined in the documentation, with an extra first `sender` parameter. I.e. for :py:data:`~liara.signals.content_added`, which has one documented parameter of type :py:class:`~liara.nodes.Node`, the function signature would be:
 
@@ -30,7 +30,15 @@ A signal handler is a function which must accept parameters as defined in the do
     def on_content_added(sender, node: liara.nodes.Node):
         pass
 
+.. note::
+
+    Signals pass parameters by name, so you must match the names in the documentation. Using ``on_content_added(sender, nd)`` for example would not work. You can however use ``**kwargs`` to capture all parameters.
+
 The first parameter is always the sender of the signal, but is not further specified (it could be a wrapper or proxy for instance of the class you would expect to make the call), so you should always rely on the named, documented parameters.
+
+.. note::
+
+    Always make sure to use top-level module functions for signal handlers. Locally defined functions (i.e. within ``register()``) will get garbage collected, as signals only weakly reference the receiver.
 
 Extending the command line
 --------------------------

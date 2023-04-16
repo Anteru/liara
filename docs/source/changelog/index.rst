@@ -17,7 +17,7 @@ Changelog
   * Non-quoted values can contain ``-`` now (previously, it was an alphanumeric characters or ``_`` only)
   * Parsing robustness has generally improved with better error messages.
 
-See :doc:`../content/shortcodes` for more details.
+  See :doc:`../content/shortcodes` for more details.
 
 2.5.2
 -----

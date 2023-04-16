@@ -1,4 +1,4 @@
-from liara.md import ShortcodePreprocessor
+from liara.md import ShortcodePreprocessor, _ParseBuffer, _ShortcodeParser
 import pytest
 
 
@@ -16,6 +16,117 @@ def test_shortcode_parse():
     assert len(output) == 2
     assert output[0] == '*23*'
     assert output[1] == '_52_'
+
+
+def test_shortcode_embedded_tag_end_in_string():
+    document = r"""<% code arg1="/%>" /%>"""
+    sp = ShortcodePreprocessor()
+
+    def code(arg1, **kwargs):
+        return arg1
+
+    sp.register('code', code)
+
+    output = list(sp.run(document.splitlines()))
+
+    assert len(output) == 1
+    assert output[0] == '/%>'
+
+
+def test_shortcode_two_codes_in_one_line():
+    document = r"""<% code arg1="a" /%><% code arg1="b"/%>"""
+    sp = ShortcodePreprocessor()
+
+    def code(arg1, **kwargs):
+        return arg1
+
+    sp.register('code', code)
+
+    output = list(sp.run(document.splitlines()))
+
+    assert len(output) == 2
+    assert output[0] == 'a'
+    assert output[1] == 'b'
+
+
+def test_parse_buffer():
+    lines = ['aaaa\n', 'bbb\n', '\n' 'c\n']
+    pb = _ParseBuffer(0, lines)
+
+    assert pb.get_current_line() == 'aaaa\n'
+    assert pb.get_current_line_number() == 1
+
+    pb.advance(2)
+
+    assert pb.get_current_line() == 'aa\n'
+    assert pb.get_current_line_number() == 1
+
+    pb.advance_line()
+
+    assert pb.get_current_line_number() == 2
+    assert pb.get_current_line() == 'bbb\n'
+
+    pb.consume('bb')
+
+    assert pb.get_current_line() == 'b\n'
+
+
+def test_shortcode_parser_1():
+    lines = [r"""<% foo bar=baz /%> remainder"""]
+    pb = _ParseBuffer(0, lines)
+    sp = _ShortcodeParser(pb)
+
+    rest, last_line, func_name, args = sp.parse()
+    assert func_name == 'foo'
+    assert rest == ' remainder'
+
+
+def test_shortcode_parser_2():
+    lines = ['<% foo bar="baz\n', 'oonga\" foo="bar" /%> remainder']
+    pb = _ParseBuffer(0, lines)
+    sp = _ShortcodeParser(pb)
+
+    rest, last_line, func_name, args = sp.parse()
+    assert func_name == 'foo'
+    assert args['bar'] == 'baz\noonga'
+    assert args['foo'] == 'bar'
+
+
+def test_shortcode_parser_3():
+    lines = [r"""<% foo bar=baz/%>"""]
+    pb = _ParseBuffer(0, lines)
+    sp = _ShortcodeParser(pb)
+
+    rest, last_line, func_name, args = sp.parse()
+    assert func_name == 'foo'
+    assert args['bar'] == 'baz'
+
+
+def test_shortcode_parser_4():
+    lines = [r"""<% foo bar="baz"/%>"""]
+    pb = _ParseBuffer(0, lines)
+    sp = _ShortcodeParser(pb)
+
+    rest, last_line, func_name, args = sp.parse()
+    assert func_name == 'foo'
+    assert args['bar'] == 'baz'
+
+
+def test_shortcode_parser_5():
+    lines = """<% figure
+    arg0="foo"
+    arg1="bar"
+    arg2="baz"
+/%>
+""".splitlines()
+
+    pb = _ParseBuffer(0, lines)
+    sp = _ShortcodeParser(pb)
+
+    rest, last_line, func_name, args = sp.parse()
+    assert func_name == 'figure'
+    assert args['arg0'] == 'foo'
+    assert len(args) == 3
 
 
 def test_shortcode_register_requires_kwargs():

@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2.5.3
+-----
+
+* Rewrite the :py:class:`~liara.md.ShortcodePreprocessor`. This resolves many issues with the existing preprocessor, for example:
+
+  * Quoted strings containing ``/%>`` are handled correctly now.
+  * Multiple shortcodes can be used in one line.
+  * No whitespace is needed before the closing tag.
+  * Non-quoted values can contain ``-`` now (previously, it was an alphanumeric characters or ``_`` only)
+  * Parsing robustness has generally improved with better error messages.
+
+See :doc:`../content/shortcodes` for more details.
+
 2.5.2
 -----
 

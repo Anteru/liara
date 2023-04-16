@@ -397,9 +397,24 @@ class HtmlDocumentNode(DocumentNode):
 
 class MarkdownDocumentNode(DocumentNode):
     """A node representing a Markdown document."""
-    def __init__(self, md, **kwargs):
+    def __init__(self, configuration, **kwargs):
         super().__init__(**kwargs)
-        self.__md = md
+        self.__md = self._create_markdown_processor(configuration)
+
+    def _create_markdown_processor(self, configuration):
+        from markdown import Markdown
+        from .md import LiaraMarkdownExtensions
+
+        extensions = [
+            LiaraMarkdownExtensions(self)
+        ] + configuration['content.markdown.extensions']
+
+        extension_configs = configuration['content.markdown.config']
+        output = configuration['content.markdown.output']
+
+        return Markdown(extensions=extensions,
+                        extension_configs=extension_configs,
+                        output=output)
 
     def process(self, cache: Cache):
         import hashlib
@@ -415,9 +430,10 @@ class MarkdownDocumentNode(DocumentNode):
         # make debugging easier
         try:
             self.content = self.__md.convert(self._raw_content)
-            self.__md.reset()
         except ShortcodeException as sx:
             raise sx.with_line_offset(self._content_line_start) from sx
+        finally:
+            self.__md.reset()
 
         self._apply_process_fixups()
 
@@ -785,7 +801,7 @@ class DocumentNodeFactory(NodeFactory[DocumentNode]):
         self.register_type(
             ['.md'], MarkdownDocumentNode,
             extra_args={
-                'md': self._create_markdown_processor(configuration)
+                'configuration': configuration
             })
         self.register_type(['.html'], HtmlDocumentNode)
 
@@ -795,21 +811,6 @@ class DocumentNodeFactory(NodeFactory[DocumentNode]):
             process_fixups=self.__process_fixups)
         node.load()
         return node
-
-    def _create_markdown_processor(self, configuration):
-        from markdown import Markdown
-        from .md import LiaraMarkdownExtensions
-
-        extensions = [
-            LiaraMarkdownExtensions()
-        ] + configuration['content.markdown.extensions']
-
-        extension_configs = configuration['content.markdown.config']
-        output = configuration['content.markdown.output']
-
-        return Markdown(extensions=extensions,
-                        extension_configs=extension_configs,
-                        output=output)
 
 
 class StaticNode(Node):

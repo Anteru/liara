@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.5.4
+-----
+
+* Provide the current node as a  context variable to shortcode handlers. See :doc:`../content/shortcodes` for details. 
+
 2.5.3
 -----
 

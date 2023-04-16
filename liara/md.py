@@ -1,7 +1,6 @@
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 from markdown.preprocessors import Preprocessor
-from enum import Enum
 import re
 import logging
 from typing import (
@@ -267,9 +266,11 @@ class ShortcodePreprocessor(Preprocessor):
 
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
-    def __init__(self, md=None):
+    def __init__(self, md=None, node=None):
+        from .template import Page
         super().__init__(md)
         self.__functions = dict()
+        self.__page = Page(node)
 
     def register(self, name: str, function):
         """Register a new Markdown shortcode function.
@@ -315,6 +316,8 @@ class ShortcodePreprocessor(Preprocessor):
                 parse_buffer = _ParseBuffer(i, lines)
                 shortcode_parser = _ShortcodeParser(parse_buffer)
                 rest, next_line, func_name, args = shortcode_parser.parse()
+
+                args['$page'] = self.__page
                 yield from self.__functions[func_name](**args).splitlines()
 
                 # Another shortcode in the same line, so we need to resume
@@ -334,15 +337,16 @@ class ShortcodePreprocessor(Preprocessor):
 
 
 class LiaraMarkdownExtensions(Extension):
-    """Markdown extension for the :py:class:`HeadingLevelFixupProcessor`.
+    """Register various markdown extensions.
     """
-    def __init__(self):
+    def __init__(self, node=None):
         super().__init__()
+        self.__node = node
 
     def extendMarkdown(self, md):
         from .signals import register_markdown_shortcodes
 
-        shortcode_preprocessor = ShortcodePreprocessor(md)
+        shortcode_preprocessor = ShortcodePreprocessor(md, self.__node)
 
         register_markdown_shortcodes.send(
             self,

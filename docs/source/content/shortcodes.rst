@@ -40,7 +40,11 @@ If you later decide you need to change the output, from now on you only have to 
 
 .. note::
 
-    The ``**kwargs`` in the shortcode handler is not optional. Liara may pass additional context to a function using reserved parameter names.
+    The ``**kwargs`` in the shortcode handler is not optional. Liara uses it to pass context information into the handler using arguments which are not valid identifiers, so you can only access them through the ```**kwargs`` dictionary.
+
+There is one context variable accessible from a shortcode processor:
+
+* ``$page``: The current :py:class:`~liara.template.Page` instance. This is for example useful to access the page's metadata using ``kwargs['$page'].metadata``.
 
 .. note::
 

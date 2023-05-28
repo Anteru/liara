@@ -249,7 +249,7 @@ class ShortcodePreprocessor(Preprocessor):
     as strings, the calling function must do the type conversion.
 
     Values without quotation marks must consist of alphanumeric characters and
-    ``-``,``_`` only.
+    ``-``, ``_`` only.
 
     .. note::
       Freestanding keys are not supported as it's ambiguous whether this should
@@ -318,6 +318,21 @@ class ShortcodePreprocessor(Preprocessor):
                 rest, next_line, func_name, args = shortcode_parser.parse()
 
                 args['$page'] = self.__page
+
+                def pretty_print_args(d):
+                    for k, v in d.items():
+                        # Skip internal arguments as they can't be
+                        # pretty-printed anyways
+                        if k[0] == '$':
+                            continue
+                        yield f'{k}={repr(v)}'
+
+                # Skip the text processing if logging is disabled
+                if self.__log.isEnabledFor(logging.DEBUG):
+                    self.__log.debug('Calling shortcode handler: "%s" with '
+                                     'arguments: %s',
+                                     func_name,
+                                     ', '.join(pretty_print_args(args)))
                 yield from self.__functions[func_name](**args).splitlines()
 
                 # Another shortcode in the same line, so we need to resume

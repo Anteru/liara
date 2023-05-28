@@ -40,12 +40,12 @@ If you later decide you need to change the output, from now on you only have to 
 
 .. note::
 
+    User provided shortcode function names must not start with ``$`` as this is reserved for built-in functions.
+
+.. note::
+
     The ``**kwargs`` in the shortcode handler is not optional. Liara uses it to pass context information into the handler using arguments which are not valid identifiers, so you can only access them through the ``**kwargs`` dictionary.
 
 There is one context variable accessible from a shortcode processor:
 
 * ``$page``: The current :py:class:`~liara.template.Page` instance. This is for example useful to access the page's metadata using ``kwargs['$page'].metadata``.
-
-.. note::
-
-    User provided shortcode function names must not start with ``$`` as this is reserved for built-in functions.

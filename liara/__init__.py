@@ -99,7 +99,6 @@ class Liara:
     __redirections: List[Dict[str, str]]
     __log = logging.getLogger('liara')
     __cache: Cache
-    __document_post_processors: List[Callable]
     # When running using 'serve', this will be set to the local URL
     __base_url_override: Optional[str] = None
     __registered_plugins: Dict[object, object] = dict()

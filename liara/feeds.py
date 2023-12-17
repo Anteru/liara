@@ -132,6 +132,7 @@ class SitemapXmlFeedNode(FeedNode):
                 url.append(E.lastmod(node.metadata['date'].isoformat()))
             else:
                 url.append(E.lastmod(now.isoformat()))
+
             if node.kind == NodeKind.Index:
                 # This is machine generated, so reduce priority
                 url.append(E.priority('0'))

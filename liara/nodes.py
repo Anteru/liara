@@ -265,6 +265,9 @@ def extract_metadata_content(text: str):
 def fixup_relative_links(document: 'DocumentNode'):
     """Replace relative links in the document with links relative to the
     site root."""
+    if not document.content:
+        return
+
     # early out if there's no relative link in here, as the parsing is
     # very expensive
     if "href=\"." not in document.content:
@@ -320,6 +323,8 @@ class DocumentNode(Node):
     """These functions are called after a document has been processed
     (These should be called before :py:meth:`process` returns)."""
 
+    content: str | None
+
     def __init__(self, src, path: pathlib.PurePosixPath,
                  metadata_path: Optional[pathlib.Path] = None):
         super().__init__()
@@ -365,6 +370,8 @@ class DocumentNode(Node):
             fixup(self)
 
     def _load(self):
+        assert self.src
+
         if self.metadata_path:
             self.metadata = load_yaml(self.metadata_path.read_text())
             self._raw_content = self.src.read_text('utf-8')
@@ -414,7 +421,7 @@ class MarkdownDocumentNode(DocumentNode):
 
         return Markdown(extensions=extensions,
                         extension_configs=extension_configs,
-                        output=output)
+                        output_format=output)
 
     def process(self, cache: Cache):
         import hashlib
@@ -423,6 +430,7 @@ class MarkdownDocumentNode(DocumentNode):
         byte_content = self._raw_content.encode('utf-8')
         content_hash = hashlib.sha256(byte_content).digest()
         if content := cache.get(content_hash):
+            assert isinstance(content, str)
             self.content = content
             return
 
@@ -793,7 +801,7 @@ class DocumentNodeFactory(NodeFactory[DocumentNode]):
 
     def __init__(self, configuration):
         super().__init__()
-        self.__load_fixups = [FixupDateTimezone()]
+        self.__load_fixups: List[Callable] = [FixupDateTimezone()]
         self.__process_fixups = []
 
         self.__setup_fixups(configuration)
@@ -877,7 +885,7 @@ class _AsyncThumbnailTask(_AsyncTask):
         width *= scale
         height *= scale
 
-        image.thumbnail((width, height,))
+        image.thumbnail((int(width), int(height),))
         storage = io.BytesIO()
         assert self.__src
         result = None
@@ -908,7 +916,7 @@ class _AsyncThumbnailTask(_AsyncTask):
 
 class ThumbnailNode(ResourceNode):
     def __init__(self, src, path: pathlib.PurePosixPath, size: Dict[str, int],
-                 format: str = 'original'):
+                 format: str | None = 'original'):
         super().__init__(src, path)
         self.__size = size
         self.__format = format
@@ -933,7 +941,7 @@ class ThumbnailNode(ResourceNode):
 
         return cache_key
 
-    def process(self, cache: Cache) -> _AsyncThumbnailTask:
+    def process(self, cache: Cache) -> _AsyncThumbnailTask | None:
         cache_key = self.__get_cache_key()
         if content := cache.get(cache_key):
             self.content = content

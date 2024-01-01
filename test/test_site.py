@@ -17,6 +17,7 @@ def test_group_recursive():
     ]
 
     groups = site._group_recursive(items, ['a', 'b', 'c'])
+    assert isinstance(groups, dict)
     assert len(groups) == 2
     assert 'key_a_1' in groups
     assert 'key_a_2' in groups
@@ -25,6 +26,7 @@ def test_group_recursive():
     assert 'key_b_1' in group_1
     assert 'key_b_2' in group_1
 
+    assert isinstance(group_1, dict)
     group_1_1 = group_1['key_b_1']
     # c_1 and c_2
     assert len(group_1_1) == 2
@@ -45,6 +47,7 @@ def test_group_splat():
     ]
 
     groups = site._group_recursive(items, ['*tags'])
+    assert isinstance(groups, dict)
     # 6 tags
     assert len(groups) == 7
     assert len(groups['a']) == 3
@@ -113,7 +116,7 @@ def test_collection():
     root.create_links()
 
     collection = site.Collection(root, 'test', '/*')
-    nodes = collection.nodes
+    nodes = list(collection.nodes)
 
     assert len(nodes) == 3
 
@@ -148,7 +151,7 @@ def test_collection_exclude_without_removes_items():
 
     collection = site.Collection(root, 'test', '/*',
                                  exclude_without=['title'], order_by=['title'])
-    nodes = collection.nodes
+    nodes = list(collection.nodes)
 
     assert len(nodes) == 2
 
@@ -190,6 +193,7 @@ def test_index_exclude_without_removes_items():
     index.create_nodes(root)
 
     index_node = root.get_node('/index')
+    assert isinstance(index_node, nodes.IndexNode)
     assert len(index_node.references) == 2
 
 
@@ -213,4 +217,5 @@ def test_index_exclude_without_key_matching_removes_items():
     index.create_nodes(root)
 
     index_node = root.get_node('/index')
+    assert isinstance(index_node, nodes.IndexNode)
     assert len(index_node.references) == 2

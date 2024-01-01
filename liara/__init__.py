@@ -216,31 +216,32 @@ class Liara:
             # the deprecated value
             cache_type = self.__configuration.get('build.cache.type')
 
-        if cache_type == 'db':
-            self.__log.debug('Using Sqlite3Cache')
-            dir = self.__configuration.get('build.cache.db.directory')
-            if dir and cache_directory is None:
-                cache_directory = pathlib.Path(dir)
-            self.__cache = Sqlite3Cache(cache_directory)
-        elif cache_type == 'fs':
-            self.__log.debug('Using FilesystemCache')
-            dir = self.__configuration.get('build.cache.fs.directory')
-            if dir and cache_directory is None:
-                cache_directory = pathlib.Path(dir)
-            self.__cache = FilesystemCache(cache_directory)
-        elif cache_type == 'redis':
-            self.__log.debug('Using RedisCache')
-            self.__cache = RedisCache(
-                self.__configuration['build.cache.redis.host'],
-                self.__configuration['build.cache.redis.port'],
-                self.__configuration['build.cache.redis.db'],
-                datetime.timedelta(minutes=self.__configuration[
-                    'build.cache.redis.expiration_time'])
-            )
-        elif cache_type == 'none':
-            self.__log.debug('Not using any cache')
-        else:
-            self.__log.warning('No cache backend configured')
+        match cache_type:
+            case 'db':
+                self.__log.debug('Using Sqlite3Cache')
+                dir = self.__configuration.get('build.cache.db.directory')
+                if dir and cache_directory is None:
+                    cache_directory = pathlib.Path(dir)
+                self.__cache = Sqlite3Cache(cache_directory)
+            case 'fs':
+                self.__log.debug('Using FilesystemCache')
+                dir = self.__configuration.get('build.cache.fs.directory')
+                if dir and cache_directory is None:
+                    cache_directory = pathlib.Path(dir)
+                self.__cache = FilesystemCache(cache_directory)
+            case 'redis':
+                self.__log.debug('Using RedisCache')
+                self.__cache = RedisCache(
+                    self.__configuration['build.cache.redis.host'],
+                    self.__configuration['build.cache.redis.port'],
+                    self.__configuration['build.cache.redis.db'],
+                    datetime.timedelta(minutes=self.__configuration[
+                        'build.cache.redis.expiration_time'])
+                )
+            case 'none':
+                self.__log.debug('Not using any cache')
+            case _:
+                self.__log.warning('No cache backend configured')
 
     def __setup_content_filters(self, filters: List[str]) -> None:
         content_filter_factory = ContentFilterFactory()
@@ -502,17 +503,18 @@ class Liara:
             path = pathlib.PurePosixPath(options['path'])
             del options['path']
 
-            if key == 'rss':
-                feed = RSSFeedNode(path, site, **options)
-                site.add_generated(feed)
-            elif key == 'json':
-                feed = JsonFeedNode(path, site, **options)
-                site.add_generated(feed)
-            elif key == 'sitemap':
-                feed = SitemapXmlFeedNode(path, site, **options)
-                site.add_generated(feed)
-            else:
-                self.__log.warning(f'Unknown feed type: "{key}", ignored')
+            match key:
+                case 'rss':
+                    feed = RSSFeedNode(path, site, **options)
+                    site.add_generated(feed)
+                case 'json':
+                    feed = JsonFeedNode(path, site, **options)
+                    site.add_generated(feed)
+                case 'sitemap':
+                    feed = SitemapXmlFeedNode(path, site, **options)
+                    site.add_generated(feed)
+                case _:
+                    self.__log.warning(f'Unknown feed type: "{key}", ignored')
 
     def __discover_metadata(self, site: Site, metadata: pathlib.Path) -> None:
         if not metadata.exists():

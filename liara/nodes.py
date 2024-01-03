@@ -827,7 +827,11 @@ class StaticNode(Node):
     Static nodes are suitable for large static data which never changes, for
     instance, binary files, videos, images etc.
     """
-    def __init__(self, src, path: pathlib.PurePosixPath, metadata_path=None):
+    src: pathlib.Path   # Unlike a generic Node, a StaticNode always has a
+                        # source
+
+    def __init__(self, src: pathlib.Path, path: pathlib.PurePosixPath,
+                 metadata_path=None):
         super().__init__()
         self.kind = NodeKind.Static
         self.src = src
@@ -861,7 +865,7 @@ class StaticNode(Node):
 class _AsyncThumbnailTask(_AsyncTask):
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
-    def __init__(self, cache_key, src: pathlib.Path,
+    def __init__(self, cache_key: bytes, src: pathlib.Path,
                  size: Dict[str, int],
                  format: Optional[str]):
         self.__src = src

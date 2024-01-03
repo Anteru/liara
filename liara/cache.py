@@ -16,7 +16,7 @@ class CacheInfo:
     as getting the exact numbers may be costly."""
 
     size: int = 0
-    """Approximate number of objects stored in the cache."""
+    """Approximate number of bytes stored in the cache."""
 
     entry_count: int = 0
     """Approximate number of objects stored in the cache."""
@@ -234,7 +234,7 @@ class MemoryCache(Cache):
         size = sys.getsizeof(self.__index)
 
         size += sum([sys.getsizeof(k) + sys.getsizeof(v)
-                     for k, v in self.__index.value()])
+                     for k, v in self.__index.items()])
 
         count = len(self.__index)
 

@@ -13,9 +13,12 @@ def _extract_links(document: DocumentNode):
     This assumes the document has been already processed into valid Html.
     """
     from bs4 import BeautifulSoup
+    assert document.content
     soup = BeautifulSoup(document.content, 'lxml')
 
     for item in soup.find_all(['img', 'a']):
+        target = None
+
         if item.name == 'img':
             target = item.attrs.get('src', None)
         elif item.name == 'a':
@@ -104,6 +107,8 @@ def _check_external_link(url: str):
         if url.startswith('mailto'):
             return (True, url, None,)
 
+        error = 'Unknown error'
+        
         try:
             r = requests.get(url, timeout=5)
             if r.status_code == 200:

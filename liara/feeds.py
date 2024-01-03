@@ -1,4 +1,4 @@
-from .nodes import GeneratedNode, NodeKind
+from .nodes import GeneratedNode, NodeKind, DocumentNode
 from .site import Site
 from . import __version__
 from .util import local_now
@@ -50,6 +50,7 @@ class RSSFeedNode(FeedNode):
         )
 
         for item in items:
+            assert isinstance(item, DocumentNode)
             e = E.item(
                 E.title(item.metadata['title']),
                 E.link(meta['base_url'] + str(item.path)),
@@ -89,6 +90,7 @@ class JsonFeedNode(FeedNode):
 
         result_items = []
         for item in items:
+            assert isinstance(item, DocumentNode)
             result_items.append({
                 'id': meta['base_url'] + str(item.path),
                 'title': item.metadata['title'],

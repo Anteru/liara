@@ -222,12 +222,14 @@ class Liara:
                 dir = self.__configuration.get('build.cache.db.directory')
                 if dir and cache_directory is None:
                     cache_directory = pathlib.Path(dir)
+                assert cache_directory
                 self.__cache = Sqlite3Cache(cache_directory)
             case 'fs':
                 self.__log.debug('Using FilesystemCache')
                 dir = self.__configuration.get('build.cache.fs.directory')
                 if dir and cache_directory is None:
                     cache_directory = pathlib.Path(dir)
+                assert cache_directory
                 self.__cache = FilesystemCache(cache_directory)
             case 'redis':
                 self.__log.debug('Using RedisCache')
@@ -738,7 +740,7 @@ class Liara:
                 self.__registered_plugins[plugin] = module
 
     def _load_module(self, path, name=''):
-        import importlib
+        import importlib.util
         self.__log.debug(f'Initializing plugin from module: "{path}"')
         # Prevent modules from being loaded twice
         if module := self.__registered_plugins.get(path):
@@ -748,7 +750,12 @@ class Liara:
         if not name:
             name = path.stem
         spec = importlib.util.spec_from_file_location(name, path)
+        assert spec
+        assert spec.loader
+        
         module = importlib.util.module_from_spec(spec)
+        assert module
+
         spec.loader.exec_module(module)
         return module
 

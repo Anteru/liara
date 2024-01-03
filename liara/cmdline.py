@@ -13,6 +13,8 @@ class Environment:
 
     This provides access to global variables that are useful for command line
     commands, as well as a global liara instance."""
+    __liara : Liara | None
+
     def __init__(self):
         self.verbose = False
         self.debug = False
@@ -21,7 +23,7 @@ class Environment:
         self.log = logging.getLogger('liara.cmdline')
 
     @property
-    def liara(self):
+    def liara(self) -> Liara:
         if not self.__liara:
             self.__liara = _create_liara(self.config)
         return self.__liara
@@ -30,7 +32,7 @@ class Environment:
 pass_environment = click.make_pass_decorator(Environment, ensure=True)
 
 
-def _setup_logging(debug, verbose):
+def _setup_logging(debug: bool, verbose: bool):
     if debug:
         logging.basicConfig(
             level=logging.DEBUG,
@@ -61,7 +63,7 @@ def _setup_logging(debug, verbose):
 @click.option('--date', default=None, help='Override the current date.')
 @click.version_option()
 @pass_environment
-def cli(env, debug, verbose, config, date):
+def cli(env, debug: bool, verbose: bool, config, date: str):
     _setup_logging(debug, verbose)
 
     if date:
@@ -96,7 +98,7 @@ def _create_liara(config):
 @click.option('--parallel/--no-parallel', default=True,
               help='Enable or disable parallel processing.')
 @pass_environment
-def build(env, profile, profile_file, cache, parallel):
+def build(env, profile, profile_file, cache: bool, parallel: bool):
     """Build a site."""
     if profile:
         pr = cProfile.Profile()

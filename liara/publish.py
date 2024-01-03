@@ -103,6 +103,7 @@ class DefaultPublisher(Publisher):
         if isinstance(generated.content, bytes):
             file_path.write_bytes(generated.content)
         else:
+            assert isinstance(generated.content, str)
             file_path.write_text(generated.content, encoding='utf-8')
         return file_path
 

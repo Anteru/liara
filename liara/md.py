@@ -4,7 +4,7 @@ from markdown.preprocessors import Preprocessor
 import re
 import logging
 from typing import (
-    List, Optional
+    Optional, Sequence
 )
 
 
@@ -59,7 +59,7 @@ class ShortcodeException(Exception):
 
 
 class _ParseBuffer:
-    def __init__(self, first_line: int, lines: List[str]):
+    def __init__(self, first_line: int, lines: Sequence[str]):
         self.__current_line = first_line
         self.__lines = lines
         self.__line_start = 0
@@ -295,7 +295,7 @@ class ShortcodePreprocessor(Preprocessor):
         assert name and name[0] != '$'
         self.__functions[name] = function
 
-    def run(self, lines):
+    def run(self, lines: list[str]):
         i = 0
         line_count = len(lines)
 

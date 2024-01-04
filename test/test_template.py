@@ -22,7 +22,7 @@ def test_match_url_exact(default_site):
     score = _match_url('/blog', '/blog', default_site)
     assert score == 0
     score = _match_url('/blog/', '/blog/*', default_site)
-    assert score > 0
+    assert score is not None and score > 0
 
 
 def test_match_fail(default_site):

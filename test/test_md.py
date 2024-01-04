@@ -1,6 +1,13 @@
 from liara.md import ShortcodePreprocessor, _ParseBuffer, _ShortcodeParser
 import pytest
 
+def _get_lines(document: str) -> list[str]:
+    # document.splitlines() returns a list of string literals, so you shouldn't
+    # modify it, but our pre-processor does actually replace things. This makes
+    # sure everything is type safe (by "type casting" LiteralString to str in
+    # the input)
+    return document.splitlines()
+
 
 def test_shortcode_parse():
     document = r"""<% code arg1="23" arg2=52 /%>"""
@@ -11,7 +18,7 @@ def test_shortcode_parse():
 
     sp.register('code', code)
 
-    output = list(sp.run(document.splitlines()))
+    output = list(sp.run(_get_lines(document)))
 
     assert len(output) == 2
     assert output[0] == '*23*'
@@ -27,7 +34,7 @@ def test_shortcode_embedded_tag_end_in_string():
 
     sp.register('code', code)
 
-    output = list(sp.run(document.splitlines()))
+    output = list(sp.run(_get_lines(document)))
 
     assert len(output) == 1
     assert output[0] == '/%>'
@@ -42,7 +49,7 @@ def test_shortcode_two_codes_in_one_line():
 
     sp.register('code', code)
 
-    output = list(sp.run(document.splitlines()))
+    output = list(sp.run(_get_lines(document)))
 
     assert len(output) == 2
     assert output[0] == 'a'
@@ -160,6 +167,6 @@ def test_shortcode_preprocessor_preserves_empty_lines():
 Body"""
 
     sp = ShortcodePreprocessor()
-    output = '\n'.join(sp.run(document.splitlines()))
+    output = '\n'.join(sp.run(_get_lines(document)))
 
     assert output == document

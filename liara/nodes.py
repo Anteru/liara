@@ -41,31 +41,31 @@ class Publisher:
 
         :return: The path of the generated file.
         """
-        pass
+        ...
 
     def publish_index(self, index: 'IndexNode') -> pathlib.Path:
         """Publish an index node.
 
         :return: The path of the generated file."""
-        pass
+        ...
 
     def publish_resource(self, resource: 'ResourceNode') -> pathlib.Path:
         """Publish a resource node.
 
         :return: The path of the generated file."""
-        pass
+        ...
 
     def publish_static(self, static: 'StaticNode') -> pathlib.Path:
         """Publish a static node.
 
         :return: The path of the generated file."""
-        pass
+        ...
 
     def publish_generated(self, generated: 'GeneratedNode') -> pathlib.Path:
         """Publish a generated node.
 
         :return: The path of the generated file."""
-        pass
+        ...
 
 
 class NodeKind(Enum):
@@ -89,14 +89,14 @@ class _AsyncTask:
         """
         Process the task and return the new content for the node.
         """
-        pass
+        ...
 
     def update_cache(self, content: object, cache: Cache):
         """
         After processing, an async task may update the cache in a separate
         step.
         """
-        pass
+        ...
 
 
 class Node:
@@ -190,7 +190,7 @@ class Node:
         must return an ``_AsyncTask`` which is then executed later. In this
         case, ``self.content`` will be populated by the task runner.
         """
-        pass
+        ...
 
 
 _metadata_marker = re.compile(r'(---|\+\+\+)\n')

@@ -58,7 +58,7 @@ class Template:
         return self._template_path
 
     def render(self, **kwargs):
-        pass
+        ...
 
 
 class TemplateRepository:
@@ -70,7 +70,7 @@ class TemplateRepository:
 
     def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
             -> Template:
-        pass
+        ...
 
     def _match_template(self, url: pathlib.PurePosixPath, site: 'Site') -> str:
         best_match = None

@@ -17,6 +17,19 @@ import sys
 import logging
 import webbrowser
 import mimetypes
+import http.server
+
+
+class _HttpServer(http.server.HTTPServer):
+    def __init__(self, address, request_handler_class,
+                 server: 'HttpServer',
+                 log: logging.Logger):
+        self.server = server
+        self.log = log
+        self.cache = {}
+        super().__init__(address, request_handler_class)
+
+    pass
 
 
 class HttpServer:
@@ -55,21 +68,22 @@ class HttpServer:
             return (None, None,)
 
         # We always regenerate the content
-        if node.kind in {NodeKind.Document, NodeKind.Resource}:
-            assert isinstance(node, DocumentNode) \
-                   or isinstance(node, ResourceNode)
-            node.reload()
-            _process_node_sync(node, self.__cache)
-            cache = False
-        elif node.kind in {NodeKind.Generated}:
-            assert isinstance(node, GeneratedNode)
-            node.generate()
-            cache = False
-        # We don't cache index nodes so templates get re-applied
-        elif node.kind == NodeKind.Index:
-            cache = False
-        else:
-            cache = True
+        match node.kind:
+            case NodeKind.Document | NodeKind.Resource:
+                assert isinstance(node, DocumentNode) \
+                    or isinstance(node, ResourceNode)
+                node.reload()
+                _process_node_sync(node, self.__cache)
+                cache = False
+            case NodeKind.Generated:
+                assert isinstance(node, GeneratedNode)
+                node.generate()
+                cache = False
+            # We don't cache index nodes so templates get re-applied
+            case NodeKind.Index:
+                cache = False
+            case _:
+                cache = True
 
         if node.kind == NodeKind.Document:
             self._reload_template_paths()
@@ -110,9 +124,11 @@ class HttpServer:
                 if path.name == 'index.html':
                     path = path.parent
 
+                assert isinstance(self.server, _HttpServer)
+
                 if path not in self.server.cache:
                     node_path, cache = \
-                        self.server.http_server._build_single_node(path)
+                        self.server.server._build_single_node(path)
 
                     if node_path is None:
                         return
@@ -131,13 +147,12 @@ class HttpServer:
                 self.wfile.write(node_path.open('rb').read())
 
             def log_message(self, f, *args):
+                assert isinstance(self.server, _HttpServer)
                 self.server.log.info(f, *args)
 
         server_address = ('', self.__port)
-        server = http.server.HTTPServer(server_address, RequestHandler)
-        server.http_server = self
-        server.log = self.__log
-        server.cache = {}
+        server = _HttpServer(server_address, RequestHandler,
+                             self, self.__log)
         url = self.get_url()
         self.__log.info(f'Listening on {url}')
 

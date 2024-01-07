@@ -9,7 +9,6 @@ from typing import (
         IO,
         ChainMap,
         List,
-        Callable,
         Dict,
         Optional,
         Text,
@@ -34,7 +33,7 @@ from .cache import Cache, FilesystemCache, NullCache, Sqlite3Cache, RedisCache
 from .util import FilesystemWalker, flatten_dictionary
 from .yaml import load_yaml
 
-__version__ = '2.5.4'
+__version__ = '2.6.0'
 __all__ = [
     'actions',
     'cache',
@@ -83,11 +82,11 @@ def _process_resource_task(t):
 def _setup_multiprocessing_worker(log_level):
     from .cmdline import _setup_logging
     if log_level == logging.DEBUG:
-        _setup_logging(True, False)
+        _setup_logging(debug=True, verbose=False)
     elif log_level == logging.INFO:
-        _setup_logging(False, True)
+        _setup_logging(debug=False, verbose=True)
     else:
-        _setup_logging(False, False)
+        _setup_logging(debug=False, verbose=False)
 
 
 class Liara:
@@ -124,7 +123,7 @@ class Liara:
         else:
             project_configuration = load_yaml(configuration)
 
-        # It's none of the YAML file is empty, for instance, when creating a
+        # It's none if the YAML file is empty, for instance, when creating a
         # new site from scratch. In this case, set it to an empty dict as
         # flatten_dictionary cannot handle None
         if project_configuration is None:
@@ -171,7 +170,7 @@ class Liara:
         self.__setup_content_filters(self.__configuration['content.filters'])
 
     @classmethod
-    def setup_plugins(self) -> None:
+    def setup_plugins(cls) -> None:
         import liara.plugins
         import pkgutil
         import importlib
@@ -185,13 +184,13 @@ class Liara:
         }
 
         for name, module in plugins.items():
-            if name in self.__registered_plugins:
+            if name in cls.__registered_plugins:
                 continue
 
-            self.__log.debug(f'Initializing plugin: {name}')
+            cls.__log.debug(f'Initializing plugin: {name}')
             assert hasattr(module, 'register')
             module.register()
-            self.__registered_plugins[name] = module
+            cls.__registered_plugins[name] = module
 
     def __setup_cache(self) -> None:
         # Deprecated since version 2.2
@@ -495,13 +494,13 @@ class Liara:
                     node = resource_factory.create_node(src.suffix, src, path)
                 site.add_resource(node)
 
-    def __discover_feeds(self, site: Site, feeds: pathlib.Path) -> None:
+    def __discover_feeds(self, site: Site, feed_definition: pathlib.Path) -> None:
         from .feeds import JsonFeedNode, RSSFeedNode, SitemapXmlFeedNode
 
-        if not feeds.exists():
+        if not feed_definition.exists():
             return
 
-        for key, options in load_yaml(feeds.open()).items():
+        for key, options in load_yaml(feed_definition.open()).items():
             path = pathlib.PurePosixPath(options['path'])
             del options['path']
 

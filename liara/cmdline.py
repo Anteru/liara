@@ -32,7 +32,7 @@ class Environment:
 pass_environment = click.make_pass_decorator(Environment, ensure=True)
 
 
-def _setup_logging(debug: bool, verbose: bool):
+def _setup_logging(*, debug: bool, verbose: bool):
     if debug:
         logging.basicConfig(
             level=logging.DEBUG,
@@ -64,12 +64,16 @@ def _setup_logging(debug: bool, verbose: bool):
 @click.version_option()
 @pass_environment
 def cli(env, debug: bool, verbose: bool, config, date: str):
-    _setup_logging(debug, verbose)
+    _setup_logging(debug=debug, verbose=verbose)
 
     if date:
         from .util import set_local_now
         import dateparser
-        set_local_now(dateparser.parse(date))
+        now = dateparser.parse(date)
+        if now:
+            set_local_now(now)
+        else:
+            env.log.error(f'Could not parse date {date}, ignoring it for this build')
 
     env.config = config
 

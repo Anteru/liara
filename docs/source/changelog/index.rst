@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.6.0
+-----
+
+* Bump minimum Python version to 3.10.
+* Improve log output for shortcodes. Use ``--debug`` to see information about each shortcode invocation.
+
 2.5.4
 -----
 

@@ -1,7 +1,7 @@
 Changelog
 =========
 
-2.6.0
+2.6.0 (unreleased)
 -----
 
 * Bump minimum Python version to 3.10.

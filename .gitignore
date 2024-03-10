@@ -11,3 +11,4 @@ dist/**
 .vscode/**
 .tox/**
 pip-wheel-metadata/**
+.coverage

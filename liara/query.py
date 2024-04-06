@@ -10,7 +10,7 @@ class SelectionFilter:
     """Base class for query selection filters."""
     def match(self, node: Node) -> bool:
         """Return ``True`` if the node should be kept, else ``False``."""
-        pass
+        ...
 
 
 class MetadataFilter(SelectionFilter):

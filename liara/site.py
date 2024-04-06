@@ -38,7 +38,7 @@ def _create_metadata_accessor(field_name):
     If the field is not present, this function returns ``None``.
     """
     if '.' in field_name:
-        def key_fun(o):
+        def dict_key_fun(o):
             field = field_name.split('.')
             o = o.metadata.get(field[0])
             if o is None:
@@ -51,11 +51,11 @@ def _create_metadata_accessor(field_name):
                 else:
                     return None
             return o
-        return key_fun
+        return dict_key_fun
     else:
-        def key_fun(o):
+        def metadata_key_fun(o):
             return o.metadata.get(field_name)
-        return key_fun
+        return metadata_key_fun
 
 
 def _create_metadata_filter(exclude_without:

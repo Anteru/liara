@@ -235,8 +235,8 @@ def _group_recursive(iterable, group_keys: List[str]):
                 result[group].append(item)
 
         if group_keys:
-            result = {k: _group_recursive(v, group_keys)
-                      for k, v in result.items()}
+            return {k: _group_recursive(v, group_keys)
+                    for k, v in result.items()}
         return result
     else:
         key_func = _create_metadata_accessor(current_key)

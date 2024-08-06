@@ -26,6 +26,7 @@ class Environment:
     def liara(self) -> Liara:
         if not self.__liara:
             self.__liara = _create_liara(self.config)
+        assert self.__liara is not None
         return self.__liara
 
 

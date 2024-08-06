@@ -919,7 +919,8 @@ class _AsyncThumbnailTask(_AsyncTask):
 
 
 class ThumbnailNode(ResourceNode):
-    def __init__(self, src, path: pathlib.PurePosixPath, size: Dict[str, int],
+    def __init__(self, src: pathlib.Path,
+                 path: pathlib.PurePosixPath, size: Dict[str, int],
                  format: str | None = 'original'):
         super().__init__(src, path)
         self.__size = size

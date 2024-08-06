@@ -33,7 +33,7 @@ from .cache import Cache, FilesystemCache, NullCache, Sqlite3Cache, RedisCache
 from .util import FilesystemWalker, flatten_dictionary
 from .yaml import load_yaml
 
-__version__ = '2.6.0'
+__version__ = '2.6.1'
 __all__ = [
     'actions',
     'cache',
@@ -106,7 +106,7 @@ class Liara:
 
     def __init__(self,
                  configuration: Optional[
-                     Union[str, IO, Text, IO[bytes], IO[Text]]] = None,
+                     Union[str, IO, IO[bytes], IO[Text]]] = None,
                  *,
                  configuration_overrides: Optional[Dict] = None):
         self.__site = Site()
@@ -119,8 +119,11 @@ class Liara:
         if configuration is None:
             project_configuration = {}
         elif isinstance(configuration, str):
-            project_configuration = load_yaml(open(configuration))
+            # If it's a string, we treat it as a filename and open the
+            # corresponding file
+            project_configuration = load_yaml(open(configuration, 'rb'))
         else:
+            # Some kind of IO stream
             project_configuration = load_yaml(configuration)
 
         # It's none if the YAML file is empty, for instance, when creating a
@@ -256,7 +259,7 @@ class Liara:
 
         template_path = configuration_file.parent
         default_configuration = config.create_default_template_configuration()
-        configuration = load_yaml(open(configuration_file))
+        configuration = load_yaml(configuration_file.open('rb'))
 
         ignore_list = {
             # Legacy
@@ -324,7 +327,7 @@ class Liara:
 
         base_url = site.metadata['base_url']
 
-        routes = load_yaml(static_routes.open())
+        routes = load_yaml(static_routes.open('rb'))
         for route in routes:
             node = RedirectionNode(
                     pathlib.PurePosixPath(route['src']),
@@ -500,7 +503,7 @@ class Liara:
         if not feed_definition.exists():
             return
 
-        for key, options in load_yaml(feed_definition.open()).items():
+        for key, options in load_yaml(feed_definition.open('rb')).items():
             path = pathlib.PurePosixPath(options['path'])
             del options['path']
 
@@ -521,7 +524,7 @@ class Liara:
         if not metadata.exists():
             return
 
-        site.set_metadata(load_yaml(metadata.open()))
+        site.set_metadata(load_yaml(metadata.open('rb')))
 
         if self.__base_url_override:
             site.set_metadata_item('base_url', self.__base_url_override)
@@ -561,13 +564,13 @@ class Liara:
             collections = pathlib.Path(configuration['collections'])
             if collections.exists():
                 self.__site.create_collections(
-                    load_yaml(collections.read_text()))
+                    load_yaml(collections.open('rb')))
 
         if 'indices' in configuration:
             indices = pathlib.Path(configuration['indices'])
             if indices.exists():
                 self.__site.create_indices(
-                    load_yaml(indices.read_text()))
+                    load_yaml(indices.open('rb')))
 
         self.__site.create_links()
 

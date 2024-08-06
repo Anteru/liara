@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.6.1 (not released yet)
+------------------------
+
+* Fix ``.yaml`` files with UTF-8 content not being read correctly. Now, files with a BOM are correctly recognized, and files without a BOM are assumed to be ``UTF-8`` encoded.
+
 2.6.0
 -----
 

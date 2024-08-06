@@ -460,7 +460,7 @@ class DataNode(Node):
         self.kind = NodeKind.Data
         self.src = src
         self.path = path
-        self.content = load_yaml(self.src.open('r'))
+        self.content = load_yaml(self.src.open('rb'))
 
 
 class IndexNode(Node):

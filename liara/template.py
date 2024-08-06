@@ -57,7 +57,7 @@ class Template:
     def path(self):
         return self._template_path
 
-    def render(self, **kwargs):
+    def render(self, **kwargs) -> str:
         ...
 
 

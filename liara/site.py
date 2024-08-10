@@ -25,7 +25,7 @@ from .util import pairwise
 from . import signals
 import logging
 import fnmatch
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 
 
 def _create_metadata_accessor(field_name):
@@ -287,7 +287,7 @@ class Index:
         self.__groups = _group_recursive(nodes, group_by)
         self.__path = path
         self.__create_top_level_index = create_top_level_index
-        self.__top_level_node = None
+        self.__top_level_node: IndexNode | None = None
 
     def create_nodes(self, site: 'Site'):
         """Create the index nodes inside the specified site."""
@@ -329,7 +329,7 @@ class Index:
                     node.add_reference(reference)
 
 
-class ContentFilter:
+class ContentFilter(ABC):
     """Content filters can filter out nodes based on various criteria."""
     @abstractmethod
     def apply(self, node: Node) -> bool:

@@ -26,16 +26,18 @@ from typing import (
 )
 import re
 import dateparser
+from abc import abstractmethod, ABC
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .query import Query
 
 
-class Publisher:
+class Publisher(ABC):
     """A publisher produces the final output files, applying templates etc. as
     needed.
     """
+    @abstractmethod
     def publish_document(self, document: 'DocumentNode') -> pathlib.Path:
         """Publish a document node.
 
@@ -43,24 +45,28 @@ class Publisher:
         """
         ...
 
+    @abstractmethod
     def publish_index(self, index: 'IndexNode') -> pathlib.Path:
         """Publish an index node.
 
         :return: The path of the generated file."""
         ...
 
+    @abstractmethod
     def publish_resource(self, resource: 'ResourceNode') -> pathlib.Path:
         """Publish a resource node.
 
         :return: The path of the generated file."""
         ...
 
+    @abstractmethod
     def publish_static(self, static: 'StaticNode') -> pathlib.Path:
         """Publish a static node.
 
         :return: The path of the generated file."""
         ...
 
+    @abstractmethod
     def publish_generated(self, generated: 'GeneratedNode') -> pathlib.Path:
         """Publish a generated node.
 
@@ -77,7 +83,7 @@ class NodeKind(Enum):
     Generated = auto()
 
 
-class _AsyncTask:
+class _AsyncTask(ABC):
     """A node can return an ``_AsyncTask`` from process, in which case the
     processing is split into two steps: The process itself (which can be
     executed on a separate process/in parallel), and a post-process step which
@@ -85,6 +91,7 @@ class _AsyncTask:
 
     The function must return the new content of the node.
     """
+    @abstractmethod
     def process(self) -> object:
         """
         Process the task and return the new content for the node.
@@ -96,10 +103,10 @@ class _AsyncTask:
         After processing, an async task may update the cache in a separate
         step.
         """
-        ...
+        pass
 
 
-class Node:
+class Node(ABC):
     kind: NodeKind
     """The node kind, must be set in the constructor."""
     src: Optional[pathlib.Path]
@@ -190,7 +197,7 @@ class Node:
         must return an ``_AsyncTask`` which is then executed later. In this
         case, ``self.content`` will be populated by the task runner.
         """
-        ...
+        pass
 
 
 _metadata_marker = re.compile(r'(---|\+\+\+)\n')
@@ -951,6 +958,8 @@ class ThumbnailNode(ResourceNode):
         if content := cache.get(cache_key):
             self.content = content
             return None
+
+        assert self.src
 
         async_task = _AsyncThumbnailTask(cache_key, self.src,
                                          self.__size,

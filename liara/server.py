@@ -26,7 +26,7 @@ class _HttpServer(http.server.HTTPServer):
                  log: logging.Logger):
         self.server = server
         self.log = log
-        self.cache = {}
+        self.cache: dict[pathlib.PurePosixPath, pathlib.Path] = {}
         super().__init__(address, request_handler_class)
 
     pass

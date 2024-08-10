@@ -2,14 +2,15 @@ from typing import Iterable, List, Iterator, Optional
 from .nodes import Node, NodeKind, _parse_node_kind
 from .template import Page
 from typing import Union
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 import logging
 
 import re
 
 
-class SelectionFilter:
+class SelectionFilter(ABC):
     """Base class for query selection filters."""
+    @abstractmethod
     def match(self, node: Node) -> bool:
         """Return ``True`` if the node should be kept, else ``False``."""
         ...
@@ -71,7 +72,7 @@ class NodeKindFilter(SelectionFilter):
         return node.kind in self.__kinds
 
 
-class Sorter:
+class Sorter(ABC):
     """Base class for query sorters."""
     def __init__(self, reverse=False):
         self._reverse = reverse
@@ -218,13 +219,10 @@ class Query(Iterable[Union[Node, Page]]):
                 # checking only
                 result = sorted(result, key=s.get_key, reverse=s.reverse) # type: ignore
 
+        # Note: Queries can be returned from collections, which are sorted, so
+        # not having a sorter specified in this query doesn't imply no specified
+        # order
         if self.__reversed:
-            if not self.__sorters:
-                self.__log.warning(
-                    'Reversing a query without any sorters '
-                    'results in an unspecified ordering. To get a '
-                    'deterministic ordering, you should always '
-                    'specify a sorting order when using reverse.')
             result = list(reversed(result))
 
         def Wrap(n: Node) -> Union[Node, Page]:

@@ -1,5 +1,5 @@
 import pathlib
-from liara.template import _match_url, TemplateRepository
+from liara.template import Template, _match_url, TemplateRepository
 import pytest
 import liara.site
 
@@ -47,8 +47,13 @@ def test_match_url_wildcard(default_site):
     assert score0 < score1
 
 
+class _MockTemplateRepository(TemplateRepository):
+    def find_template(self, url: pathlib.PurePosixPath, site: liara.site.Site) -> Template:
+        raise NotImplementedError()
+
+
 def test_match_url_order_independent(default_site):
-    tr0 = TemplateRepository(
+    tr0 = _MockTemplateRepository(
         {
             '/*': 'default',
             '/en*': 'en'
@@ -61,7 +66,7 @@ def test_match_url_order_independent(default_site):
     t01 = tr0._match_template(pathlib.PurePosixPath('/'), default_site)
     assert t01 == 'default'
 
-    tr1 = TemplateRepository(
+    tr1 = _MockTemplateRepository(
         {
             '/en*': 'en',
             '/*': 'default'
@@ -76,7 +81,7 @@ def test_match_url_order_independent(default_site):
 
 
 def test_match_url_same_length(default_site):
-    tr0 = TemplateRepository(
+    tr0 = _MockTemplateRepository(
         {
             '/e*': 'a',
             '/*n': 'b'
@@ -86,7 +91,7 @@ def test_match_url_same_length(default_site):
     t00 = tr0._match_template(pathlib.PurePosixPath('/en'), default_site)
     assert t00 == 'a'
 
-    tr1 = TemplateRepository(
+    tr1 = _MockTemplateRepository(
         {
             '/*n': 'a',
             '/e*': 'b'

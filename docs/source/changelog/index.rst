@@ -8,13 +8,6 @@ Changelog
 * Fix `:py:class:~liara.query.Query` failure when a filter is used in
   conjunction with ``reverse``, but without specifying a sort order.
 
-  .. note::
-    
-    Without sorting, the order is undefined, so reverting an unsorted
-    sequence results in an unsorted sequence. A warning is now issued in this
-    case.
-
-
 2.6.0
 -----
 
@@ -24,7 +17,7 @@ Changelog
 2.5.4
 -----
 
-* Provide the current node as a  context variable to shortcode handlers. See :doc:`../content/shortcodes` for details. 
+* Provide the current node as a  context variable to shortcode handlers. See :doc:`../content/shortcodes` for details.
 
 2.5.3
 -----
@@ -89,7 +82,7 @@ Changelog
 
 * Add ``--no-cache`` option to ``liara serve`` and ``liara build`` (off by
   default.)
-  
+
   In some cases, it may be necessary to disable the cache to ensure up-to-date output during development. For instance ``SASS`` files can have includes which are not tracked by ``liara`` and fail to trigger a rebuild. With ``--no-cache`` each file is rebuilt on each request. This can be very slow and is thus only recommended during template/style development.
 
 * Improve the ``liara validate-links`` command:
@@ -97,15 +90,15 @@ Changelog
   * Check internal links by default. Previously, if run without ``-t``, no links were checked.
   * Return a non-zero exit code if broken links are found
   * Add more debug output
-  * Fix an issue which prevented timeouts from being reported correctly. 
+  * Fix an issue which prevented timeouts from being reported correctly.
 
 2.3.4
 -----
 
-* Add a new configuration option to select the SASS compiler. See :ref:`configuration <sass-compiler-option>` for details. 
-  
+* Add a new configuration option to select the SASS compiler. See :ref:`configuration <sass-compiler-option>` for details.
+
   .. note::
-    
+
     The option is set to ``libsass`` by default for now, but it is highly recommended to `install the command line compiler <https://sass-lang.com/install>`_ and use it. The option to use ``libsass`` will be removed in a future release.
 
 * Add support for caching to :py:class:`~liara.nodes.SassResourceNode`. This can significantly speed up building sites with large amounts of SASS files.

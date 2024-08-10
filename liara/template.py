@@ -6,6 +6,8 @@ from typing import (
     Optional,
 )
 
+from abc import abstractmethod, ABC
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .query import Query
@@ -49,7 +51,7 @@ def _match_url(url: pathlib.PurePosixPath, pattern: str, site: 'Site') \
     return None
 
 
-class Template:
+class Template(ABC):
     def __init__(self, template_path='<unknown>'):
         self._template_path = template_path
 
@@ -57,17 +59,19 @@ class Template:
     def path(self):
         return self._template_path
 
+    @abstractmethod
     def render(self, **kwargs) -> str:
         ...
 
 
-class TemplateRepository:
+class TemplateRepository(ABC):
     def __init__(self, paths: Dict[str, str]):
         self.__paths = paths
 
     def update_paths(self, paths: Dict[str, str]):
         self.__paths = paths
 
+    @abstractmethod
     def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
             -> Template:
         ...

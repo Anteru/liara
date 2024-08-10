@@ -2,6 +2,8 @@ from typing import Iterable, List, Iterator, Optional
 from .nodes import Node, NodeKind, _parse_node_kind
 from .template import Page
 from typing import Union
+from abc import abstractmethod
+import logging
 
 import re
 
@@ -74,12 +76,13 @@ class Sorter:
     def __init__(self, reverse=False):
         self._reverse = reverse
 
-    def get_key(self, item):
+    @abstractmethod
+    def get_key(self, item: Node):
         """Return the key to be used for sorting."""
-        pass
+        ...
 
     @property
-    def reverse(self):
+    def reverse(self) -> bool:
         """Returns ``True`` if the sort order should be reversed."""
         return self._reverse
 
@@ -125,6 +128,8 @@ class Query(Iterable[Union[Node, Page]]):
     __limit: int
     __reversed: bool
     __result: Optional[List[Union[Node, Page]]]
+
+    __log = logging.getLogger('liara.query.Query')
 
     def __init__(self, nodes: Iterable[Node]):
         """Create a query object for the list of specified nodes."""
@@ -203,14 +208,24 @@ class Query(Iterable[Union[Node, Page]]):
         self.__result = []
         result = self.__nodes
         for f in self.__filters:
-            result = filter(lambda x: f.match(x), result)
+            result: List[Node] = list(filter(lambda x: f.match(x), result))
 
         if self.__sorters:
             for s in self.__sorters:
-                result = sorted(result, key=s.get_key, reverse=s.reverse)
+                # We ignore this as there's no way to express that `get_key`
+                # returns something comparable using built-in types, and for
+                # now we want to avoid defining types for the sake of type
+                # checking only
+                result = sorted(result, key=s.get_key, reverse=s.reverse) # type: ignore
 
         if self.__reversed:
-            result = reversed(result)
+            if not self.__sorters:
+                self.__log.warning(
+                    'Reversing a query without any sorters '
+                    'results in an unspecified ordering. To get a '
+                    'deterministic ordering, you should always '
+                    'specify a sorting order when using reverse.')
+            result = list(reversed(result))
 
         def Wrap(n: Node) -> Union[Node, Page]:
             if n.kind in {NodeKind.Document, NodeKind.Index}:

@@ -90,3 +90,17 @@ def test_query_limit():
         root.add_child(MockDocumentNode(f'/{i}', {'title': f'Page {i}'}))
 
     assert len(list(root.select_children().limit(10))) == 10
+
+def test_query_filter_reversed():
+    """Test a query which filters and reverses, but doesn't sort."""
+    n1 = MockDocumentNode('/a', {'title': 'A', 'foo': 'bar'})
+    n2 = MockDocumentNode('/b', {'title': 'B', 'foo': 'bar'})
+
+    root = Node()
+    root.path = pathlib.PurePosixPath('/')
+    root.add_child(n2)
+    root.add_child(n1)
+
+    s1 = list(root.select_children().with_metadata('foo').reversed())
+
+    assert len(s1) == 2

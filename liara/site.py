@@ -25,6 +25,7 @@ from .util import pairwise
 from . import signals
 import logging
 import fnmatch
+from abc import abstractmethod
 
 
 def _create_metadata_accessor(field_name):
@@ -96,7 +97,7 @@ class Collection:
     for next/previous queries.
     """
 
-    __log = logging.getLogger('liara.Collection')
+    __log = logging.getLogger('liara.site.Collection')
 
     def __init__(self, site: 'Site', name: str, pattern: str, *,
                  exclude_without: Optional[List[Union[str, Tuple[str, Any]]]]
@@ -125,7 +126,6 @@ class Collection:
         """
         from .nodes import _parse_node_kind
 
-        self.__log = logging.getLogger('liara.site.Collection')
         self.__name = name
 
         self.__site = site
@@ -195,7 +195,7 @@ class Collection:
         """Get the (sorted) nodes in this collection."""
         return self.__nodes.values()
 
-    def get_next(self, node: Node) -> Node:
+    def get_next(self, node: Node) -> Optional[Node]:
         """Get the next node in this collection with regard to the specified
         order, or ``None`` if this is the last node."""
         if not self.__order_by:
@@ -204,7 +204,7 @@ class Collection:
                 'undefined results')
         return self.__next.get(node.path)
 
-    def get_previous(self, node: Node) -> Node:
+    def get_previous(self, node: Node) -> Optional[Node]:
         """Get the previous node in this collection with regard to the
         specified order, or ``None`` if this is the first node."""
         if not self.__order_by:
@@ -331,11 +331,12 @@ class Index:
 
 class ContentFilter:
     """Content filters can filter out nodes based on various criteria."""
+    @abstractmethod
     def apply(self, node: Node) -> bool:
         """Return ``True`` if the node should be kept, and ``False``
         otherwise.
         """
-        pass
+        ...
 
     @property
     def reason(self) -> str:
@@ -444,7 +445,7 @@ class Site:
         self.__collections = {}
         self.__indices = []
         self.__content_filters = []
-        self.__log = logging.getLogger('liara.site')
+        self.__log = logging.getLogger('liara.site.Site')
 
         # Stores the paths of filtered nodes, and the filter that filtered them
         self.__filtered_content = {}
@@ -666,14 +667,14 @@ class Site:
                                        'enabled, "include" will be ignored.')
 
                 if pattern := v.get('exclude'):
-                    if fnmatch.fnmatch(static.src, pattern):
+                    if fnmatch.fnmatch(static.src.name, pattern):
                         self.__log.debug(
                                 'Skipping thumbnail creation for "%s" due to '
                                 'exclude filter "%s"',
                                 static.src, pattern)
                         continue
                 elif pattern := v.get('include'):
-                    if not fnmatch.fnmatch(static.src, pattern):
+                    if not fnmatch.fnmatch(static.src.name, pattern):
                         self.__log.debug(
                                 'Skipping thumbnail creation for "%s" due to '
                                 'include filter "%s"',

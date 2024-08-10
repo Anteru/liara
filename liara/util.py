@@ -19,7 +19,7 @@ def pairwise(iterable):
     return zip(a, b)
 
 
-def add_suffix(path: pathlib.Path, suffix):
+def add_suffix(path: pathlib.PurePosixPath, suffix):
     """Add a suffix to a path.
 
     This differs from ``with_suffix`` by adding a suffix without changing

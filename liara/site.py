@@ -249,6 +249,8 @@ def _group_recursive(iterable, group_keys: List[str]):
 
 
 class Index:
+    __log = logging.getLogger('liara.site.Index')
+
     """An index into a collection, which provides an index structure.
 
     The index structure requires a grouping schema -- for instance, all nodes
@@ -276,8 +278,6 @@ class Index:
                                        per grouping statement.
         """
         nodes = collection.nodes
-
-        self.__log = logging.getLogger('liara.site.Index')
 
         if exclude_without:
             filter_function = _create_metadata_filter(exclude_without)
@@ -433,6 +433,8 @@ class Site:
     __content_filters: List[ContentFilter]
     __filtered_content: Dict[pathlib.PurePosixPath, str]
 
+    __log = logging.getLogger('liara.site.Site')
+
     def __init__(self):
         self.data = []
         self.indices = []
@@ -445,7 +447,6 @@ class Site:
         self.__collections = {}
         self.__indices = []
         self.__content_filters = []
-        self.__log = logging.getLogger('liara.site.Site')
 
         # Stores the paths of filtered nodes, and the filter that filtered them
         self.__filtered_content = {}

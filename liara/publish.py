@@ -5,7 +5,6 @@ from .nodes import (
     ResourceNode,
     StaticNode,
     GeneratedNode,
-    NodeKind,
 )
 from .template import Page, SiteTemplateProxy, TemplateRepository
 from .site import Site

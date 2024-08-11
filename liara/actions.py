@@ -13,7 +13,11 @@ def _extract_links(document: DocumentNode):
     This assumes the document has been already processed into valid Html.
     """
     from bs4 import BeautifulSoup
-    assert document.content
+    
+    if not document.content:
+        # empty document
+        return []
+    
     soup = BeautifulSoup(document.content, 'lxml')
 
     for item in soup.find_all(['img', 'a']):

@@ -8,6 +8,7 @@ Changelog
 * Fix :py:class:`~liara.query.Query` failure when a filter is used in
   conjunction with ``reverse``, but without specifying a sort order.
 * Fix :py:meth:`~liara.util.readtime` ignoring the ``words_per_minute`` parameter.
+* Fix ``validate-links`` failing on empty documents due to an incorrect assertion.
 
 2.6.0
 -----

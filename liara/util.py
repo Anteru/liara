@@ -35,7 +35,7 @@ def readtime(wordcount: int, words_per_minute=300):
     them.
 
     :return: The time in minutes if it's more than 1, otherwise 1."""
-    return max(1, round(wordcount / 300))
+    return max(1, round(wordcount / words_per_minute))
 
 
 def flatten_dictionary(d, sep='.', parent_key=None,

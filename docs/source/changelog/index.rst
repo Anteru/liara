@@ -5,8 +5,9 @@ Changelog
 ------------------------
 
 * Fix ``.yaml`` files with UTF-8 content not being read correctly. Now, files with a BOM are correctly recognized, and files without a BOM are assumed to be ``UTF-8`` encoded.
-* Fix `:py:class:~liara.query.Query` failure when a filter is used in
+* Fix :py:class:`~liara.query.Query` failure when a filter is used in
   conjunction with ``reverse``, but without specifying a sort order.
+* Fix :py:meth:`~liara.util.readtime` ignoring the ``words_per_minute`` parameter.
 
 2.6.0
 -----

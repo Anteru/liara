@@ -52,7 +52,7 @@ def _publish_with_template(output_path: pathlib.Path,
                            site: Site,
                            site_template_proxy: SiteTemplateProxy,
                            template_repository) -> pathlib.Path:
-    log = logging.getLogger('liara.TemplatePublisher')
+    log = logging.getLogger('liara.publish.TemplatePublisher')
 
     page = Page(node)
     file_path = pathlib.Path(str(output_path) + str(node.path))
@@ -73,7 +73,7 @@ def _publish_with_template(output_path: pathlib.Path,
 
 
 class DefaultPublisher(Publisher):
-    __log = logging.getLogger('liara.DefaultPublisher')
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self, output_path: pathlib.Path,
                  site: Site):

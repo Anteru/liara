@@ -130,7 +130,7 @@ class Query(Iterable[Union[Node, Page]]):
     __reversed: bool
     __result: Optional[List[Union[Node, Page]]]
 
-    __log = logging.getLogger('liara.query.Query')
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self, nodes: Iterable[Node]):
         """Create a query object for the list of specified nodes."""

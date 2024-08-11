@@ -97,7 +97,7 @@ class Collection:
     for next/previous queries.
     """
 
-    __log = logging.getLogger('liara.site.Collection')
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self, site: 'Site', name: str, pattern: str, *,
                  exclude_without: Optional[List[Union[str, Tuple[str, Any]]]]
@@ -249,7 +249,7 @@ def _group_recursive(iterable, group_keys: List[str]):
 
 
 class Index:
-    __log = logging.getLogger('liara.site.Index')
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     """An index into a collection, which provides an index structure.
 
@@ -433,7 +433,7 @@ class Site:
     __content_filters: List[ContentFilter]
     __filtered_content: Dict[pathlib.PurePosixPath, str]
 
-    __log = logging.getLogger('liara.site.Site')
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self):
         self.data = []

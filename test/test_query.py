@@ -1,4 +1,5 @@
 from liara.nodes import DocumentNode, StaticNode, Node
+from liara.template import Page
 import pathlib
 import pytest
 
@@ -65,11 +66,14 @@ def test_query_sort_by():
 
     root = Node()
     root.path = pathlib.PurePosixPath('/')
-    root.add_child(n2)
     root.add_child(n1)
+    root.add_child(n2)
 
     s1 = list(root.select_children().sorted_by_title())
     s2 = list(root.select_children().sorted_by_title(reverse=True))
+
+    assert isinstance(s1[0], Page)
+    assert isinstance(s2[1], Page)
 
     assert s1[0].url == '/a'
     assert s2[1].url == '/a'
@@ -78,6 +82,10 @@ def test_query_sort_by():
         _ = list(root.select_children().sorted_by_metadata('non-existant'))
 
     s3 = list(root.select_children().sorted_by_metadata('title'))
+    
+    assert isinstance(s3[0], Page)
+    assert isinstance(s3[1], Page)
+
     assert s3[0].url == '/a'
     assert s3[1].url == '/b'
 
@@ -98,9 +106,48 @@ def test_query_filter_reversed():
 
     root = Node()
     root.path = pathlib.PurePosixPath('/')
-    root.add_child(n2)
     root.add_child(n1)
+    root.add_child(n2)
 
     s1 = list(root.select_children().with_metadata('foo').reversed())
 
     assert len(s1) == 2
+
+def test_query_filter_non_string_metadata():
+    """Test a query which sort by a non-string entry."""
+    n1 = MockDocumentNode('/a', {'title': 'A', 'order': 3})
+    n2 = MockDocumentNode('/b', {'title': 'B', 'order': 1})
+
+    root = Node()
+    root.path = pathlib.PurePosixPath('/')
+    root.add_child(n1)
+    root.add_child(n2)
+
+    s1 = list(root.select_children().sorted_by_metadata('order'))
+
+    assert len(s1) == 2
+
+    assert isinstance(s1[0], Page)
+    assert s1[0].metadata['title'] == 'B'
+
+def test_query_exclude():
+    """Test exclusion by regex."""
+
+    root = Node()
+    root.path = pathlib.PurePosixPath('/')
+    root.add_child(MockDocumentNode('/aa', {}))
+    root.add_child(MockDocumentNode('/ab', {}))
+    root.add_child(MockDocumentNode('/bc', {}))
+
+    s1 = list(root.select_children().exclude('a'))
+
+    assert len(s1) == 1
+
+    assert isinstance(s1[0], Page)
+    assert s1[0].url == '/bc'
+
+    s2 = list(root.select_children().exclude('b$'))
+    assert len(s2) == 2
+
+    s3 = list(root.select_children().exclude('^/a'))
+    assert len(s3) == 1

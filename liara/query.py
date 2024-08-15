@@ -165,7 +165,15 @@ class Query(Iterable[Union[Node, Page]]):
 
     def exclude(self, pattern) -> 'Query':
         """Exclude nodes matching the provided regex pattern. The pattern will
-        be applied to the full path."""
+        be applied to the full path.
+        
+        .. note::
+        
+          This means that a pattern of ``a`` for example will match a path like
+          ``bar``, as ``a`` is found inside ``bar``. If you want to match the
+          specific regular expression and not allow for matches within,
+          use ``^/a$``.
+        """
         self.__filters.append(ExcludeFilter(pattern))
         return self
 

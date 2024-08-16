@@ -1,9 +1,81 @@
-[build-system]
-requires = [
-  "setuptools >= 40.9.0",
-  "wheel",
+[project]
+name = "Liara"
+dynamic = ["version"]
+
+authors = [
+  {name = "Matthäus G. Chajdas", email = "dev@anteru.net" }
 ]
-build-backend = "setuptools.build_meta"
+
+description = "Liara is a static page generator"
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {text = "BSD 2-clause license"}
+
+keywords = ["static site generator", "static sites", "ssg"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: BSD License",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: Content Management System",
+]
+
+requires-python = ">= 3.10"
+dependencies = [
+  "beautifulsoup4~=4.12",
+  "blinker~=1.7",
+  "click~=8.1",
+  "dateparser~=1.2",
+  "humanfriendly~=10.0",
+  "Jinja2~=3.1",
+  "libsass~=0.21",
+  "lxml~=5.1",
+  "Mako~=1.3",
+  "Markdown~=3.5",
+  "Pillow~=10.2",
+  "Pygments~=2.18",
+  "pymdown-extensions~=10.0",
+  "python-slugify~=8.0",
+  "PyYAML~=6.0",
+  "requests~=2.31",
+  "tomli~=2.0; python_version < '3.11'",
+  "treelib~=1.7",
+  "tzlocal~=5.2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "flake8",
+  "flake8-mypy",
+  "tox",
+]
+
+redis = [
+  "redis~=5.0",
+]
+
+docs = [
+  "Sphinx~=8.0",
+  "furo",
+]
+
+[project.urls]
+Homepage = "https://liara.sh13.net"
+"Issue Tracker" = "https://github.com/anteru/liara/issues"
+Repository = "https://github.com/anteru/liara"
+Documentation = "https://liara-web.readthedocs.io"
+
+[project.scripts]
+liara = "liara.cmdline:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.tox]
 legacy_tox_ini = """
@@ -12,3 +84,9 @@ deps = pytest
 commands =
     pytest
 """
+
+[tool.hatch.version]
+path = "liara/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+only-include = ["liara"]

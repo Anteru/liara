@@ -1,8 +1,8 @@
 Changelog
 =========
 
-2.6.1 (not released yet)
-------------------------
+2.6.1
+-----
 
 * Fix ``.yaml`` files with UTF-8 content not being read correctly. Now, files with a BOM are correctly recognized, and files without a BOM are assumed to be ``UTF-8`` encoded.
 * Fix :py:class:`~liara.query.Query` failure when a filter is used in

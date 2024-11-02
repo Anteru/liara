@@ -202,7 +202,7 @@ class Liara:
             assert hasattr(module, 'register')
             module.register()
             cls.__registered_plugins[name] = _LoadedModule(module, 
-                hashlib.file_digest(open(inspect.getfile(module), 'rb'), 'sha512').digest())
+                util.file_digest(open(inspect.getfile(module), 'rb')))
 
     def __setup_cache(self) -> None:
         # Deprecated since version 2.2
@@ -783,7 +783,7 @@ class Liara:
                 module.register() # type: ignore
                 # Keep it around to prevent garbage collection
                 self.__registered_plugins[plugin] = _LoadedModule(module, \
-                    hashlib.file_digest(plugin.open('rb'), 'sha512').digest())
+                    util.file_digest(plugin.open('rb')))
 
     def _load_module(self, path, name=''):
         import importlib.util

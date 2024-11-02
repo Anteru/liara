@@ -135,3 +135,15 @@ def get_hash_key_for_map(m: collections.abc.Mapping) -> bytes:
     buffer = io.BytesIO()
     pickle.dump(m, buffer)
     return hashlib.sha1(buffer.getbuffer()).digest()
+
+def file_digest(fp) -> bytes:
+    """Back-compat implementation of Python's 3.11 `file_digest`"""
+    import hashlib
+
+    if hasattr(hashlib, 'file_digest'):
+        return hashlib.file_digest(fp, 'sha512').digest()
+
+    hasher = hashlib.new('sha512')
+    while buffer := fp.read(1024 * 1024):
+        hasher.update(buffer)
+    return hasher.digest()

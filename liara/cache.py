@@ -26,8 +26,16 @@ class CacheInfo:
 
 
 class Cache(abc.ABC):
+    
     """Interface for key-value caches.
     """
+    @abc.abstractmethod
+    def set_key_prefix(self, prefix: bytes):
+        """Set a prefix for all keys. This can be for example used to
+        avoid collisions when the configuration changes (which can
+        impact all values)."""
+        ...
+
     @abc.abstractmethod
     def put(self, key: bytes, value: object) -> bool:
         """Put a value into the cache using the provided key.
@@ -69,7 +77,39 @@ class Cache(abc.ABC):
         .. versionadded:: 2.5"""
 
 
-class FilesystemCache(Cache):
+class _CacheBase(Cache):
+    """A base class which handles the set_key_prefix method transparently."""
+
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
+
+    def __init__(self):
+        self.__prefix = bytes()
+
+    def set_key_prefix(self, prefix: bytes):
+        self.__log.debug('Setting cache key prefix to: "%s"',
+                         prefix.hex())
+        self.__prefix = prefix
+
+    @abc.abstractmethod
+    def _put(self, key: bytes, value: object) -> bool:
+        """To be implemented by derived classes, this method will be called
+        with the prefix already applied."""
+        pass
+
+    @abc.abstractmethod
+    def _get(self, key: bytes) -> Optional[object]:
+        """To be implemented by derived classes, this method will be called
+        with the prefix already applied."""
+        pass
+
+    def put(self, key: bytes, value: object) -> bool:
+        return self._put(self.__prefix + key, value)
+    
+    def get(self, key: bytes) -> Optional[object]:
+        return self._get(self.__prefix + key)
+
+
+class FilesystemCache(_CacheBase):
     """A :py:class:`Cache` implementation which uses the filesystem to cache
     data.
 
@@ -81,6 +121,7 @@ class FilesystemCache(Cache):
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self, path: pathlib.Path):
+        super().__init__()
         self.__path = path
         self.__index = {}
         os.makedirs(self.__path, exist_ok=True)
@@ -102,7 +143,7 @@ class FilesystemCache(Cache):
     def persist(self):
         pickle.dump(self.__index, self.__index_file.open('wb'))
 
-    def put(self, key: bytes, value: object) -> bool:
+    def _put(self, key: bytes, value: object) -> bool:
         if key in self.__index:
             return False
 
@@ -112,7 +153,7 @@ class FilesystemCache(Cache):
         self.__index[key] = cache_object_path
         return True
 
-    def get(self, key: bytes) -> Optional[object]:
+    def _get(self, key: bytes) -> Optional[object]:
         if key not in self.__index:
             return None
 
@@ -129,7 +170,7 @@ class FilesystemCache(Cache):
         return CacheInfo(size, count, 'Filesystem')
 
 
-class Sqlite3Cache(Cache):
+class Sqlite3Cache(_CacheBase):
     """A :py:class:`Cache` implementation which uses SQLite to store the data.
     This is mostly useful if creating many files is slow, for instance due to
     anti-virus software.
@@ -141,6 +182,7 @@ class Sqlite3Cache(Cache):
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self, path: pathlib.Path):
+        super().__init__()
         self.__path = path
         os.makedirs(self.__path, exist_ok=True)
         self.__db_file = self.__path / 'cache.db'
@@ -160,7 +202,7 @@ class Sqlite3Cache(Cache):
     def persist(self):
         self.__connection.commit()
 
-    def put(self, key: bytes, value: object) -> bool:
+    def _put(self, key: bytes, value: object) -> bool:
         # The semantics are such that inserting the same key twice should not
         # cause a failure, so we ignore failures here
         q = 'INSERT OR IGNORE INTO cache VALUES(?, ?, ?);'
@@ -178,7 +220,7 @@ class Sqlite3Cache(Cache):
 
         return r.lastrowid != 0
 
-    def get(self, key: bytes) -> Optional[object]:
+    def _get(self, key: bytes) -> Optional[object]:
         q = 'SELECT data, object_type FROM cache WHERE key=?'
         self.__cursor.execute(q, (key,))
         r = self.__cursor.fetchone()
@@ -206,7 +248,7 @@ class Sqlite3Cache(Cache):
         return CacheInfo(size, count, 'Sqlite3')
 
 
-class MemoryCache(Cache):
+class MemoryCache(_CacheBase):
     """An in-memory :py:class:`Cache` implementation.
 
     This cache stores all objects in-memory.
@@ -214,16 +256,17 @@ class MemoryCache(Cache):
     __index: Dict[bytes, object]
 
     def __init__(self):
+        super().__init__()
         self.__index = {}
 
-    def put(self, key: bytes, value: object) -> bool:
+    def _put(self, key: bytes, value: object) -> bool:
         if key in self.__index:
             return False
 
         self.__index[key] = value
         return True
 
-    def get(self, key: bytes) -> Optional[object]:
+    def _get(self, key: bytes) -> Optional[object]:
         return self.__index.get(key, None)
 
     def clear(self):
@@ -241,19 +284,20 @@ class MemoryCache(Cache):
         return CacheInfo(size, count, 'In-Memory')
 
 
-class RedisCache(Cache):
+class RedisCache(_CacheBase):
     """A cache using Redis as the storage backend."""
 
     def __init__(self, host: str, port: int, db: int,
                  expiration_time=timedelta(hours=1)):
         import redis
+        super().__init__()
         self.__redis = redis.Redis(host, port, db)
         self.__expiration_time = expiration_time
 
     def __make_key(self, key: bytes, suffix: str) -> str:
         return f'liara/{key.hex()}/{suffix}'
 
-    def put(self, key: bytes, value: object) -> bool:
+    def _put(self, key: bytes, value: object) -> bool:
         if isinstance(value, bytes) or isinstance(value, bytearray):
             object_type = 'bin'
         else:
@@ -268,7 +312,7 @@ class RedisCache(Cache):
 
         return all(pipeline.execute())
 
-    def get(self, key) -> Optional[object]:
+    def _get(self, key) -> Optional[object]:
         pipeline = self.__redis.pipeline()
 
         pipeline.get(self.__make_key(key, 'type'))
@@ -294,16 +338,19 @@ class RedisCache(Cache):
         return CacheInfo(name='Redis')
 
 
-class NullCache(Cache):
+class NullCache(_CacheBase):
     """The null cache drops all requests and does not cache any data.
 
     This is mostly useful to disable caching in APIs which require a cache
     instance.
     """
-    def put(self, key: bytes, value: object) -> bool:
+    def __init__(self):
+        super().__init__()
+
+    def _put(self, key: bytes, value: object) -> bool:
         return True
 
-    def get(self, key: bytes) -> Optional[object]:
+    def _get(self, key: bytes) -> Optional[object]:
         return None
 
     def clear(self) -> None:

@@ -4,6 +4,7 @@ import os
 import pathlib
 import time
 import multiprocessing
+from dataclasses import dataclass
 
 from typing import (
         IO,
@@ -60,6 +61,11 @@ __path__ = extend_path(__path__, __name__)
 # in profiles otherwise
 __ROOT_PATH = pathlib.PurePosixPath('/')
 
+@dataclass
+class _LoadedModule:
+    module: object
+    hash: bytes
+
 
 def _create_relative_path(path: pathlib.Path, root: pathlib.Path) \
         -> pathlib.PurePosixPath:
@@ -100,7 +106,7 @@ class Liara:
     __cache: Cache
     # When running using 'serve', this will be set to the local URL
     __base_url_override: Optional[str] = None
-    __registered_plugins: Dict[object, object] = dict()
+    __registered_plugins: Dict[object, _LoadedModule] = dict()
     __filesystem_walker: FilesystemWalker
     __template_repository: TemplateRepository
 
@@ -177,6 +183,8 @@ class Liara:
         import liara.plugins
         import pkgutil
         import importlib
+        import hashlib
+        import inspect
 
         def iter_namespace(ns_pkg):
             return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
@@ -193,7 +201,8 @@ class Liara:
             cls.__log.debug(f'Initializing plugin: {name}')
             assert hasattr(module, 'register')
             module.register()
-            cls.__registered_plugins[name] = module
+            cls.__registered_plugins[name] = _LoadedModule(module, 
+                hashlib.file_digest(open(inspect.getfile(module), 'rb'), 'sha512').digest())
 
     def __setup_cache(self) -> None:
         # Deprecated since version 2.2
@@ -627,6 +636,31 @@ class Liara:
 
         self.__log.info(f'Processed {len(site.resources)} resources')
 
+    def __set_cache_prefix(self):
+        """Set the cache prefix based on anything that could impact the
+        site generation that is not the content of the file that is processed.
+        
+        We currently use the configuration, site metadata (as this is affected
+        for example by the 'base_url' when locally serving), data nodes,
+        and plugin hashes of loaded plugins."""
+        import hashlib
+        site_data = dict()
+        for data_node in self.__site.data:
+            site_data.update(data_node.content)
+
+        plugin_hashes = {
+            key: value.hash for key, value in self.__registered_plugins.items()
+        }
+
+        self.__cache.set_key_prefix(
+            hashlib.shake_128(
+                util.get_hash_key_for_map(self.__configuration)
+                + util.get_hash_key_for_map(self.__site.metadata)
+                + util.get_hash_key_for_map(site_data)
+                + util.get_hash_key_for_map(plugin_hashes)
+                + __version__.encode('utf-8')).digest(16)
+        )
+
     def build(self, discover_content=True, *, disable_cache=False,
               parallel_build=True):
         """Build the site.
@@ -647,6 +681,8 @@ class Liara:
 
         for document in site.documents:
             document.validate_metadata()
+
+        self.__set_cache_prefix()
 
         self.__log.info('Processing documents ...')
         cache = self.__cache if not disable_cache else NullCache()
@@ -721,6 +757,8 @@ class Liara:
         for document in site.documents:
             document.validate_metadata()
 
+        self.__set_cache_prefix()
+
         server.serve(site, self.__template_repository, self.__configuration,
                      self.__cache if not disable_cache else NullCache())
 
@@ -729,17 +767,23 @@ class Liara:
         source_path = pathlib.Path(
             self.__configuration['generator_directory']) / (t + '.py')
         module = self._load_module(source_path, t)
-        path = module.generate(self.__site, self.__configuration)
+        assert hasattr(module, 'generate')
+        # We just checked it has this attribute
+        path = module.generate(self.__site, self.__configuration) # type: ignore
         self.__log.info(f'Generated "{path}"')
 
     def _load_plugins(self, folder):
+        import hashlib
         plugin_path = pathlib.Path(folder)
         for plugin in plugin_path.rglob('*.py'):
             module = self._load_module(plugin)
             if hasattr(module, 'register'):
-                module.register()
+                # We just checked it has 'register', so there's no need to warn
+                # us here
+                module.register() # type: ignore
                 # Keep it around to prevent garbage collection
-                self.__registered_plugins[plugin] = module
+                self.__registered_plugins[plugin] = _LoadedModule(module, \
+                    hashlib.file_digest(plugin.open('rb'), 'sha512').digest())
 
     def _load_module(self, path, name=''):
         import importlib.util
@@ -747,7 +791,7 @@ class Liara:
         # Prevent modules from being loaded twice
         if module := self.__registered_plugins.get(path):
             self.__log.debug(f'Module "{path}" already registered, skipping')
-            return module
+            return module.module
 
         if not name:
             name = path.stem

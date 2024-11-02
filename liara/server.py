@@ -161,7 +161,10 @@ class HttpServer:
         else:
             print(f'Listening on {url}')
 
+        print('Use CTRL-C to stop the server')
+
         try:
             server.serve_forever()
         except KeyboardInterrupt:
+            self.__cache.persist()
             sys.exit(0)

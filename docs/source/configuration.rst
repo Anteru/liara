@@ -54,7 +54,7 @@ Build settings
 
   .. note::
 
-    The ``fs`` cache is a good default for most users. If creating files is expensive, ``db`` will perform better as it stores all data in a single file. Both ``fs`` and ``db`` caches are single-user only and don't remove old entries -- if the cache grows too big, you'll want to delete the cache directory.
+    The ``fs`` cache is a good default for most users. If creating files is expensive, ``db`` will perform better as it stores all data in a single file. Both ``fs`` and ``db`` caches are single-user only and don't remove old entries -- if the cache grows too big, you'll want to delete the cache directory or clear it using ``liara cache clear``.
     
     ``redis`` is useful if you have an existing instance already, want to benefit from automatic cache clearing, or have multiple concurrent instances of Liara (for example, an automated build server in addition to a local client.)
 
@@ -66,6 +66,10 @@ Build settings
   - ``libsass`` uses ``libsass``, which is `deprecated <https://sass-lang.com/libsass>`_, but does not depend on external binaries.
 
   .. versionadded:: 2.3.4
+
+.. note::
+
+    Caching is imperfect: In some rare cases, you may see stale content. You can use ``liara build --no-cache`` or ``liara cache clear`` if you're running into issues with incorrect caching (and please report a bug in those cases.) Generally speaking, updating Liara, a dependency or a plugin should be followed by clearing the cache.
 
 Database cache options
 ^^^^^^^^^^^^^^^^^^^^^^

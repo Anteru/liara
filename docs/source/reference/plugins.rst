@@ -62,3 +62,8 @@ The command line is special as it needs to get extended at a very early stage --
             print(env.liara)
 
 Note the use of ``@pass_environment``. This requests Click to pass the Liara command line environment as the first parameter, which contains the Liara instance. See :py:class:`~liara.cmdline.Environment` for more details.
+
+Caching & plugins
+-----------------
+
+When using plugins, Liara's caching mechanism may fail to rebuild content if a plugin changes. Generally speaking, when updating a plugin, clear the cache using ``liara cache clear`` before building again.

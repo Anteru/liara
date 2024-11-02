@@ -123,3 +123,15 @@ class FilesystemWalker:
                          if filename not in files_to_ignore]
 
             yield dirpath, filenames
+
+
+def get_hash_key_for_map(m: collections.abc.Mapping) -> bytes:
+    """Calculate a hash key for any kind of map, including chain maps.
+    
+    This method is fairly slow. Use with caution."""
+    import hashlib
+    import pickle
+    import io
+    buffer = io.BytesIO()
+    pickle.dump(m, buffer)
+    return hashlib.sha1(buffer.getbuffer()).digest()

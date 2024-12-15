@@ -1,6 +1,7 @@
 from .yaml import dump_yaml
 from .config import create_default_metadata
 
+
 __TEMPLATES_JINJA2 = {
     'page.jinja2': r"""
 <!DOCTYPE html>
@@ -314,38 +315,56 @@ def generate(site: liara.site.Site, configuration) -> pathlib.Path:
 """
 
 
-def generate_templates(backend):
+class FileWriter:
+    def __init__(self):
+        pass
+
+    def create_directory(self, path):
+        import os
+        os.makedirs(path, exist_ok=True)
+
+    def write(self, filename, content):
+        open(filename, 'w').write(content)
+
+
+def _write_yaml(writer: FileWriter, path, yaml):
+    import io
+    stream = io.StringIO()
+    dump_yaml(yaml, stream)
+    writer.write(path, stream.getvalue())
+
+
+def generate_templates(writer: FileWriter, backend):
     if backend == 'jinja2':
         templates = __TEMPLATES_JINJA2
     elif backend == 'mako':
         templates = __TEMPLATES_MAKO
 
     for k, v in templates.items():
-        open(f'templates/{k}', 'w').write(v)
+        writer.write(f'templates/{k}', v)
 
 
-def generate_css():
+def generate_css(writer: FileWriter):
     import os
-    os.makedirs('templates/resources', exist_ok=True)
-    open('templates/resources/style.scss', 'w').write(__SCSS)
+    writer.create_directory('templates/resources')
+    writer.write('templates/resources/style.scss', __SCSS)
 
 
-def generate_theme(backend):
-    import os
-    os.makedirs('templates', exist_ok=True)
-    generate_templates(backend)
-    generate_css()
+def generate_theme(writer: FileWriter, backend):
+    import io
+    writer.create_directory('templates')
+    generate_templates(writer, backend)
+    generate_css(writer)
 
     if backend == 'jinja2':
         theme_config = __THEME_CONFIG_JINJA2
     elif backend == 'mako':
         theme_config = __THEME_CONFIG_MAKO
-    dump_yaml(theme_config, open('templates/default.yaml', 'w'))
+    _write_yaml(writer, 'templates/default.yaml', theme_config)
 
 
-def generate_content():
+def generate_content(writer: FileWriter):
     import datetime
-    import os
     page_template = """---
 title: %TITLE%
 tags: [%TAGS%]
@@ -379,16 +398,16 @@ Sample post using _Markdown_
         'the-beginning'
     ]
 
-    os.makedirs('content/blog', exist_ok=True)
+    writer.create_directory('content/blog')
 
     for date, title, tag, slug in zip(dates, titles, tags, slugs):
         t = page_template.replace("%TITLE%", title)
         t = t.replace("%TAGS%", ', '.join(tag))
         t = t.replace("%DATE%", str(date))
-        os.makedirs(f'content/blog/{date.year}', exist_ok=True)
-        open(f'content/blog/{date.year}/{slug}.md', 'w').write(t)
+        writer.create_directory(f'content/blog/{date.year}')
+        writer.write(f'content/blog/{date.year}/{slug}.md', t)
 
-    open('content/archive.md', 'w').write("""
+    writer.write('content/archive.md', """
 ---
 title: The archive
 ---
@@ -396,7 +415,7 @@ title: The archive
 The blog archive. Find blog posts [by year](/archive/by-year) or
 [by tag](/archive/by-tag).""")
 
-    open('content/_index.md', 'w').write("""
+    writer.write('content/_index.md', """
 ---
 title: Hello world
 ---
@@ -432,22 +451,20 @@ __DEFAULT_INDICES = [
 ]
 
 
-def generate_configs():
-    dump_yaml(__DEFAULT_CONFIG, open('config.yaml', 'w'))
-    dump_yaml(create_default_metadata(), open('metadata.yaml', 'w'))
-    dump_yaml(__DEFAULT_COLLECTIONS, open('collections.yaml', 'w'))
-    dump_yaml(__DEFAULT_INDICES, open('indices.yaml', 'w'))
+def generate_configs(writer: FileWriter):
+    _write_yaml(writer, 'config.yaml', __DEFAULT_CONFIG)
+    _write_yaml(writer, 'metadata.yaml', create_default_metadata())
+    _write_yaml(writer, 'collections.yaml', __DEFAULT_COLLECTIONS)
+    _write_yaml(writer, 'indices.yaml', __DEFAULT_INDICES)
 
 
-def generate_generator():
-    import os
-    os.makedirs('generators', exist_ok=True)
-    output_file = os.path.join('generators', 'blog-post.py')
-    open(output_file, 'w').write(__BLOG_POST_GENERATOR)
+def generate_generator(writer: FileWriter):
+    writer.create_directory('generators')
+    writer.write('generators/blog-post.py', __BLOG_POST_GENERATOR)
 
 
-def generate(template_backend):
-    generate_theme(template_backend)
-    generate_content()
-    generate_configs()
-    generate_generator()
+def generate(writer: FileWriter, template_backend):
+    generate_theme(writer, template_backend)
+    generate_content(writer)
+    generate_configs(writer)
+    generate_generator(writer)

@@ -7,9 +7,10 @@ def test_put_retrieve_memory_cache():
     c.put(key, 23)
     assert c.get(key) == 23
 
+
 def test_memory_cache_inspect():
     import sys
-    
+
     c = MemoryCache()
     key = bytes(1)
     value = bytes([1, 2, 3, 4])

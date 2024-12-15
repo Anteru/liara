@@ -4,9 +4,8 @@ from markdown.preprocessors import Preprocessor
 import re
 import logging
 from typing import (
-    Optional, Sequence
+    Any, Dict, Optional, Sequence
 )
-
 
 class HeadingLevelFixupProcessor(Treeprocessor):
     """This processor demotes headings by one level.
@@ -271,6 +270,15 @@ class ShortcodePreprocessor(Preprocessor):
         super().__init__(md)
         self.__functions = dict()
         self.__page = Page(node)
+        self.__data = None
+
+    def set_data(self, data: Dict[str, Any]):
+        """
+        Set the data context.
+
+        @versionadded 2.6.2
+        """
+        self.__data = data
 
     def register(self, name: str, function):
         """Register a new Markdown shortcode function.
@@ -318,6 +326,8 @@ class ShortcodePreprocessor(Preprocessor):
                 rest, next_line, func_name, args = shortcode_parser.parse()
 
                 args['$page'] = self.__page
+                if self.__data:
+                    args['$data'] = self.__data
 
                 def pretty_print_args(d):
                     for k, v in d.items():
@@ -357,20 +367,25 @@ class LiaraMarkdownExtensions(Extension):
     def __init__(self, node=None):
         super().__init__()
         self.__node = node
+        self.__shortcode_preprocessor = None
+
+    def set_data(self, data: Dict[str, Any]):
+        assert self.__shortcode_preprocessor
+        self.__shortcode_preprocessor.set_data(data)
 
     def extendMarkdown(self, md):
         from .signals import register_markdown_shortcodes
 
-        shortcode_preprocessor = ShortcodePreprocessor(md, self.__node)
+        self.__shortcode_preprocessor = ShortcodePreprocessor(md, self.__node)
 
         register_markdown_shortcodes.send(
             self,
-            preprocessor=shortcode_preprocessor)
+            preprocessor=self.__shortcode_preprocessor)
 
         md.treeprocessors.register(HeadingLevelFixupProcessor(md),
                                    'heading-level-fixup',
                                    100)
-        md.preprocessors.register(shortcode_preprocessor,
+        md.preprocessors.register(self.__shortcode_preprocessor,
                                   'shortcode-preprocessor',
                                   100)
         md.registerExtension(self)

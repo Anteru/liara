@@ -185,7 +185,7 @@ class Node(ABC):
             if recursive:
                 yield from child.get_children(recursive=True)
 
-    def process(self, cache: Cache) -> Optional[_AsyncTask]:
+    def process(self, cache: Cache, **kwargs) -> Optional[_AsyncTask]:
         """Some nodes -- resources, documents, etc. need to be processed. As
         this can be a resource-intense process (for instance, it may require
         generating images), processing can cache results and has to be
@@ -403,7 +403,7 @@ class DocumentNode(Node):
 class HtmlDocumentNode(DocumentNode):
     """A node representing a Html document."""
 
-    def process(self, cache: Cache):
+    def process(self, cache: Cache, **kwargs):
         self.content = self._raw_content
 
         self._apply_process_fixups()
@@ -414,13 +414,16 @@ class MarkdownDocumentNode(DocumentNode):
     def __init__(self, configuration, **kwargs):
         super().__init__(**kwargs)
         self.__md = self._create_markdown_processor(configuration)
+        self.__mdext = None
 
     def _create_markdown_processor(self, configuration):
         from markdown import Markdown
         from .md import LiaraMarkdownExtensions
 
+        self.__mdext = LiaraMarkdownExtensions(self)
+
         extensions = [
-            LiaraMarkdownExtensions(self)
+            self.__mdext
         ] + configuration['content.markdown.extensions']
 
         extension_configs = configuration['content.markdown.config']
@@ -430,9 +433,13 @@ class MarkdownDocumentNode(DocumentNode):
                         extension_configs=extension_configs,
                         output_format=output)
 
-    def process(self, cache: Cache):
+    def process(self, cache: Cache, **kwargs):
         import hashlib
         from .md import ShortcodeException
+
+        if '$data' in kwargs:
+            assert self.__mdext
+            self.__mdext.set_data(kwargs['$data'])
 
         byte_content = self._raw_content.encode('utf-8')
         content_hash = hashlib.sha256(byte_content).digest()
@@ -677,7 +684,7 @@ class SassResourceNode(ResourceNode):
     def reload(self) -> None:
         self.content = None
 
-    def process(self, cache: Cache):
+    def process(self, cache: Cache, **kwargs):
         import hashlib
         if self.content is not None:
             return
@@ -953,7 +960,7 @@ class ThumbnailNode(ResourceNode):
 
         return cache_key
 
-    def process(self, cache: Cache) -> _AsyncThumbnailTask | None:
+    def process(self, cache: Cache, **kwargs) -> _AsyncThumbnailTask | None:
         cache_key = self.__get_cache_key()
         if content := cache.get(cache_key):
             self.content = content
@@ -991,10 +998,10 @@ def _parse_node_kind(kind) -> NodeKind:
     return kind_map[kind]
 
 
-def _process_node_sync(node: Union[ResourceNode, DocumentNode], cache: Cache):
+def _process_node_sync(node: Union[ResourceNode, DocumentNode], cache: Cache, **kwargs):
     """
     Process a node synchronously, even if it returned an async result.
     """
-    if task := node.process(cache):
+    if task := node.process(cache, **kwargs):
         node.content = task.process()
         task.update_cache(node.content, cache)

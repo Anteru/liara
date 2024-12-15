@@ -675,6 +675,7 @@ class Liara:
                                       will be called first.
         """
         from .publish import TemplatePublisher
+        from .template import SiteTemplateProxy
         self.__log.info('Build started')
         start_time = time.time()
         if self.__configuration['build.clean_output']:
@@ -695,7 +696,10 @@ class Liara:
         self.__log.debug(f'Using {cache.__class__.__name__} for caching')
         for document in site.documents:
             try:
-                _process_node_sync(document, cache)
+                args = {
+                    '$data' : site.merged_data
+                }
+                _process_node_sync(document, cache, **args)
             except Exception as e:
                 self.__log.warning('Failed to process document "%s". Document '
                                    'content will be empty.',

@@ -435,6 +435,8 @@ class Site:
 
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
+    __merged_data: Dict[str, Any]
+
     def __init__(self):
         self.data = []
         self.indices = []
@@ -450,6 +452,9 @@ class Site:
 
         # Stores the paths of filtered nodes, and the filter that filtered them
         self.__filtered_content = {}
+
+        # Store the union of the data provided in data nodes
+        self.__merged_data = {}
 
     def register_content_filter(self, content_filter: ContentFilter):
         """Register a new content filter."""
@@ -489,6 +494,8 @@ class Site:
         "Add a data node to this site."""
         self.data.append(node)
         self.__register_node(node)
+
+        self.__merged_data.update(node.content)
 
     def add_index(self, node: IndexNode) -> None:
         """Add an index node to this site."""
@@ -770,3 +777,11 @@ class Site:
                 node = next_child
 
         return [node]
+
+    @property
+    def merged_data(self) -> Dict[str, Any]:
+        """Return the union of all data nodes.
+        
+        @versionadded 2.6.2
+        """
+        return self.__merged_data

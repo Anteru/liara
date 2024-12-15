@@ -286,9 +286,7 @@ class SiteTemplateProxy:
 
     def __init__(self, site: 'Site'):
         self.__site = site
-        self.__data = {}
-        for data in self.__site.data:
-            self.__data.update(data.content)
+        self.__data = site.merged_data
 
     @property
     def data(self) -> Dict[str, Any]:

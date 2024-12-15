@@ -80,9 +80,10 @@ build-backend = "hatchling.build"
 [tool.tox]
 legacy_tox_ini = """
 [testenv]
-deps = pytest
+deps = 
+  pytest
 commands =
-    pytest
+   pytest
 """
 
 [tool.hatch.version]

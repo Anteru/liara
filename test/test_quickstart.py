@@ -31,4 +31,3 @@ def test_inspect_data(tmp_path):
 
         assert len(s.site.data) == 1
         assert 'root' in s.site.data[0].content
-

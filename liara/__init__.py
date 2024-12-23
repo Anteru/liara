@@ -31,7 +31,13 @@ from .nodes import (
 )
 
 from .cache import Cache, FilesystemCache, NullCache, Sqlite3Cache, RedisCache
-from .util import FilesystemWalker, flatten_dictionary
+from .util import (
+    FilesystemWalker,
+
+    flatten_dictionary,
+    file_digest,
+    get_hash_key_for_map
+)
 from .yaml import load_yaml
 
 __version__ = '2.6.1'
@@ -183,7 +189,6 @@ class Liara:
         import liara.plugins
         import pkgutil
         import importlib
-        import hashlib
         import inspect
 
         def iter_namespace(ns_pkg):
@@ -201,8 +206,9 @@ class Liara:
             cls.__log.debug(f'Initializing plugin: {name}')
             assert hasattr(module, 'register')
             module.register()
-            cls.__registered_plugins[name] = _LoadedModule(module, 
-                util.file_digest(open(inspect.getfile(module), 'rb')))
+            cls.__registered_plugins[name] = _LoadedModule(
+                module,
+                file_digest(open(inspect.getfile(module), 'rb')))
 
     def __setup_cache(self) -> None:
         # Deprecated since version 2.2
@@ -639,7 +645,7 @@ class Liara:
     def __set_cache_prefix(self):
         """Set the cache prefix based on anything that could impact the
         site generation that is not the content of the file that is processed.
-        
+
         We currently use the configuration, site metadata (as this is affected
         for example by the 'base_url' when locally serving), data nodes,
         and plugin hashes of loaded plugins."""
@@ -654,10 +660,10 @@ class Liara:
 
         self.__cache.set_key_prefix(
             hashlib.shake_128(
-                util.get_hash_key_for_map(self.__configuration)
-                + util.get_hash_key_for_map(self.__site.metadata)
-                + util.get_hash_key_for_map(site_data)
-                + util.get_hash_key_for_map(plugin_hashes)
+                get_hash_key_for_map(self.__configuration)
+                + get_hash_key_for_map(self.__site.metadata)
+                + get_hash_key_for_map(site_data)
+                + get_hash_key_for_map(plugin_hashes)
                 + __version__.encode('utf-8')).digest(16)
         )
 
@@ -713,7 +719,7 @@ class Liara:
         for index in site.indices:
             index.publish(publisher)
         self.__log.info(f'Published {len(site.indices)} '
-                        f'{"indices" if len(site.indices)>1 else "index"}')
+                        f'{"indices" if len(site.indices) > 1 else "index"}')
 
         for resource in site.resources:
             resource.publish(publisher)
@@ -769,21 +775,21 @@ class Liara:
         module = self._load_module(source_path, t)
         assert hasattr(module, 'generate')
         # We just checked it has this attribute
-        path = module.generate(self.__site, self.__configuration) # type: ignore
+        path = module.generate(self.__site, self.__configuration)  # type: ignore
         self.__log.info(f'Generated "{path}"')
 
     def _load_plugins(self, folder):
-        import hashlib
         plugin_path = pathlib.Path(folder)
         for plugin in plugin_path.rglob('*.py'):
             module = self._load_module(plugin)
             if hasattr(module, 'register'):
                 # We just checked it has 'register', so there's no need to warn
                 # us here
-                module.register() # type: ignore
+                module.register()  # type: ignore
                 # Keep it around to prevent garbage collection
-                self.__registered_plugins[plugin] = _LoadedModule(module, \
-                    util.file_digest(plugin.open('rb')))
+                self.__registered_plugins[plugin] = _LoadedModule(
+                    module,
+                    file_digest(plugin.open('rb')))
 
     def _load_module(self, path, name=''):
         import importlib.util

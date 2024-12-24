@@ -297,7 +297,9 @@ def list_content(env, format, content_type):
                 f"{node.path.parts[-1]} ({node.kind.name})",
                 tuple(node.path.parts), parent, data=node.path)
             known_paths.add(tuple(node.path.parts))
-        tree.show(key=lambda n: str(n.data).casefold())
+        # Writing directly to stdout mangles escapes (tested on Python 3.12)
+        # Bypassing stdout output and printing separately works however
+        print(tree.show(key=lambda n: str(n.data).casefold(), stdout=False))
     elif format == 'list':
         for node in nodes:
             print(str(node.path), f'({node.kind.name})')

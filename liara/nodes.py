@@ -196,6 +196,13 @@ class Node(ABC):
         synchronously. If asynchronous execution is supported, this method
         must return an ``_AsyncTask`` which is then executed later. In this
         case, ``self.content`` will be populated by the task runner.
+
+        The ``**kwargs`` are used to pass in additional context for processing.
+        System-provided arguments will be prefixed with a `$` (which is not
+        a valid identifier.)
+
+        .. versionchanged:: 2.6.2 Added ``**kwargs``
+           ``**kwargs`` was added to allow passing in additional context.
         """
         pass
 

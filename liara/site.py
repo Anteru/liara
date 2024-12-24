@@ -782,6 +782,6 @@ class Site:
     def merged_data(self) -> Dict[str, Any]:
         """Return the union of all data nodes.
         
-        @versionadded 2.6.2
+        .. versionadded:: 2.6.2
         """
         return self.__merged_data

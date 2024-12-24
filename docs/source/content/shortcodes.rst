@@ -49,3 +49,6 @@ If you later decide you need to change the output, from now on you only have to 
 There is one context variable accessible from a shortcode processor:
 
 * ``$page``: The current :py:class:`~liara.template.Page` instance. This is for example useful to access the page's metadata using ``kwargs['$page'].metadata``.
+* ``$data``: The content of all merged data nodes, i.e. the same value as stored in :py:attr:`~liara.site.Site.merged_data`.
+
+  .. versionadded:: 2.6.2

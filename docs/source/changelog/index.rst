@@ -5,7 +5,8 @@ Changelog
 ------------------
 
 * Improve cache robustness: Previously, configuration, plugin or data changes would not  invalidate the cache, so it had to be cleared manually. This should no longer be necessary.
-* The cache is now persisted when using ``liara serve``.
+* The cache is now persisted when using ``liara serve``. This improves performance when calling ``liara serve`` repeatedly, as entries are cached between invocations.
+* ``$data`` is provided as an additional context to shortcodes. See :doc:`../content/shortcodes` for more details.
 
 2.6.1
 -----

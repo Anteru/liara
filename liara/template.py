@@ -5,6 +5,7 @@ from typing import (
     Dict,
     Optional,
 )
+from types import MappingProxyType
 
 from abc import abstractmethod, ABC
 
@@ -289,17 +290,25 @@ class SiteTemplateProxy:
         self.__data = site.merged_data
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> MappingProxyType[str, Any]:
         """Get the union of all :py:class:`liara.nodes.DataNode`
         instances in this site.
+
+        .. versionchanged:: 2.6.2 Made read-only
+           Before 2.6.2, this dictionary could be modified, but that was always
+           an unsafe operation.
         """
         return self.__data
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> MappingProxyType[str, Any]:
         """Provide access to the metadata of this site.
+
+        .. versionchanged:: 2.6.2 Made read-only
+           Before 2.6.2, this dictionary could be modified, but that was always
+           an unsafe operation.
         """
-        return self.__site.metadata
+        return MappingProxyType(self.__site.metadata)
 
     def select(self, query) -> 'Query':
         """Run a query on this site. Returns any node matching the query.

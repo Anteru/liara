@@ -26,6 +26,7 @@ from . import signals
 import logging
 import fnmatch
 from abc import abstractmethod, ABC
+from types import MappingProxyType
 
 
 def _create_metadata_accessor(field_name):
@@ -779,9 +780,12 @@ class Site:
         return [node]
 
     @property
-    def merged_data(self) -> Dict[str, Any]:
+    def merged_data(self) -> MappingProxyType[str, Any]:
         """Return the union of all data nodes.
+
+        This is a read-only view, as shortcodes and templates can access the
+        data in any order and thus modifications would be unsafe.
         
         .. versionadded:: 2.6.2
         """
-        return self.__merged_data
+        return MappingProxyType(self.__merged_data)

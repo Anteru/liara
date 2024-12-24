@@ -421,7 +421,6 @@ class MarkdownDocumentNode(DocumentNode):
     def __init__(self, configuration, **kwargs):
         super().__init__(**kwargs)
         self.__md = self._create_markdown_processor(configuration)
-        self.__mdext = None
 
     def _create_markdown_processor(self, configuration):
         from markdown import Markdown
@@ -445,7 +444,6 @@ class MarkdownDocumentNode(DocumentNode):
         from .md import ShortcodeException
 
         if '$data' in kwargs:
-            assert self.__mdext
             self.__mdext.set_data(kwargs['$data'])
 
         byte_content = self._raw_content.encode('utf-8')

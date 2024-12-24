@@ -231,19 +231,21 @@ class Page:
         return str(self.__node.path)
 
     @property
-    def meta(self) -> Dict[str, Any]:
+    def meta(self) -> MappingProxyType[str, Any]:
         """Provides the metadata associated with this page.
 
         .. deprecated:: 2.1.2
            Use :py:attr:`~liara.template.Page.metadata` instead.
+        .. versionchanged:: 2.6.2 Made read-only
         """
         return self.__node.metadata
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> MappingProxyType[str, Any]:
         """Provides the metadata associated with this page.
 
         .. versionadded:: 2.1.2
+        .. versionchanged:: 2.6.2 Made read-only
         """
         return self.__node.metadata
 

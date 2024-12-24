@@ -234,7 +234,7 @@ def quickstart(template_backend):
 
 
 @cli.command()
-@click.option('--format', '-f', type=click.Choice(['tree', 'list']),
+@click.option('--format', '-f', type=click.Choice(['tree', 'list', 'json']),
               default='tree')
 @click.option('--type', '-t', 'content_type', multiple=True,
               type=click.Choice(
@@ -245,7 +245,8 @@ def list_content(env, format, content_type):
 
     If ``format`` is set to ``tree``, this will print the content as a
     tree. If ``format`` is set to ``list``, this will produce a
-    flat list instead.
+    flat list instead. JSON will print a JSON structure with information for
+    each node.
     """
     import treelib
     liara = env.liara
@@ -264,6 +265,15 @@ def list_content(env, format, content_type):
 
     if content_type:
         nodes = list(filter(filter_nodes, nodes))
+
+    def get_node_label(node):
+        label = f"{node.path.parts[-1]}"
+        if node.kind == NodeKind.Resource:
+            label += f"(Resource, generated from '{node.src}')"
+        else:
+            label +=  f"({node.kind.name})"
+        
+        return label
 
     if format == 'tree':
         tree = treelib.Tree()
@@ -293,16 +303,31 @@ def list_content(env, format, content_type):
                                      data=path)
                     known_paths.add(p)
 
-            tree.create_node(
-                f"{node.path.parts[-1]} ({node.kind.name})",
-                tuple(node.path.parts), parent, data=node.path)
+            tree.create_node(get_node_label(node), tuple(node.path.parts),
+                             parent, data=node.path)
             known_paths.add(tuple(node.path.parts))
         # Writing directly to stdout mangles escapes (tested on Python 3.12)
         # Bypassing stdout output and printing separately works however
         print(tree.show(key=lambda n: str(n.data).casefold(), stdout=False))
     elif format == 'list':
+        for node in nodes:            
+            print(str(node.path), get_node_label(node))
+    elif format == 'json':
+        import json
+        result = {
+            'version' : 1,
+            'nodes' : []
+        }
         for node in nodes:
-            print(str(node.path), f'({node.kind.name})')
+            data = {
+                'path': str(node.path),
+                'kind': node.kind.name
+            }
+            if node.src:
+                data['source'] = str(node.src)
+
+            result['nodes'].append(data)
+        print(json.dumps(result, indent=4))
 
 
 @cli.command()

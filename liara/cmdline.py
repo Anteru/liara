@@ -233,6 +233,57 @@ def quickstart(template_backend):
     generate(template_backend)
 
 
+class _Node:
+    """Helper class for tree printing, as the liara site node tree doesn't
+    contain intermediate nodes."""
+    def __init__(self, name, data=None):
+        self.__name = name
+        self.__children = []
+        self.__data = data
+
+    def add_child(self, node):
+        self.__children.append(node)
+
+    @property
+    def children(self):
+        return self.__children
+
+    @property
+    def name(self):
+        return self.__name
+    
+    @property
+    def data(self):
+        return self.__data
+
+
+def _print_tree(node, get_label, prefix='', last=True):
+    """Pretty-print a fully populated tree (meaning: all intermediate nodes
+    are present.)"""
+    empty = "    "
+    last_branch = "└── "
+    continue_traversal = "│   "
+    branch = "├── "
+    
+    if node.name == 'Site':
+        # Special case the root node: Don't add a prefix here
+        print('Site')
+        if node.children:
+            for i, c in enumerate(sorted(node.children, key=lambda n: n.name)):
+                _print_tree(c, get_label, '', i == (len(node.children) - 1))
+    else:
+        # Normal node - print the prefix so far, append the right branch
+        # symbol, then the label
+        print(prefix + (last_branch if last else branch) + get_label(node))
+        if node.children:
+            for i, c in enumerate(sorted(node.children, key=lambda n: n.name)):
+                _print_tree(c, get_label, 
+                            # Logic here is: If we're last we're not adding
+                            # a vertical bar, just spaces
+                            prefix + (empty if last else continue_traversal),
+                            i == (len(node.children) - 1))
+
+
 @cli.command()
 @click.option('--format', '-f', type=click.Choice(['tree', 'list', 'json']),
               default='tree')
@@ -248,7 +299,6 @@ def list_content(env, format, content_type):
     flat list instead. JSON will print a JSON structure with information for
     each node.
     """
-    import treelib
     liara = env.liara
     content = liara.discover_content()
 
@@ -276,41 +326,38 @@ def list_content(env, format, content_type):
         return label
 
     if format == 'tree':
-        tree = treelib.Tree()
-        tree.create_node('Site', ('/',))
-        if nodes[0].path.parts == ('/',):
-            tree.create_node(f'_index ({nodes[0].kind.name})', parent=('/',),
-                             data=nodes[0].path)
+        root = _Node('Site')
+        node_map = {'/': root}
 
-        known_paths = {('/',)}
+        def add_or_create(path, data=None):
+            if str(path) in node_map:
+                return
 
+            # Create parent nodes recursively, as needed
+            add_or_create(path.parent)
+            
+            n = _Node(path.name, data)
+            node_map[str(path.parent)].add_child(n)
+            node_map[str(path)] = n
+        
         for node in nodes:
             path = node.path
-            if len(path.parts) == 1:
-                continue
-            parent = tuple(path.parts[:-1])
 
-            # The following bit creates intermediate nodes for path segments
-            # which are not part of the site tree. For instance, if there's a
-            # static file /images/image.jpg, there won't be a /images node. In
-            # this case, we create one to allow printing a full tree
-            for i in range(len(parent)):
-                p = tuple(parent[:i+1])
-                if len(p) <= 1:
-                    continue
-                if p not in known_paths:
-                    tree.create_node(f"{parent[i]}", p, parent=tuple(p[:i]),
-                                     data=path)
-                    known_paths.add(p)
+            add_or_create(path, node)
 
-            tree.create_node(get_node_label(node), tuple(node.path.parts),
-                             parent, data=node.path)
-            known_paths.add(tuple(node.path.parts))
-        # Writing directly to stdout mangles escapes (tested on Python 3.12)
-        # Bypassing stdout output and printing separately works however
-        print(tree.show(key=lambda n: str(n.data).casefold(), stdout=False))
+        import sys
+        # This seems to be required to get UTF-8 output redirection to work
+        # in powershell. Unclear why
+        sys.stdout.reconfigure(encoding='utf-8')
+
+        def get_label(node):
+            if node.data:
+                return get_node_label(node.data)
+            return node.name
+
+        _print_tree(root, get_label)
     elif format == 'list':
-        for node in nodes:            
+        for node in nodes:
             print(str(node.path), get_node_label(node))
     elif format == 'json':
         import json

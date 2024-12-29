@@ -8,6 +8,7 @@ Changelog
 * The cache is now persisted when using ``liara serve``. This improves performance when calling ``liara serve`` repeatedly, as entries are cached between invocations.
 * ``$data`` is provided as an additional context to shortcodes. See :doc:`../content/shortcodes` for more details.
 * Added ``json`` support for ``list-content``.
+* Various properties have been properly marked as read-only.
 
 2.6.1
 -----

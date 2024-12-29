@@ -675,7 +675,6 @@ class Liara:
                                       will be called first.
         """
         from .publish import TemplatePublisher
-        from .template import SiteTemplateProxy
         self.__log.info('Build started')
         start_time = time.time()
         if self.__configuration['build.clean_output']:

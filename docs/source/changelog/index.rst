@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.6.3
+-----
+
+* Fix ``$data`` not being present in shortcodes when using ``liara serve``.
+
 2.6.2
 -----
 

@@ -73,7 +73,10 @@ class HttpServer:
                 assert isinstance(node, DocumentNode) \
                     or isinstance(node, ResourceNode)
                 node.reload()
-                _process_node_sync(node, self.__cache)
+                args = {
+                    '$data': self.__site.merged_data
+                }
+                _process_node_sync(node, self.__cache, **args)
                 cache = False
             case NodeKind.Generated:
                 assert isinstance(node, GeneratedNode)

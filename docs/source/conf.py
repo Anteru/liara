@@ -41,8 +41,24 @@ release = ''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
+    'autodoc2',
 ]
+
+autodoc2_packages = [
+    "../../liara",
+]
+
+autodoc2_index_template = """Reference
+=========
+
+.. toctree::
+   :maxdepth: 2
+
+   liara/liara
+   plugins
+"""
+autodoc2_output_dir = 'reference'
+autodoc2_hidden_objects = {'dunder', 'private', 'inherited'}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

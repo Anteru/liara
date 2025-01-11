@@ -61,6 +61,7 @@ redis = [
 docs = [
   "Sphinx~=8.0",
   "furo",
+  "sphinx-autodoc2"
 ]
 
 [project.urls]

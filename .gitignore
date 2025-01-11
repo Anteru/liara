@@ -12,3 +12,5 @@ dist/**
 .tox/**
 pip-wheel-metadata/**
 .coverage
+docs/source/reference/liara*
+docs/source/reference/index.rst

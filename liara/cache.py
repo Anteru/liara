@@ -78,7 +78,8 @@ class Cache(abc.ABC):
 
 
 class _CacheBase(Cache):
-    """A base class which handles the set_key_prefix method transparently."""
+    """A base class which handles the 
+    :py:meth:`~liara.cache.Cache.set_key_prefix` transparently."""
 
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 

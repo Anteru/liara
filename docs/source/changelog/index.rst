@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.6.4
+-----
+
+* Fix ``$data`` not being present when running ``validate-links``.
+
 2.6.3
 -----
 

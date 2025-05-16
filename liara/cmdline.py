@@ -6,6 +6,7 @@ import logging
 import os
 import click
 from .nodes import NodeKind
+from typing import Literal, IO, Callable
 
 
 class Environment:
@@ -64,7 +65,7 @@ def _setup_logging(*, debug: bool, verbose: bool):
 @click.option('--date', default=None, help='Override the current date.')
 @click.version_option()
 @pass_environment
-def cli(env, debug: bool, verbose: bool, config, date: str):
+def cli(env: Environment, debug: bool, verbose: bool, config, date: str):
     _setup_logging(debug=debug, verbose=verbose)
 
     if date:
@@ -103,7 +104,9 @@ def _create_liara(config):
 @click.option('--parallel/--no-parallel', default=True,
               help='Enable or disable parallel processing.')
 @pass_environment
-def build(env, profile, profile_file, cache: bool, parallel: bool):
+def build(env: Environment, profile: bool,
+          profile_file: str | bytes | os.PathLike,
+          cache: bool, parallel: bool):
     """Build a site."""
     if profile:
         pr = cProfile.Profile()
@@ -120,7 +123,7 @@ def build(env, profile, profile_file, cache: bool, parallel: bool):
               type=click.Choice(['internal', 'external']),
               default='internal')
 @pass_environment
-def validate_links(env, link_type):
+def validate_links(env: Environment, link_type: Literal['internal', 'external']):
     """Validate links.
 
     Checks all internal/external links for validity. For internal links,
@@ -139,9 +142,11 @@ def validate_links(env, link_type):
     cache = MemoryCache()
 
     env.log.debug('Processing site ...')
-
-    for document in site.documents:
-        document.process(cache)
+    args = {
+        '$data': site.merged_data
+    }
+    for document in site.documents:   
+        document.process(cache, **args)
 
     env.log.debug('done')
 
@@ -170,7 +175,7 @@ def validate_links(env, link_type):
 
 @cli.command()
 @pass_environment
-def list_tags(env):
+def list_tags(env: Environment):
     """List all tags.
 
     This uses a metadata field named 'tags' and returns the union of all tags,
@@ -191,7 +196,7 @@ def list_tags(env):
 @cli.command()
 @click.argument('tags', nargs=-1)
 @pass_environment
-def find_by_tag(env, tags):
+def find_by_tag(env: Environment, tags: list[str]):
     """Find pages by tag.
 
     This searches the metadata for a 'tags' field, which is assumed to be
@@ -209,7 +214,7 @@ def find_by_tag(env, tags):
 @cli.command()
 @click.option('--type', '-t', 'object_type')
 @pass_environment
-def create(env, object_type):
+def create(env: Environment, object_type: str):
     """Create a document."""
     liara = env.liara
     liara.discover_content()
@@ -218,7 +223,7 @@ def create(env, object_type):
 
 @cli.command()
 @click.option('--output', '-o', type=click.File(mode='w'))
-def create_config(output):
+def create_config(output: IO):
     """Create a default configuration."""
     dump_yaml(create_default_configuration(), output)
 
@@ -227,7 +232,7 @@ def create_config(output):
 @click.option('--template-backend', '-t',
               type=click.Choice(['jinja2', 'mako']),
               default='jinja2')
-def quickstart(template_backend):
+def quickstart(template_backend: Literal['jinja2', 'mako']):
     """Create a quickstart project."""
     from .quickstart import generate
     generate(template_backend)
@@ -236,16 +241,16 @@ def quickstart(template_backend):
 class _Node:
     """Helper class for tree printing, as the liara site node tree doesn't
     contain intermediate nodes."""
-    def __init__(self, name, data=None):
+    def __init__(self, name: str, data=None):
         self.__name = name
         self.__children = []
         self.__data = data
 
-    def add_child(self, node):
+    def add_child(self, node: "_Node"):
         self.__children.append(node)
 
     @property
-    def children(self):
+    def children(self) -> list["_Node"]:
         return self.__children
 
     @property
@@ -257,7 +262,7 @@ class _Node:
         return self.__data
 
 
-def _print_tree(node, get_label, prefix='', last=True):
+def _print_tree(node: _Node, get_label: Callable[[_Node], str], prefix='', last=True):
     """Pretty-print a fully populated tree (meaning: all intermediate nodes
     are present.)"""
     empty = "    "
@@ -291,7 +296,9 @@ def _print_tree(node, get_label, prefix='', last=True):
               type=click.Choice(
                   list(map(str.lower, NodeKind.__members__.keys()))))
 @pass_environment
-def list_content(env, format, content_type):
+def list_content(env: Environment,
+                 format: Literal['tree', 'list', 'json'],
+                 content_type: list[str]):
     """List all content.
 
     If ``format`` is set to ``tree``, this will print the content as a
@@ -362,8 +369,8 @@ def list_content(env, format, content_type):
     elif format == 'json':
         import json
         result = {
-            'version' : 1,
-            'nodes' : []
+            'version': 1,
+            'nodes': []
         }
         for node in nodes:
             data = {
@@ -386,7 +393,7 @@ def list_content(env, format, content_type):
 @click.option('--cache/--no-cache', default=True,
               help='Enable or disable the configured cache')
 @pass_environment
-def serve(env, browser, port, cache):
+def serve(env: Environment, browser: bool, port: int, cache: bool):
     """Run a local development server."""
     liara = env.liara
     liara.serve(open_browser=browser, port=port, disable_cache=not cache)
@@ -395,7 +402,7 @@ def serve(env, browser, port, cache):
 @cli.command()
 @click.argument('action', type=click.Choice(['clear', 'inspect']))
 @pass_environment
-def cache(env, action):
+def cache(env: Environment, action: Literal['clear', 'inspect']):
     """Modify or inspect the cache."""
     import humanfriendly
 

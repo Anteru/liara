@@ -4,7 +4,7 @@ Changelog
 2.6.4
 -----
 
-* Fix ``$data`` not being present when running ``validate-links``.
+* Fix ``$data`` not being present in shortcodes when using ``liara validate-links``.
 
 2.6.3
 -----

@@ -366,7 +366,7 @@ class DateFilter(ContentFilter):
 
     @property
     def reason(self):
-        return f'date <= {self.__now}'
+        return f'`date` <= {self.__now}'
 
     @property
     def name(self):
@@ -384,7 +384,7 @@ class StatusFilter(ContentFilter):
 
     @property
     def reason(self):
-        return 'status set to "private"'
+        return '`status` set to "private"'
 
     @property
     def name(self):
@@ -479,7 +479,7 @@ class Site:
     def __is_content_filtered(self, node: Node) -> bool:
         for f in self.__content_filters:
             if not f.apply(node):
-                self.__log.info('Filtered node "%s" due to reason %s',
+                self.__log.info('Filtered node "%s" due to reason: %s',
                                 node.path, f.reason)
                 self.__filtered_content[node.path] = f.name
                 signals.content_filtered.send(self, node=node, filter=f)

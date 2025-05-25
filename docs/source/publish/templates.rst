@@ -101,3 +101,7 @@ The patterns have two additional tie-breaker rules implemented if multiple rules
 * If rules have the same length and match the same URL, the first matching rule is used. I.e. if you specify ``/e*`` and ``/*n`` to match ``/en``, whichever rule came first in the rule set wins.
 
 Additionally, template path patterns allow a query string to restrict the search to specific types. For instance, ``/foo/*?kind=document`` will match all :py:class:`~liara.nodes.DocumentNode` below ``/foo/``, but will ignore other node types. The nodes types that can be selected using this method are ``document`` for :py:class:`~liara.nodes.DocumentNode` instances and ``index`` for :py:class:`~liara.nodes.IndexNode` instances.
+
+.. note::
+
+  You can use ``inspect template-match`` to find out what template matches a given path.

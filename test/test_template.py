@@ -61,10 +61,10 @@ def test_match_url_order_independent(default_site):
     )
 
     t00 = tr0._match_template(pathlib.PurePosixPath('/en'), default_site)
-    assert t00 == 'en'
+    assert t00[0] == 'en'
 
     t01 = tr0._match_template(pathlib.PurePosixPath('/'), default_site)
-    assert t01 == 'default'
+    assert t01[0] == 'default'
 
     tr1 = _MockTemplateRepository(
         {
@@ -74,10 +74,10 @@ def test_match_url_order_independent(default_site):
     )
 
     t10 = tr1._match_template(pathlib.PurePosixPath('/en'), default_site)
-    assert t10 == 'en'
+    assert t10[0] == 'en'
 
     t11 = tr1._match_template(pathlib.PurePosixPath('/'), default_site)
-    assert t11 == 'default'
+    assert t11[0] == 'default'
 
 
 def test_match_url_same_length(default_site):
@@ -89,7 +89,7 @@ def test_match_url_same_length(default_site):
     )
 
     t00 = tr0._match_template(pathlib.PurePosixPath('/en'), default_site)
-    assert t00 == 'a'
+    assert t00[0] == 'a'
 
     tr1 = _MockTemplateRepository(
         {
@@ -99,4 +99,4 @@ def test_match_url_same_length(default_site):
     )
 
     t10 = tr1._match_template(pathlib.PurePosixPath('/en'), default_site)
-    assert t10 == 'a'
+    assert t10[0] == 'a'

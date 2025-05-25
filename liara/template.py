@@ -77,8 +77,14 @@ class TemplateRepository(ABC):
             -> Template:
         ...
 
-    def _match_template(self, url: pathlib.PurePosixPath, site: 'Site') -> str:
+    def _match_template(self, url: pathlib.PurePosixPath, site: 'Site') -> tuple[str, str]:
+        """Match a path to a template, if any, otherwise throw an exception.
+
+        Returns a tuple containing the matching template name, and the pattern
+        that matched.
+        """
         best_match = None
+        best_pattern = None
         best_score = None
         longest_matching_pattern_length = -1
         for pattern, template in self.__paths.items():
@@ -90,19 +96,21 @@ class TemplateRepository(ABC):
             if best_score is None or score < best_score:
                 best_score = score
                 best_match = template
+                best_pattern = pattern
                 longest_matching_pattern_length = len(pattern)
 
             # Tie breaker: The longer pattern wins
             if best_score == score:
                 if len(pattern) > longest_matching_pattern_length:
                     best_match = template
+                    best_pattern = pattern
                     longest_matching_pattern_length = len(pattern)
 
         if not best_match:
             raise Exception(f'Could not find matching template for path: '
                             f'"{url}"')
 
-        return best_match
+        return best_match, best_pattern
 
 
 class MakoTemplate(Template):
@@ -122,7 +130,7 @@ class MakoTemplateRepository(TemplateRepository):
 
     def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
             -> Template:
-        template = self._match_template(url, site)
+        template = self._match_template(url, site)[0]
         return MakoTemplate(self.__lookup.get_template(template), template)
 
 
@@ -201,7 +209,7 @@ class Jinja2TemplateRepository(TemplateRepository):
 
     def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
             -> Template:
-        template = self._match_template(url, site)
+        template = self._match_template(url, site)[0]
         return Jinja2Template(self.__env.get_template(template), template)
 
 

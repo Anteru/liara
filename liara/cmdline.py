@@ -6,7 +6,10 @@ import logging
 import os
 import click
 from .nodes import NodeKind
-from typing import Literal, IO, Callable
+from typing import Literal, IO, Callable, Optional, Union
+from .site import Site
+from .nodes import Node, NodeKind, _parse_node_kind
+import pathlib
 
 
 class Environment:
@@ -414,6 +417,71 @@ def cache(env: Environment, action: Literal['clear', 'inspect']):
         print(f'Cache type:   {info.name}')
         print(f'Size:         {size}')
         print(f'Object count: {info.entry_count}')
+
+@cli.group()
+def inspect():
+    """Inspect state, for example, site data or template matching."""
+    pass
+
+@inspect.command('data')
+@pass_environment
+def inspect_data(env: Environment, list_files: bool):
+    """Inspect the content of `site.data`."""
+    import pprint
+    liara = env.liara
+    liara.discover_content()
+
+    # Using dict() here improves formatting, as pprint starts with
+    # mappingproxy(...) otherwise which is an implementation detail
+    pprint.pprint(dict(liara.site.merged_data))
+
+class _SiteShim(Site):
+    def __init__(self, site: Site):
+        self.__site = site
+        self.__fakes = {}
+
+    def register_fake_node(self, path: str, kind: NodeKind):
+        self.__fakes[pathlib.PurePosixPath(path)] = kind
+
+    def get_node(self, path: Union[str, pathlib.PurePosixPath]) \
+            -> Optional[Node]:
+        if path in self.__fakes:
+            assert isinstance(path, pathlib.PurePosixPath)
+            n = Node()
+            n.path = path
+            match self.__fakes[path]:
+                case NodeKind.Document:
+                    n.kind = NodeKind.Document
+                case NodeKind.Index:
+                    n.kind = NodeKind.Index
+
+            return n
+                    
+        return self.__site.get_node(path)
+
+@inspect.command('template-match')
+@click.argument('path')
+@click.option('--kind', type=click.Choice(['document', 'index']),
+              help='Override or set the node kind at the specified path.')
+@pass_environment
+def inspect_template_match(env: Environment, path: str, kind: Optional[Literal['document', 'index']]):
+    """Match a template pattern."""
+    liara = env.liara
+    liara.discover_content()
+
+    if not path.startswith('/'):
+        path = '/' + path
+
+    site_shim = _SiteShim(liara.site)
+    if kind is not None:
+        site_shim.register_fake_node(path, _parse_node_kind(kind))
+    else:
+        if liara.site.get_node(path) is None:
+            site_shim.register_fake_node(path, NodeKind.Document)
+
+    template_repository = liara._get_template_repository()
+    match = template_repository._match_template(pathlib.PurePosixPath(path), site_shim)
+    print(f'Using template "{match[0]}" for path "{path}" due to pattern "{match[1]}"')
 
 
 if __name__ == '__main__':

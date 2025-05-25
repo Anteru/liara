@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2.7 (not released yet)
+----------------------
+
+* Add a new ``ìnspect`` command. This is useful for debugging internal state:
+
+  * ``inspect data`` can be used to show the :py:attr:`~liara.site.Site.merged_data` content
+  * ``inspect template-match`` can be used to check a template pattern, see :doc:`../publish/templates`.
+
 2.6.4
 -----
 

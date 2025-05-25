@@ -815,4 +815,9 @@ class Liara:
         return module
 
     def _get_cache(self) -> Cache:
+        """Debug access to the cache for inspection."""
         return self.__cache
+
+    def _get_template_repository(self) -> TemplateRepository:
+        """Debug access to the template repository for inspection."""
+        return self.__template_repository

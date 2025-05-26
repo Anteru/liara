@@ -435,7 +435,19 @@ def inspect_data(env: Environment, list_files: bool):
     # mappingproxy(...) otherwise which is an implementation detail
     pprint.pprint(dict(liara.site.merged_data))
 
+@inspect.command('list-data-files')
+@pass_environment
+def inspect_data_files(env: Environment):
+    """List all data files."""
+    liara = env.liara
+    liara.discover_content()
+
+    for df in liara.site.data:
+        print(df.src)
+
 class _SiteShim(Site):
+    """Helper class to inject fake nodes for `template-match` so
+    we can match selectors with `?kind=` specified."""
     def __init__(self, site: Site):
         self.__site = site
         self.__fakes = {}
@@ -476,12 +488,14 @@ def inspect_template_match(env: Environment, path: str, kind: Optional[Literal['
     if kind is not None:
         site_shim.register_fake_node(path, _parse_node_kind(kind))
     else:
-        if liara.site.get_node(path) is None:
+        if (node := liara.site.get_node(path)) is None:
             site_shim.register_fake_node(path, NodeKind.Document)
+        else:
+            print(f'Node "{path}" exists with kind: {node.kind.name}')
 
     template_repository = liara._get_template_repository()
-    match = template_repository._match_template(pathlib.PurePosixPath(path), site_shim)
-    print(f'Using template "{match[0]}" for path "{path}" due to pattern "{match[1]}"')
+    match, pattern = template_repository._match_template(pathlib.PurePosixPath(path), site_shim)
+    print(f'Using template "{match}" for path "{path}" due to pattern "{pattern}"')
 
 
 if __name__ == '__main__':

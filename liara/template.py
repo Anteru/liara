@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from . import Site
 
 
-def _match_url(url: pathlib.PurePosixPath, pattern: str, site: 'Site') \
+def _match_url(url: str | pathlib.PurePosixPath, pattern: str, site: 'Site') \
         -> Optional[int]:
     """Match an url against a pattern.
 
@@ -130,7 +130,7 @@ class MakoTemplateRepository(TemplateRepository):
 
     def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
             -> Template:
-        template = self._match_template(url, site)[0]
+        template, _ = self._match_template(url, site)
         return MakoTemplate(self.__lookup.get_template(template), template)
 
 
@@ -209,7 +209,7 @@ class Jinja2TemplateRepository(TemplateRepository):
 
     def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
             -> Template:
-        template = self._match_template(url, site)[0]
+        template, _ = self._match_template(url, site)
         return Jinja2Template(self.__env.get_template(template), template)
 
 

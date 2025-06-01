@@ -93,6 +93,7 @@ class _HttpServer(http.server.HTTPServer):
 
 
 class _ServerThread(threading.Thread):
+    """Helper class to wrap calling ``serve_forever``."""
     def __init__(self, server: _HttpServer):
         super().__init__()
         self.__server = server
@@ -108,6 +109,7 @@ class HttpServer:
     __log = logging.getLogger('liara.HttpServer')
 
     def get_url(self):
+        """Get the URL at which the site is hosted."""
         return f'http://127.0.0.1:{self.__port}'
 
     def __init__(self, *, open_browser=True, port=8080):
@@ -117,7 +119,10 @@ class HttpServer:
         self.__server_thread: threading.Thread | None = None
 
     def stop(self):
+        """Stop the server.
 
+        This will stop the internal thread as well. It's safe to call this
+        function multiple times."""
         if self.__server and self.__server_thread:
             self.__server.shutdown()
             self.__server_thread.join()
@@ -126,6 +131,10 @@ class HttpServer:
         self.__server_thread = None
 
     def reconfigure(self, liara: Liara, cache: Cache):
+        """Replace the liara instance of this server on the fly.
+
+        This can be only called after the server has been started using
+        :py:meth:`start`."""
         server_state = _ServerState(liara, liara.discover_content(),
                             cache)
         
@@ -136,10 +145,13 @@ class HttpServer:
         """Serve the site with just-in-time processing.
 
         This does not build the whole site up-front, but rather builds nodes
-        on demand. Nodes requiring templates are rebuilt from scratch every
-        time to ensure they're up-to-date. Adding/removing nodes while
-        serving will break the server, as it will not get notified and
-        re-discover content."""
+        on demand. It will run the server in a separate thread, which needs
+        to be shut down using :py:meth:`stop`.
+        
+        The server can be reconfigured to use a different liara instance
+        using :py:meth:`reconfigure`, in which case it will keep running and
+        switch seamlessly to the new instance.
+        """
         import http.server
         server_state = _ServerState(liara, liara.discover_content(),
                                     cache)

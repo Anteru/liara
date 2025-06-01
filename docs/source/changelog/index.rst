@@ -6,7 +6,7 @@ Changelog
 
 * Add a new ``ìnspect`` command. This is useful for debugging internal state:
 
-  * ``inspect data`` can be used to show the :py:attr:`~liara.site.Site.merged_data` content
+  * ``inspect data`` can be used to inspect the :py:attr:`~liara.site.Site.merged_data` content.
   * ``inspect template-match`` can be used to check a template pattern, see :doc:`../publish/templates`.
 
 * Change how ``serve`` works: Previously, ``serve`` would miss certain changes to the web site (like adding new files or changing data files.) The new implementation recreates the whole state allowing any change to be done during development.

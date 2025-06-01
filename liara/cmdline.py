@@ -69,6 +69,7 @@ def _setup_logging(*, debug: bool, verbose: bool):
 @click.version_option()
 @pass_environment
 def cli(env: Environment, debug: bool, verbose: bool, config, date: str):
+    """Liara is a static page generator."""
     _setup_logging(debug=debug, verbose=verbose)
 
     if date:
@@ -486,13 +487,16 @@ def inspect():
 @pass_environment
 def inspect_data(env: Environment):
     """Inspect the content of `site.data`."""
-    import pprint
+    import yaml
     liara = env.liara
     liara.discover_content()
 
     # Using dict() here improves formatting, as pprint starts with
     # mappingproxy(...) otherwise which is an implementation detail
-    pprint.pprint(dict(liara.site.merged_data))
+    print(yaml.dump(dict(liara.site.merged_data),
+                    default_flow_style=False,
+                    allow_unicode=True))
+
 
 @inspect.command('list-data-files')
 @pass_environment

@@ -45,6 +45,7 @@ dependencies = [
   "requests~=2.31",
   "tomli~=2.0; python_version < '3.11'",
   "tzlocal~=5.2",
+  "watchfiles~=1.0",
 ]
 
 [project.optional-dependencies]

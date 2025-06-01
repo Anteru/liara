@@ -1,4 +1,5 @@
 from .nodes import (
+    Node,
     DocumentNode,
     IndexNode,
     Publisher,
@@ -79,10 +80,13 @@ class DefaultPublisher(Publisher):
         self._output_path = output_path
         self._site = site
 
+    def get_output_path(self, node: Node):
+        return pathlib.Path(str(self._output_path) + str(node.path)).absolute()
+
     def publish_resource(self, resource: ResourceNode):
         import os
         assert resource is not None
-        file_path = pathlib.Path(str(self._output_path) + str(resource.path))
+        file_path = self.get_output_path(resource)
         os.makedirs(file_path.parent, exist_ok=True)
         if resource.content is None:
             self.__log.warning(
@@ -97,7 +101,7 @@ class DefaultPublisher(Publisher):
             self.__log.warning(
                 'Generated node "%s" has no content, skipping', generated.path)
             return
-        file_path = pathlib.Path(str(self._output_path) + str(generated.path))
+        file_path = self.get_output_path(generated)
         os.makedirs(file_path.parent, exist_ok=True)
         if isinstance(generated.content, bytes):
             file_path.write_bytes(generated.content)
@@ -111,10 +115,11 @@ class DefaultPublisher(Publisher):
         import os
         from contextlib import suppress
         assert static is not None
-        file_path = pathlib.Path(str(self._output_path) + str(static.path))
+        file_path = self.get_output_path(static)
         os.makedirs(file_path.parent, exist_ok=True)
 
-        with suppress(FileExistsError):
+        with suppress(FileExistsError, shutil.SameFileError):
+            # Same file is triggered when trying to symlink again
             # Symlink requires an absolute path
             assert static.src
             source_path = os.path.abspath(static.src)

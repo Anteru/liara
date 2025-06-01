@@ -9,6 +9,12 @@ Changelog
   * ``inspect data`` can be used to show the :py:attr:`~liara.site.Site.merged_data` content
   * ``inspect template-match`` can be used to check a template pattern, see :doc:`../publish/templates`.
 
+* Change how ``serve`` works: Previously, ``serve`` would miss certain changes
+  to the web site (like adding new files or changing data files.) The new
+  implementation recreates the whole state on every change allowing any change
+  to be done during development. As a side effect, the local cache is no longer
+  updated while running ``serve``.
+
 2.6.4
 -----
 

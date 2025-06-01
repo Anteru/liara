@@ -7,14 +7,16 @@ import multiprocessing
 from dataclasses import dataclass
 
 from typing import (
-        IO,
-        ChainMap,
-        List,
-        Dict,
-        Optional,
-        Text,
-        Union,
+    Any,
+    IO,
+    ChainMap,
+    List,
+    Dict,
+    Optional,
+    Text,
+    Union,
     )
+from types import MappingProxyType
 
 import collections
 
@@ -258,6 +260,7 @@ class Liara:
                         'build.cache.redis.expiration_time'])
                 )
             case 'none':
+                self.__cache = NullCache()
                 self.__log.debug('Not using any cache')
             case _:
                 self.__log.warning('No cache backend configured')
@@ -752,25 +755,6 @@ class Liara:
         self.__log.info(f'Build finished ({end_time - start_time:.2f} sec)')
         self.__cache.persist()
 
-    def serve(self, *, open_browser=True, port=8080, disable_cache=True):
-        """Serve the current site using a local webserver."""
-        from .server import HttpServer
-        if self.__configuration['build.clean_output']:
-            self.__clean_output()
-
-        server = HttpServer(open_browser=open_browser, port=port)
-        self.__base_url_override = server.get_url()
-
-        site = self.discover_content()
-
-        for document in site.documents:
-            document.validate_metadata()
-
-        self.__set_cache_prefix()
-
-        server.serve(site, self.__template_repository, self.__configuration,
-                     self.__cache if not disable_cache else NullCache())
-
     def create_document(self, t):
         """Create a new document using a generator."""
         source_path = pathlib.Path(
@@ -815,9 +799,17 @@ class Liara:
         return module
 
     def _get_cache(self) -> Cache:
-        """Debug access to the cache for inspection."""
+        """Debug/internal access to the cache for inspection."""
         return self.__cache
 
     def _get_template_repository(self) -> TemplateRepository:
-        """Debug access to the template repository for inspection."""
+        """Debug/internal access to the template repository for inspection."""
         return self.__template_repository
+    
+    def _get_configuration(self) -> MappingProxyType[str, Any]:
+        """Debug/internal access to the configuration for inspection."""
+        return MappingProxyType(self.__configuration)
+    
+    def _set_base_url_override(self, url: str):
+        """Internal use only"""
+        self.__base_url_override = url

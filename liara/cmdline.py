@@ -10,7 +10,7 @@ from typing import Literal, IO, Callable, Optional, Union
 from .site import Site
 from .nodes import Node, NodeKind, _parse_node_kind
 import pathlib
-
+from .cache import MemoryCache
 
 class Environment:
     """The command line environment.
@@ -91,11 +91,11 @@ def main():
     cli()
 
 
-def _create_liara(config):
+def _create_liara(config, *, overrides=None):
     if os.path.exists(config):
-        return Liara(config)
+        return Liara(config, configuration_overrides=overrides)
     else:
-        return Liara()
+        return Liara(configuration_overrides=overrides)
 
 
 @cli.command()
@@ -398,8 +398,48 @@ def list_content(env: Environment,
 @pass_environment
 def serve(env: Environment, browser: bool, port: int, cache: bool):
     """Run a local development server."""
-    liara = env.liara
-    liara.serve(open_browser=browser, port=port, disable_cache=not cache)
+    import watchfiles
+    from .server import HttpServer
+    # We run two threads here, one for file watching which recreates either
+    # liara or the site, and one to run the server in
+
+    liara = _create_liara(env.config)
+    server = HttpServer(open_browser=browser, port=port)
+
+    liara._set_base_url_override(server.get_url())
+
+    server.start(liara, MemoryCache())
+
+    try:
+        # We need this nested loop in case the cache or output directory
+        # changes. The server can actually cope with this, but we need to
+        # ignore those folders
+        while True:
+            config = liara._get_configuration()
+            output_directory = config["output_directory"]
+            ignore_dirs = [output_directory]
+
+            match config["build.cache.type"]:
+                case "fs":
+                    ignore_dirs.append(config["build.cache.fs.directory"])
+                case "db":
+                    ignore_dirs.append(config["build.cache.db.directory"])
+
+            watch_filter = watchfiles.DefaultFilter(ignore_dirs=ignore_dirs)
+            
+            for change in watchfiles.watch('.',
+                                        watch_filter=watch_filter,
+                                        recursive=True):
+                # TODO We can optimize this by skipping  the reconfigure
+                # if it's a _known_ content node that changes
+                liara = _create_liara(env.config)
+
+                server.reconfigure(liara, MemoryCache())
+                break
+    except KeyboardInterrupt:
+        pass
+
+    server.stop()
 
 
 @cli.command()

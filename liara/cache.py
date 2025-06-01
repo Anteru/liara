@@ -187,7 +187,9 @@ class Sqlite3Cache(_CacheBase):
         self.__path = path
         os.makedirs(self.__path, exist_ok=True)
         self.__db_file = self.__path / 'cache.db'
-        self.__connection = sqlite3.connect(self.__db_file)
+        # We're only ever used by one thread, but we may get passed around
+        # from one thread to another when running `serve`.
+        self.__connection = sqlite3.connect(self.__db_file, check_same_thread=False)
         self.__cursor = self.__connection.cursor()
         self.__cursor.execute("""CREATE TABLE IF NOT EXISTS cache
             (key BLOB PRIMARY KEY NOT NULL,

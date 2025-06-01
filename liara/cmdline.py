@@ -484,7 +484,7 @@ def inspect():
 
 @inspect.command('data')
 @pass_environment
-def inspect_data(env: Environment, list_files: bool):
+def inspect_data(env: Environment):
     """Inspect the content of `site.data`."""
     import pprint
     liara = env.liara

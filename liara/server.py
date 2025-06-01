@@ -182,8 +182,8 @@ class HttpServer:
                                     server_state, self.__log)
         url = self.get_url()
         self.__log.info(f'Listening on {url}')
-        # Only reopen if we didn't open it previously
-        if self.__open_browser and not self.__server:
+
+        if self.__open_browser:
             webbrowser.open(url)
         else:
             print(f'Listening on {url}')

@@ -433,6 +433,7 @@ def serve(env: Environment, browser: bool, port: int, cache: bool):
                 # TODO We can optimize this by skipping  the reconfigure
                 # if it's a _known_ content node that changes
                 liara = _create_liara(env.config)
+                liara._set_base_url_override(server.get_url())
 
                 server.reconfigure(liara, MemoryCache())
                 break

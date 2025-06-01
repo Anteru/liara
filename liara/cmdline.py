@@ -10,7 +10,7 @@ from typing import Literal, IO, Callable, Optional, Union
 from .site import Site
 from .nodes import Node, NodeKind, _parse_node_kind
 import pathlib
-from .cache import MemoryCache
+from .cache import NullCache
 
 class Environment:
     """The command line environment.
@@ -400,15 +400,27 @@ def serve(env: Environment, browser: bool, port: int, cache: bool):
     """Run a local development server."""
     import watchfiles
     from .server import HttpServer
-    # We run two threads here, one for file watching which recreates either
-    # liara or the site, and one to run the server in
 
     liara = _create_liara(env.config)
+    # The HTTP server runs a thread internally
     server = HttpServer(open_browser=browser, port=port)
 
     liara._set_base_url_override(server.get_url())
 
-    server.start(liara, MemoryCache())
+    server.start(liara,
+                 liara._get_cache() if cache else NullCache())
+
+    def get_ignore_directories(config):
+        output_directory = config["output_directory"]
+        ignore_dirs = [output_directory]
+
+        match config["build.cache.type"]:
+            case "fs":
+                ignore_dirs.append(config["build.cache.fs.directory"])
+            case "db":
+                ignore_dirs.append(config["build.cache.db.directory"])
+        
+        return ignore_dirs
 
     try:
         # We need this nested loop in case the cache or output directory
@@ -416,14 +428,7 @@ def serve(env: Environment, browser: bool, port: int, cache: bool):
         # ignore those folders
         while True:
             config = liara._get_configuration()
-            output_directory = config["output_directory"]
-            ignore_dirs = [output_directory]
-
-            match config["build.cache.type"]:
-                case "fs":
-                    ignore_dirs.append(config["build.cache.fs.directory"])
-                case "db":
-                    ignore_dirs.append(config["build.cache.db.directory"])
+            ignore_dirs = get_ignore_directories(config)
 
             watch_filter = watchfiles.DefaultFilter(ignore_dirs=ignore_dirs)
             
@@ -432,15 +437,28 @@ def serve(env: Environment, browser: bool, port: int, cache: bool):
                                         recursive=True):
                 # TODO We can optimize this by skipping  the reconfigure
                 # if it's a _known_ content node that changes
+
+                # This is needed to bring the cache into a sensible state again,
+                # for example, the SQLite cache would otherwise keep a
+                # transaction going
+                liara._get_cache().persist()
+
                 liara = _create_liara(env.config)
                 liara._set_base_url_override(server.get_url())
 
-                server.reconfigure(liara, MemoryCache())
-                break
+                server.reconfigure(liara,
+                                   liara._get_cache() if cache else NullCache())
+
+                # If the directories didn't change, there's no need to setup
+                # the watch again, so we skip this and return to the loop early
+                new_ignore_dirs = get_ignore_directories(liara._get_configuration())
+                if new_ignore_dirs != ignore_dirs:
+                    break
     except KeyboardInterrupt:
         pass
 
     server.stop()
+    liara._get_cache().persist()
 
 
 @cli.command()

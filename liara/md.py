@@ -276,7 +276,7 @@ class ShortcodePreprocessor(Preprocessor):
         """
         Set the data context.
 
-        @versionadded 2.6.2
+        .. versionadded:: 2.6.2
         """
         self.__data = data
 

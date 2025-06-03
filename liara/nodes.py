@@ -634,6 +634,10 @@ class _AsyncSassTask(_AsyncTask):
 
         try:
             result.check_returncode()
+        except FileNotFoundError:
+            self.__log.error('Could not find "sass" binary. Make sure that '
+                             'SASS is installed and available in your PATH.')
+            raise
         except Exception:
             self.__log.error('SASS compilation of file "%s" failed: "%s"',
                              self.__src,
@@ -647,8 +651,7 @@ class _AsyncSassTask(_AsyncTask):
         import sass
         self.__log.debug(f'Processing "{self.__src}" using "libsass"')
 
-        result = sass.compile(
-            filename=str(self.__src)).encode('utf-8')
+        result = sass.compile(filename=str(self.__src)).encode('utf-8')
 
         self.__log.debug(f'Done processing "{self.__src}"')
 

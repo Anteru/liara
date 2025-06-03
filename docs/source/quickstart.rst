@@ -29,19 +29,31 @@ Installing Liara deploys the command-line runner ``liara``, which is your entry 
 
 This will deploy the required scaffolding for a super-simple blog, which we'll use throughout this guide.
 
-Build the site
---------------
-
-From the main directory, run ``liara build`` to build the site. The site will be generated in an ``output`` subdirectory by default.
-
 Preview the site
 ----------------
 
-Run ``liara serve`` to run a local web-server which will show the page. You can edit pages and templates while in this mode and hit refresh to see updates. You cannot add/remove content or change meta-data while running the interactive server though.
+For an interactive preview, run: 
+
+.. code:: bash
+  
+  liara serve
+  
+This starts a local web-server which will show the generated page. You can edit pages and templates while in this mode and hit refresh to see updates.
 
 By default, the ``serve`` command will open a server that listens on port 8080
 and will open your configured browser. This can be configured from the command
 line.
+
+Build the site
+--------------
+
+To build the whole site, from the main directory, run:
+
+.. code:: bash
+
+  liara build
+  
+This will build all pages, unlike preview which only builds pages on demand. The site will be generated in an ``output`` subdirectory by default. To deploy it, you can use for example `rsync`.
 
 Exploring the quick-start template
 ----------------------------------

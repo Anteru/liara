@@ -1,8 +1,8 @@
 Changelog
 =========
 
-2.7 (not released yet)
-----------------------
+2.7.0
+-----
 
 * Add a new ``ìnspect`` command. This is useful for debugging internal state:
 

@@ -18,6 +18,7 @@ import webbrowser
 import mimetypes
 import http.server
 import threading
+from urllib.parse import unquote
 
 class _ServerState:
     __log = logging.getLogger('liara.HttpServer')
@@ -160,7 +161,9 @@ class HttpServer:
             def do_GET(self):
                 assert isinstance(self.server, _HttpServer)
                 with self.server.mutex:
-                    path = pathlib.PurePosixPath(self.path)
+                    # Paths with spaces will get encoded as %20 for example,
+                    # we need to unquote here first
+                    path = pathlib.PurePosixPath(unquote(self.path))
 
                     if path.name == 'index.html':
                         path = path.parent

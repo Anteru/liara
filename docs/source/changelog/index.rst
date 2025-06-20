@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.7.1
+-----
+
+* Fix ``liara serve`` failing to serve paths which are URL-encoded, for example, paths containing spaces escaped using ``%20``.
+* Fix an error when creating thumbnails for identical files. In this case, a debug message is printed, and the second set of thumbnails is not generated. This would occur if you had two files, ``foo.png`` and ``foo.webp``, and liara would try to generate a ``foo.thumbnail.webp`` file for the ``.png``, and then create the same file again for the ``.webp`` file.
+
 2.7.0
 -----
 

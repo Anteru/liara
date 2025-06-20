@@ -691,6 +691,11 @@ class Site:
                         continue
 
                 new_url = add_suffix(static.path, k)
+                if self.get_node(new_url):
+                    self.__log.debug('Skipping thumbnail creation for "%s" '
+                                     'as a file with the same name already '
+                                     'exists ("%s")', static.src, new_url);
+                    continue
                 thumbnail_width = v.get('width', width)
                 thumbnail_height = v.get('height', height)
                 if width <= thumbnail_width and height <= thumbnail_height:

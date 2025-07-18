@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.7.2
+-----
+
+* Fix data files not getting merged properly. Previously, two data files, one containing ``key: { value1: ...}`` and one containing ``key: { value2: ...}`` would not merge correctly, so the resulting dictionary contained ``key: { value1: ...}`` or ``key: { value2: ...}`` depending on the order they were processed. In 2.7.2, the expected result is created instead, which is: ``key: { value1: ..., value2: ...}``.
+* Shortcode names can include dashes now, i.e. ``foo-bar`` is now a valid shortcode name.
+
 2.7.1
 -----
 

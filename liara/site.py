@@ -21,7 +21,7 @@ from typing import (
     Union,
     ValuesView,
 )
-from .util import pairwise
+from .util import pairwise, merge_dictionaries
 from . import signals
 import logging
 import fnmatch
@@ -496,7 +496,8 @@ class Site:
         self.data.append(node)
         self.__register_node(node)
 
-        self.__merged_data.update(node.content)
+        self.__merged_data = merge_dictionaries(self.__merged_data,
+                                                node.content)
 
     def add_index(self, node: IndexNode) -> None:
         """Add an index node to this site."""

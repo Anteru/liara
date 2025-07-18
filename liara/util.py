@@ -147,3 +147,16 @@ def file_digest(fp) -> bytes:
     while buffer := fp.read(1024 * 1024):
         hasher.update(buffer)
     return hasher.digest()
+
+def merge_dictionaries(a, b) -> dict:
+    """Recursively merge dictionary ``b`` into ``a``.
+    
+    This looks a bit like a.update(b), but it actually will merge children,
+    too. For example, if ``a[foo]`` exists, and ``b[foo]``, the contents of
+    both will be merged, instead of overwriting ``a[foo]`` with ``b[foo]``."""
+    for key, value in b.items():
+        if isinstance(b, dict) and key in a and isinstance(a[key], dict):
+            merge_dictionaries(a[key], value)
+        else:
+            a[key] = value
+    return a

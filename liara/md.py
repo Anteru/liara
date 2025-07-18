@@ -106,7 +106,7 @@ class _ShortcodeParser:
         self.__args = dict()
         self.__function_name = None
         self.__buffer = buffer
-        self.__key_re = re.compile(r'^\w+')
+        self.__key_re = re.compile(r'^[\w-]+')
         self.__arg_re = re.compile(r'^[\w-]+')
         self.__whitespace_re = re.compile(r'\s')
 
@@ -166,7 +166,7 @@ class _ShortcodeParser:
             return arg
         else:
             raise ShortcodeException(
-                    'Error while parsing shortcode: Could not parameter value',
+                    f'Error while parsing shortcode: Could not parse argument value',
                     self.__buffer.get_current_line_number()
             )
 

@@ -1,4 +1,10 @@
-from liara.util import add_suffix, flatten_dictionary, pairwise
+from liara.util import (
+    add_suffix,
+    flatten_dictionary,
+    pairwise,
+    merge_dictionaries,
+)
+import pytest
 
 
 def test_flatten_dictionary():
@@ -23,7 +29,7 @@ def test_flatten_dictionary_with_ignores_nested():
 
 def test_add_suffix():
     import pathlib
-    p = pathlib.Path('foo.bar')
+    p = pathlib.PurePosixPath('foo.bar')
     p = add_suffix(p, 'baz')
 
     assert str(p) == 'foo.baz.bar'
@@ -39,3 +45,22 @@ def test_pairwise_one_element_list():
 
 def test_pairwise_empty_list():
     assert list(pairwise([])) == []
+
+
+def test_merge_dictionaries():
+    a = {"key0": "value", "key1": {"foo": "bar"}}
+    b = {"key0": "other_value", "key1": {"fiz": "bug"}}
+
+    m = merge_dictionaries(a, b)
+
+    r = {"key0": "other_value", "key1": {"foo": "bar", "fiz": "bug"}}
+    assert m == r
+    assert m == a
+
+
+def test_merge_dictionaries_fails_with_mismatch():
+    a = {"key1": {"foo": {"bar": "baz"}}}
+    b = {"key1": {"foo": "bug"}}
+
+    with pytest.raises(RuntimeError):
+        merge_dictionaries(a, b)

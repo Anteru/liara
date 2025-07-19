@@ -148,15 +148,22 @@ def file_digest(fp) -> bytes:
         hasher.update(buffer)
     return hasher.digest()
 
-def merge_dictionaries(a, b) -> dict:
+def merge_dictionaries(a: dict, b: dict) -> dict:
     """Recursively merge dictionary ``b`` into ``a``.
     
     This looks a bit like a.update(b), but it actually will merge children,
     too. For example, if ``a[foo]`` exists, and ``b[foo]``, the contents of
     both will be merged, instead of overwriting ``a[foo]`` with ``b[foo]``."""
-    for key, value in b.items():
-        if isinstance(b, dict) and key in a and isinstance(a[key], dict):
-            merge_dictionaries(a[key], value)
-        else:
-            a[key] = value
-    return a
+    def _m(a: dict, b: dict, path: List[str]):
+        if not isinstance(b, dict):
+            raise RuntimeError("Cannot merge non-dictionary into dictionary "
+                               f"at key: {'.'.join(path)}")
+        
+        for key, value in b.items():
+            if isinstance(b, dict) and key in a and isinstance(a[key], dict):
+                _m(a[key], value, path + [key])
+            else:
+                a[key] = value
+        return a
+
+    return _m(a, b, [])

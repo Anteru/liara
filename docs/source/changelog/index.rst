@@ -6,7 +6,7 @@ Changelog
 
 * Fix ``liara serve`` failing to serve paths which are URL-encoded, for example, paths containing spaces escaped using ``%20``.
 * Fix an error when creating thumbnails for two files with the same base filename (i.e. without the extension.) In this case, a debug message is printed, and the second set of thumbnails is not generated. This would occur if you had two files, ``foo.png`` and ``foo.webp``, and liara would try to generate a ``foo.thumbnail.webp`` file for the ``.png``, and then create the same file again for the ``.webp`` file.
-* Fix data files not getting merged properly. Previously, two data files, one containing ``key: { value1: ...}`` and one containing ``key: { value2: ...}`` would not merge correctly, so the resulting dictionary contained ``key: { value1: ...}`` or ``key: { value2: ...}`` depending on the order they were processed. In 2.7.2, the expected result is created instead, which is: ``key: { value1: ..., value2: ...}``.
+* Fix data files not getting merged properly. Previously, two data files, one containing ``key: { value1: ...}`` and one containing ``key: { value2: ...}`` would not merge correctly, so the resulting dictionary contained ``key: { value1: ...}`` or ``key: { value2: ...}`` depending on the order they were processed. In 2.7.1, the expected result is created instead, which is: ``key: { value1: ..., value2: ...}``.
 * Shortcode names can include dashes now, i.e. ``foo-bar`` is now a valid shortcode name.
 
 2.7.0

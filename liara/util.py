@@ -2,7 +2,7 @@ import pathlib
 import collections.abc
 import datetime
 import tzlocal
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import os
 import fnmatch
 
@@ -127,7 +127,7 @@ class FilesystemWalker:
 
 def get_hash_key_for_map(m: collections.abc.Mapping) -> bytes:
     """Calculate a hash key for any kind of map, including chain maps.
-    
+
     This method is fairly slow. Use with caution."""
     import hashlib
     import pickle
@@ -135,6 +135,7 @@ def get_hash_key_for_map(m: collections.abc.Mapping) -> bytes:
     buffer = io.BytesIO()
     pickle.dump(m, buffer)
     return hashlib.sha1(buffer.getbuffer()).digest()
+
 
 def file_digest(fp) -> bytes:
     """Back-compat implementation of Python's 3.11 `file_digest`"""
@@ -148,9 +149,10 @@ def file_digest(fp) -> bytes:
         hasher.update(buffer)
     return hasher.digest()
 
+
 def merge_dictionaries(a: dict, b: dict) -> dict:
     """Recursively merge dictionary ``b`` into ``a``.
-    
+
     This looks a bit like a.update(b), but it actually will merge children,
     too. For example, if ``a[foo]`` exists, and ``b[foo]``, the contents of
     both will be merged, instead of overwriting ``a[foo]`` with ``b[foo]``."""
@@ -158,7 +160,7 @@ def merge_dictionaries(a: dict, b: dict) -> dict:
         if not isinstance(b, dict):
             raise RuntimeError("Cannot merge non-dictionary into dictionary "
                                f"at key: {'.'.join(path)}")
-        
+
         for key, value in b.items():
             if isinstance(b, dict) and key in a and isinstance(a[key], dict):
                 _m(a[key], value, path + [key])
@@ -167,3 +169,24 @@ def merge_dictionaries(a: dict, b: dict) -> dict:
         return a
 
     return _m(a, b, [])
+
+
+class CaseInsensitiveDictionary:
+    def __init__(self, d: Dict[str, Any]):
+        self.__data = {
+            k.lower(): (k, v) for k, v in d.items()
+        }
+
+    def __getitem__(self, key):
+        return self.__data[key.lower()][1]
+
+    def __len__(self):
+        return len(self.__d)
+
+    def get(self, key, default=None):
+        if v := self.__data.get(key.lower()):
+            return v[1]
+        return default
+
+    def keys(self):
+        return [v[0] for v in self.__data.values()]

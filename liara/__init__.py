@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from typing import (
     Any,
+    Callable,
     IO,
     ChainMap,
     List,
@@ -34,6 +35,7 @@ from .nodes import (
 
 from .cache import Cache, FilesystemCache, NullCache, Sqlite3Cache, RedisCache
 from .util import (
+    CaseInsensitiveDictionary,
     FilesystemWalker,
 
     flatten_dictionary,
@@ -69,6 +71,7 @@ __path__ = extend_path(__path__, __name__)
 # in profiles otherwise
 __ROOT_PATH = pathlib.PurePosixPath('/')
 
+
 @dataclass
 class _LoadedModule:
     module: object
@@ -103,29 +106,49 @@ def _setup_multiprocessing_worker(log_level):
         _setup_logging(debug=False, verbose=False)
 
 
+@dataclass
+class CompressionResult:
+    output_path: pathlib.Path
+    input_size: int
+    output_size: int
+    format: str
+
+
+def _compress_helper(path: pathlib.Path,
+                     method: Callable[[bytes], bytes],
+                     suffix: str,
+                     format: str):
+    output_path = path.with_suffix(path.suffix + suffix)
+
+    input_data = path.open('rb').read()
+    compressed = method(input_data)
+    output_path.open('wb').write(compressed)
+
+    return CompressionResult(output_path, len(input_data), len(compressed),
+                             format)
+
+
 def _zstd_compress(path: pathlib.Path):
     import zstd
-    output_path = path.with_suffix(path.suffix + '.zst')
+    return _compress_helper(path, zstd.compress, '.zst', 'Zstd')
 
-    output_path.open('wb').write(zstd.compress(path.open('rb').read()))
-
-    return output_path
 
 def _gz_compress(path: pathlib.Path):
     import gzip
-    output_path = path.with_suffix(path.suffix + '.gz')
+    return _compress_helper(path, gzip.compress, '.gz', 'GZip')
 
-    output_path.open('wb').write(gzip.compress(path.open('rb').read()))
-
-    return output_path
 
 def _brotli_compress(path: pathlib.Path):
     import brotli
-    output_path = path.with_suffix(path.suffix + '.br')
+    return _compress_helper(path, brotli.compress, '.br', 'Brotli')
 
-    output_path.open('wb').write(brotli.compress(path.open('rb').read()))
 
-    return output_path
+_COMPRESSION_FORMATS = CaseInsensitiveDictionary({
+    'Zstd': _zstd_compress,
+    'GZip': _gz_compress,
+    'Brotli': _brotli_compress
+})
+
 
 class Compressor:
     def __init__(self, configuration: Dict[str, List[str]]):
@@ -135,24 +158,21 @@ class Compressor:
         self.__map = defaultdict(list)
         for key, value in configuration.items():
             for e in value:
-                match e:
-                    case "zstd":
-                        self.__map[key].append(_zstd_compress)
-                    case "brotli":
-                        self.__map[key].append(_brotli_compress)
-                    case "gzip":
-                        self.__map[key].append(_gz_compress)
+                self.__map[key].append(_COMPRESSION_FORMATS[e])
 
     def compress(self, path: pathlib.Path):
         # Match path against the extensions
+        result: List[CompressionResult] = []
         ext = path.suffix.lstrip('.')
         if compressors := self.__map.get(ext):
             for compressor in compressors:
-                compressor(path)
+                result.append(compressor(path))
+
+        return result
 
 
 def _compress(path: pathlib.Path, compressor: Compressor):
-    compressor.compress(path)
+    return compressor.compress(path)
 
 
 class Liara:
@@ -752,7 +772,7 @@ class Liara:
         for document in site.documents:
             try:
                 args = {
-                    '$data' : site.merged_data
+                    '$data': site.merged_data
                 }
                 _process_node_sync(document, cache, **args)
             except Exception as e:
@@ -807,16 +827,35 @@ class Liara:
             self.__log.info(f'Wrote {len(self.__redirections)} redirections')
 
         if 'build.compression' in self.__configuration:
-            self.__log.info(f'Compression enabled, processing {len(published_files)} file(s)')
+            import humanfriendly as hf
+            self.__log.info(f'Compression enabled, processing '
+                            f'{len(published_files)} file(s)')
             compressor = Compressor(self.__configuration['build.compression'])
+            compression_result: List[CompressionResult] = []
             if parallel_build:
                 with multiprocessing.Pool() as pool:
-                    pool.starmap(_compress,
-                             [(f, compressor,) for f in published_files])
+                    for result_list in pool.starmap(
+                            _compress,
+                            [(f, compressor,) for f in published_files]):
+                        compression_result += result_list
             else:
                 for published_file in published_files:
-                    compressor.compress(published_file)
+                    compression_result += compressor.compress(published_file)
+
             self.__log.info('Finished compressing')
+
+            for format in _COMPRESSION_FORMATS.keys():
+                filtered = list(filter(lambda x: x.format == format,
+                                       compression_result))
+
+                uncompressed_size = sum([cr.input_size for cr in filtered])
+                compressed_size = sum([cr.output_size for cr in filtered])
+                self.__log.info(
+                    f'  - Compression using {format}: '
+                    f'{len(filtered)} compressed files, '
+                    f'{hf.format_size(uncompressed_size, binary=True)}'
+                    f' -> {hf.format_size(compressed_size, binary=True)}, '
+                    f'{hf.round_number(compressed_size / uncompressed_size * 100)}%')
 
         end_time = time.time()
         self.__log.info(f'Build finished ({end_time - start_time:.2f} sec)')

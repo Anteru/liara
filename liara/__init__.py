@@ -103,6 +103,58 @@ def _setup_multiprocessing_worker(log_level):
         _setup_logging(debug=False, verbose=False)
 
 
+def _zstd_compress(path: pathlib.Path):
+    import zstd
+    output_path = path.with_suffix(path.suffix + '.zst')
+
+    output_path.open('wb').write(zstd.compress(path.open('rb').read()))
+
+    return output_path
+
+def _gz_compress(path: pathlib.Path):
+    import gzip
+    output_path = path.with_suffix(path.suffix + '.gz')
+
+    output_path.open('wb').write(gzip.compress(path.open('rb').read()))
+
+    return output_path
+
+def _brotli_compress(path: pathlib.Path):
+    import brotli
+    output_path = path.with_suffix(path.suffix + '.br')
+
+    output_path.open('wb').write(brotli.compress(path.open('rb').read()))
+
+    return output_path
+
+class Compressor:
+    def __init__(self, configuration: Dict[str, List[str]]):
+        # The configuration is a mapping from file extensions to compressors to
+        # use
+        from collections import defaultdict
+        self.__map = defaultdict(list)
+        for key, value in configuration.items():
+            for e in value:
+                match e:
+                    case "zstd":
+                        self.__map[key].append(_zstd_compress)
+                    case "brotli":
+                        self.__map[key].append(_brotli_compress)
+                    case "gzip":
+                        self.__map[key].append(_gz_compress)
+
+    def compress(self, path: pathlib.Path):
+        # Match path against the extensions
+        ext = path.suffix.lstrip('.')
+        if compressors := self.__map.get(ext):
+            for compressor in compressors:
+                compressor(path)
+
+
+def _compress(path: pathlib.Path, compressor: Compressor):
+    compressor.compress(path)
+
+
 class Liara:
     """Main entry point for Liara. This class handles all the state required
     to process and build a site."""
@@ -149,7 +201,8 @@ class Liara:
         ignore_list = {
             'content.markdown.extensions',
             'content.markdown.config',
-            'content.markdown.output'
+            'content.markdown.output',
+            'build.compression'
         }
 
         self.__configuration = collections.ChainMap(
@@ -717,28 +770,30 @@ class Liara:
         publisher = TemplatePublisher(output_path, site,
                                       self.__template_repository)
 
+        published_files = []
+
         self.__log.info('Publishing ...')
         for document in site.documents:
-            document.publish(publisher)
+            published_files.append(document.publish(publisher))
         self.__log.info(f'Published {len(site.documents)} document(s)')
 
         for index in site.indices:
-            index.publish(publisher)
+            published_files.append(index.publish(publisher))
         self.__log.info(f'Published {len(site.indices)} '
                         f'{"indices" if len(site.indices) > 1 else "index"}')
 
         for resource in site.resources:
-            resource.publish(publisher)
+            published_files.append(resource.publish(publisher))
         self.__log.info(f'Published {len(site.resources)} resource(s)')
 
         for static in site.static:
-            static.publish(publisher)
+            published_files.append(static.publish(publisher))
         self.__log.info('Published %d static file(s)', len(site.static))
 
         if site.generated:
             for generated in site.generated:
                 generated.generate()
-                generated.publish(publisher)
+                published_files.append(generated.publish(publisher))
             self.__log.info(f'Published {len(site.generated)} '
                             'generated file(s)')
 
@@ -750,6 +805,18 @@ class Liara:
                     output.write(f'RedirectPermanent {node["src"]} '
                                  f'{node["dst"]}\n')
             self.__log.info(f'Wrote {len(self.__redirections)} redirections')
+
+        if 'build.compression' in self.__configuration:
+            self.__log.info(f'Compression enabled, processing {len(published_files)} file(s)')
+            compressor = Compressor(self.__configuration['build.compression'])
+            if parallel_build:
+                with multiprocessing.Pool() as pool:
+                    pool.starmap(_compress,
+                             [(f, compressor,) for f in published_files])
+            else:
+                for published_file in published_files:
+                    compressor.compress(published_file)
+            self.__log.info('Finished compressing')
 
         end_time = time.time()
         self.__log.info(f'Build finished ({end_time - start_time:.2f} sec)')

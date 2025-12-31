@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.7.2
+-----
+
+* Add a new ``compression`` option to compress files during build time. See :ref:`configuration <build-compression-option>` for details.
+
 2.7.1
 -----
 

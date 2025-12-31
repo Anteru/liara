@@ -67,6 +67,23 @@ Build settings
 
   .. versionadded:: 2.3.4
 
+* .. _`build-compression-option`:
+
+  ``build.compression``: A map mapping from a file extension to a list of compressors. The file extension must be provided without a leading ``.``. Install the ``[compression]`` dependencies to get all compression algorithms. For example, to compress all HTML files using Brotli and Gzip, specify:
+
+  .. code-block:: yaml
+
+    compression:
+      html: [brotli, gzip]
+
+  Supported compressors:
+
+  - ``zstd``: Produces ``.zst`` files compressed using Zstd
+  - ``brotli``: Produces ``.br`` files compressed using Brotli
+  - ``gzip``: Produces ``.gz`` files compressed using Gzip
+
+  .. versionadded:: 2.7.2
+
 .. note::
 
     Caching is imperfect: In some rare cases, you may see stale content. You can use ``liara build --no-cache`` or ``liara cache clear`` if you're running into issues with incorrect caching (and please report a bug in those cases.) Generally speaking, updating Liara, a dependency or a plugin should be followed by clearing the cache.

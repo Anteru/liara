@@ -9,3 +9,4 @@ Liara processes the content in multiple stages.
 * All resources are processed
 * The content is published (this is where templates get applied)
 * Additional output files get created (redirections, etc.)
+* Compression is applied.

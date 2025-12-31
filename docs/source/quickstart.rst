@@ -15,6 +15,7 @@ After obtaining `pip <https://pip.pypa.io/en/stable/installation/>`_, use:
 The Liara installation can be customized by adding extras to the installation. Extra features are:
 
 * ``redis``: Enables the Redis cache backend.
+* ``compression``: Enables more compression backends.
 
 For instance, if you want to install Liara with Redis support, you would install ``liara[redis]``.
 

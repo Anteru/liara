@@ -44,7 +44,7 @@ from .util import (
 )
 from .yaml import load_yaml
 
-__version__ = '2.7.1'
+__version__ = '2.7.2'
 __all__ = [
     'actions',
     'cache',
@@ -129,8 +129,12 @@ def _compress_helper(path: pathlib.Path,
 
 
 def _zstd_compress(path: pathlib.Path):
-    import zstd
-    return _compress_helper(path, zstd.compress, '.zst', 'Zstd')
+    try:
+        import compression.zstd
+        return _compress_helper(path, compression.zstd.compress, '.zst', 'Zstd')
+    except ImportError:
+        import zstd
+        return _compress_helper(path, zstd.compress, '.zst', 'Zstd')
 
 
 def _gz_compress(path: pathlib.Path):
@@ -157,6 +161,9 @@ class Compressor:
         from collections import defaultdict
         self.__map = defaultdict(list)
         for key, value in configuration.items():
+            # Remove leading dot if any
+            key = key.lstrip('.')
+
             for e in value:
                 self.__map[key].append(_COMPRESSION_FORMATS[e])
 
@@ -847,6 +854,10 @@ class Liara:
             for format in _COMPRESSION_FORMATS.keys():
                 filtered = list(filter(lambda x: x.format == format,
                                        compression_result))
+
+                if not filtered:
+                    self.__log.info(f'  - No files compressed for format {format}')
+                    continue
 
                 uncompressed_size = sum([cr.input_size for cr in filtered])
                 compressed_size = sum([cr.output_size for cr in filtered])

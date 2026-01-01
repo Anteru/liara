@@ -180,6 +180,9 @@ class CaseInsensitiveDictionary:
     def __getitem__(self, key):
         return self.__data[key.lower()][1]
 
+    def __contains__(self, key):
+        return key.lower() in self.__data
+
     def __len__(self):
         return len(self.__d)
 

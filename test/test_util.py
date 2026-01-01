@@ -1,4 +1,6 @@
 from liara.util import (
+    CaseInsensitiveDictionary,
+
     add_suffix,
     flatten_dictionary,
     pairwise,
@@ -64,3 +66,26 @@ def test_merge_dictionaries_fails_with_mismatch():
 
     with pytest.raises(RuntimeError):
         merge_dictionaries(a, b)
+
+
+def test_case_insensitive_dictionary():
+    a = CaseInsensitiveDictionary({
+        "Foo": 23,
+        "bAr": 42
+    })
+
+    assert "foo" in a
+    assert "bar" in a
+
+    assert "FOO" in a
+    assert "BAR" in a
+
+    keys = a.keys()
+    assert len(keys) == 2
+    assert sorted(keys) == sorted(["Foo", "bAr"])
+
+    assert a["Foo"] == 23
+    assert a["bAr"] == 42
+
+    assert a["FOO"] == 23
+    assert a["bar"] == 42

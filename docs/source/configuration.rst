@@ -69,7 +69,7 @@ Build settings
 
 * .. _`build-compression-option`:
 
-  ``build.compression``: A map mapping from a file extension to a list of compressors. The file extension must be provided without a leading ``.``. Install the ``[compression]`` dependencies to get all compression algorithms. For example, to compress all HTML files using Brotli and Gzip, specify:
+  ``build.compression``: A map mapping from a file extension to a list of compressors. The file extension can be provided with or without a leading dot, that is ``.html`` and ``html`` is equivalent. Install the ``[compression]`` dependencies to get all compression algorithms. For example, to compress all HTML files using Brotli and Gzip, specify:
 
   .. code-block:: yaml
 
@@ -78,9 +78,9 @@ Build settings
 
   Supported compressors:
 
-  - ``zstd``: Produces ``.zst`` files compressed using Zstd
-  - ``brotli``: Produces ``.br`` files compressed using Brotli
-  - ``gzip``: Produces ``.gz`` files compressed using Gzip
+  - ``zstd``: Produces ``.zst`` files compressed using Zstd. This requires Python 3.14 or installing the ``[compression]`` option.
+  - ``brotli``: Produces ``.br`` files compressed using Brotli. This requires installing the ``[compression]`` option.
+  - ``gzip``: Produces ``.gz`` files compressed using Gzip. This works on all Python versions.
 
   .. versionadded:: 2.7.2
 

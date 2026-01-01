@@ -4,7 +4,7 @@ Changelog
 2.7.2
 -----
 
-* Add a new ``compression`` option to compress files during build time. See :ref:`configuration <build-compression-option>` for details.
+* Add a new ``compression`` option to compress files during build time (this may require installing ``liara[compression]`` to get access to all compression algorithms.) See :ref:`configuration <build-compression-option>` for details.
 
 2.7.1
 -----

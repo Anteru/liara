@@ -34,6 +34,7 @@ from .nodes import (
 )
 
 from .cache import Cache, FilesystemCache, NullCache, Sqlite3Cache, RedisCache
+from .tools import SassCompiler
 from .util import (
     CaseInsensitiveDictionary,
     FilesystemWalker,
@@ -170,6 +171,7 @@ class Compressor:
     def compress(self, path: pathlib.Path):
         # Match path against the extensions
         result: List[CompressionResult] = []
+        assert path is not None
         ext = path.suffix.lstrip('.')
         if compressors := self.__map.get(ext):
             for compressor in compressors:
@@ -595,7 +597,8 @@ class Liara:
                     node = resource_factory.create_node(src.suffix, src, path)
                 site.add_resource(node)
 
-    def __discover_feeds(self, site: Site, feed_definition: pathlib.Path) -> None:
+    def __discover_feeds(self, site: Site,
+                         feed_definition: pathlib.Path) -> None:
         from .feeds import JsonFeedNode, RSSFeedNode, SitemapXmlFeedNode
 
         if not feed_definition.exists():
@@ -750,6 +753,26 @@ class Liara:
                 + __version__.encode('utf-8')).digest(16)
         )
 
+    def check_tools(self, try_install=False):
+        """Check for requested tools and optionally try to install them."""
+        sass_compiler = self.__configuration['build.resource.sass.compiler']
+        if sass_compiler == 'cli':
+            scss = SassCompiler()
+            if not scss.is_present():
+                if try_install:
+                    if scss.try_install():
+                        self.__log.info('Installed `sass` compiler')
+                    else:
+                        self.__log.error('Failed to install `sass` compiler')
+                        return False
+                else:
+                    self.__log.error('Could not find `sass` compiler.')
+                    return False
+            else:
+                self.__log.info('Found working `sass` compiler')
+
+        return True
+
     def build(self, discover_content=True, *, disable_cache=False,
               parallel_build=True):
         """Build the site.
@@ -833,8 +856,11 @@ class Liara:
                                  f'{node["dst"]}\n')
             self.__log.info(f'Wrote {len(self.__redirections)} redirections')
 
+        published_files = list(filter(None, published_files))
+
         if 'build.compression' in self.__configuration:
             import humanfriendly as hf
+
             self.__log.info(f'Compression enabled, processing '
                             f'{len(published_files)} file(s)')
             compressor = Compressor(self.__configuration['build.compression'])
@@ -922,11 +948,11 @@ class Liara:
     def _get_template_repository(self) -> TemplateRepository:
         """Debug/internal access to the template repository for inspection."""
         return self.__template_repository
-    
+
     def _get_configuration(self) -> MappingProxyType[str, Any]:
         """Debug/internal access to the configuration for inspection."""
         return MappingProxyType(self.__configuration)
-    
+
     def _set_base_url_override(self, url: str):
         """Internal use only"""
         self.__base_url_override = url

@@ -28,6 +28,8 @@ import re
 import dateparser
 from abc import abstractmethod, ABC
 
+from .tools import SassCompiler
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .query import Query
@@ -618,19 +620,11 @@ class _AsyncSassTask(_AsyncTask):
         self.__compiler = compiler
 
     def _compile_using_cli(self):
-        import subprocess
-        import sys
-
         self.__log.debug('Processing "%s" using "sass" binary', self.__src)
 
-        result = subprocess.run(
-            ['sass', str(self.__src)],
-            # On Windows, we need to set shell=True, otherwise, the
-            # sass binary installed using npm install -g sass won't
-            # be found.
-            shell=sys.platform == 'win32',
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+        compiler = SassCompiler()
+
+        result = compiler.invoke([str(self.__src)])
 
         try:
             result.check_returncode()
@@ -849,8 +843,8 @@ class StaticNode(Node):
     Static nodes are suitable for large static data which never changes, for
     instance, binary files, videos, images etc.
     """
-    src: pathlib.Path   # Unlike a generic Node, a StaticNode always has a
-                        # source
+    # Unlike a generic Node, a StaticNode always has a source path
+    src: pathlib.Path
 
     def __init__(self, src: pathlib.Path, path: pathlib.PurePosixPath,
                  metadata_path=None):
@@ -1006,7 +1000,8 @@ def _parse_node_kind(kind) -> NodeKind:
     return kind_map[kind]
 
 
-def _process_node_sync(node: Union[ResourceNode, DocumentNode], cache: Cache, **kwargs):
+def _process_node_sync(node: Union[ResourceNode, DocumentNode],
+                       cache: Cache, **kwargs):
     """
     Process a node synchronously, even if it returned an async result.
     """

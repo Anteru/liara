@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.7.3
+-----
+
+* Add a new ``check-tools`` command which verifies that the tools requested in the configuration (for example, the SASS compiler) are present, and optionally help with the installation.
+
 2.7.2
 -----
 

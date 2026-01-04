@@ -5,19 +5,19 @@ from .yaml import dump_yaml
 import logging
 import os
 import click
-from .nodes import NodeKind
 from typing import Literal, IO, Callable, Optional, Union
 from .site import Site
 from .nodes import Node, NodeKind, _parse_node_kind
 import pathlib
 from .cache import NullCache
 
+
 class Environment:
     """The command line environment.
 
     This provides access to global variables that are useful for command line
     commands, as well as a global liara instance."""
-    __liara : Liara | None
+    __liara: Liara | None
 
     def __init__(self):
         self.verbose = False
@@ -79,7 +79,8 @@ def cli(env: Environment, debug: bool, verbose: bool, config, date: str):
         if now:
             set_local_now(now)
         else:
-            env.log.error(f'Could not parse date {date}, ignoring it for this build')
+            env.log.error(f'Could not parse date {date}, ignoring it for this '
+                          'build')
 
     env.config = config
 
@@ -127,7 +128,8 @@ def build(env: Environment, profile: bool,
               type=click.Choice(['internal', 'external']),
               default='internal')
 @pass_environment
-def validate_links(env: Environment, link_type: Literal['internal', 'external']):
+def validate_links(env: Environment,
+                   link_type: Literal['internal', 'external']):
     """Validate links.
 
     Checks all internal/external links for validity. For internal links,
@@ -242,6 +244,14 @@ def quickstart(template_backend: Literal['jinja2', 'mako']):
     generate(template_backend)
 
 
+@cli.command()
+@click.option('--try-install', is_flag=True)
+@pass_environment
+def check_tools(env: Environment, try_install: bool):
+    env.liara.check_tools(try_install)
+    print('All required tools are present')
+
+
 class _Node:
     """Helper class for tree printing, as the liara site node tree doesn't
     contain intermediate nodes."""
@@ -260,20 +270,21 @@ class _Node:
     @property
     def name(self):
         return self.__name
-    
+
     @property
     def data(self):
         return self.__data
 
 
-def _print_tree(node: _Node, get_label: Callable[[_Node], str], prefix='', last=True):
+def _print_tree(node: _Node, get_label: Callable[[_Node], str],
+                prefix='', last=True):
     """Pretty-print a fully populated tree (meaning: all intermediate nodes
     are present.)"""
     empty = "    "
     last_branch = "└── "
     continue_traversal = "│   "
     branch = "├── "
-    
+
     if node.name == 'Site':
         # Special case the root node: Don't add a prefix here
         print('Site')
@@ -332,7 +343,7 @@ def list_content(env: Environment,
         if node.kind == NodeKind.Resource:
             label += f"(Resource, generated from '{node.src}')"
         else:
-            label +=  f"({node.kind.name})"
+            label += f"({node.kind.name})"
         
         return label
 
@@ -432,27 +443,29 @@ def serve(env: Environment, browser: bool, port: int, cache: bool):
             ignore_dirs = get_ignore_directories(config)
 
             watch_filter = watchfiles.DefaultFilter(ignore_dirs=ignore_dirs)
-            
+
             for change in watchfiles.watch('.',
-                                        watch_filter=watch_filter,
-                                        recursive=True):
+                                           watch_filter=watch_filter,
+                                           recursive=True):
                 # TODO We can optimize this by skipping  the reconfigure
                 # if it's a _known_ content node that changes
 
-                # This is needed to bring the cache into a sensible state again,
-                # for example, the SQLite cache would otherwise keep a
+                # This is needed to bring the cache into a sensible state
+                # again, for example, the SQLite cache would otherwise keep a
                 # transaction going
                 liara._get_cache().persist()
 
                 liara = _create_liara(env.config)
                 liara._set_base_url_override(server.get_url())
 
-                server.reconfigure(liara,
-                                   liara._get_cache() if cache else NullCache())
+                server.reconfigure(
+                    liara,
+                    liara._get_cache() if cache else NullCache())
 
                 # If the directories didn't change, there's no need to setup
                 # the watch again, so we skip this and return to the loop early
-                new_ignore_dirs = get_ignore_directories(liara._get_configuration())
+                new_ignore_dirs = get_ignore_directories(
+                    liara._get_configuration())
                 if new_ignore_dirs != ignore_dirs:
                     break
     except KeyboardInterrupt:
@@ -478,10 +491,12 @@ def cache(env: Environment, action: Literal['clear', 'inspect']):
         print(f'Size:         {size}')
         print(f'Object count: {info.entry_count}')
 
+
 @cli.group()
 def inspect():
     """Inspect state, for example, site data or template matching."""
     pass
+
 
 @inspect.command('data')
 @pass_environment
@@ -508,6 +523,7 @@ def inspect_data_files(env: Environment):
     for df in liara.site.data:
         print(df.src)
 
+
 class _SiteShim(Site):
     """Helper class to inject fake nodes for `template-match` so
     we can match selectors with `?kind=` specified."""
@@ -531,15 +547,18 @@ class _SiteShim(Site):
                     n.kind = NodeKind.Index
 
             return n
-                    
+
         return self.__site.get_node(path)
+
 
 @inspect.command('template-match')
 @click.argument('path')
 @click.option('--kind', type=click.Choice(['document', 'index']),
               help='Override or set the node kind at the specified path.')
 @pass_environment
-def inspect_template_match(env: Environment, path: str, kind: Optional[Literal['document', 'index']]):
+def inspect_template_match(env: Environment,
+                           path: str,
+                           kind: Optional[Literal['document', 'index']]):
     """Match a template pattern."""
     liara = env.liara
     liara.discover_content()
@@ -557,8 +576,10 @@ def inspect_template_match(env: Environment, path: str, kind: Optional[Literal['
             print(f'Node "{path}" exists with kind: {node.kind.name}')
 
     template_repository = liara._get_template_repository()
-    match, pattern = template_repository._match_template(pathlib.PurePosixPath(path), site_shim)
-    print(f'Using template "{match}" for path "{path}" due to pattern "{pattern}"')
+    match, pattern = template_repository._match_template(
+        pathlib.PurePosixPath(path), site_shim)
+    print(f'Using template "{match}" for path "{path}" due to pattern '
+          f'"{pattern}"')
 
 
 if __name__ == '__main__':

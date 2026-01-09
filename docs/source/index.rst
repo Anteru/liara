@@ -22,4 +22,7 @@ Liara is also very fast -- it can process sites with hundreds of pages and image
 
    content/index
    publish/index
+
+   how-to/index
+
    reference/index

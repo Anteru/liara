@@ -858,6 +858,8 @@ class Liara:
 
         published_files = list(filter(None, published_files))
 
+        signals.content_published.send(self, files=published_files)
+
         if 'build.compression' in self.__configuration:
             import humanfriendly as hf
 

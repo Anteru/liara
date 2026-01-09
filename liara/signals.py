@@ -39,6 +39,14 @@ documents_processed = signal('documents-processed')
   Processing includes the conversion from Markdown to HTML.
 """
 
+content_published = signal('content-published')
+"""Raised after all nodes have been published.
+
+  :param List[pathlib.Path] files: the list of published files
+
+  .. versionadded:: 2.7.3
+"""
+
 document_loaded = signal('document-loaded')
 """Raised after a document has been loaded.
 

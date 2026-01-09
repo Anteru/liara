@@ -5,6 +5,7 @@ Changelog
 -----
 
 * Add a new ``check-tools`` command which verifies that the tools requested in the configuration (for example, the SASS compiler) are present, and optionally help with the installation.
+* Add a new :py:data:`~liara.signals.content_published` signal.
 
 2.7.2
 -----

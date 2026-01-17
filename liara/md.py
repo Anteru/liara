@@ -7,6 +7,7 @@ from typing import (
     Any, Dict, Optional, Sequence
 )
 
+
 class HeadingLevelFixupProcessor(Treeprocessor):
     """This processor demotes headings by one level.
 

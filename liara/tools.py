@@ -2,19 +2,23 @@ from typing import List
 import subprocess
 import sys
 import logging
+import abc
 
 
-class Tool:
+class Tool(abc.ABC):
     """Represents a command line tool that can be invoked by Liara."""
+    @abc.abstractmethod
     def is_present(self) -> bool:
         """Returns ``true`` if the tool is available and ready to use."""
         ...
 
+    @abc.abstractmethod
     def try_install(self) -> bool:
         """Try to install the tool if it's not present. This will produce
         a descriptive message if the installation fails."""
         ...
 
+    @abc.abstractmethod
     def invoke(self, cmd_line_arguments: List[str]) \
             -> subprocess.CompletedProcess:
         """Invoke the tool, return a ``subprocess.CompletedProcess`` instance.

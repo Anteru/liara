@@ -110,6 +110,7 @@ class TemplateRepository(ABC):
             raise Exception(f'Could not find matching template for path: '
                             f'"{url}"')
 
+        assert best_pattern
         return best_match, best_pattern
 
 

@@ -45,7 +45,7 @@ from .util import (
 )
 from .yaml import load_yaml
 
-__version__ = '2.7.2'
+__version__ = '2.7.3'
 __all__ = [
     'actions',
     'cache',
@@ -610,14 +610,12 @@ class Liara:
 
             match key:
                 case 'rss':
-                    feed = RSSFeedNode(path, site, **options)
-                    site.add_generated(feed)
+                    site.add_generated(RSSFeedNode(path, site, **options))
                 case 'json':
-                    feed = JsonFeedNode(path, site, **options)
-                    site.add_generated(feed)
+                    site.add_generated(JsonFeedNode(path, site, **options))
                 case 'sitemap':
-                    feed = SitemapXmlFeedNode(path, site, **options)
-                    site.add_generated(feed)
+                    site.add_generated(SitemapXmlFeedNode(path, site,
+                                                          **options))
                 case _:
                     self.__log.warning(f'Unknown feed type: "{key}", ignored')
 

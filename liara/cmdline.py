@@ -130,7 +130,7 @@ def build(env: Environment, profile: bool,
               default='internal')
 @pass_environment
 def validate_links(env: Environment,
-                   link_type: Literal['internal', 'external']):
+                   link_type):
     """Validate links.
 
     Checks all internal/external links for validity. For internal links,
@@ -210,10 +210,10 @@ def find_by_tag(env: Environment, tags: list[str]):
     a list of tags."""
     liara = env.liara
     site = liara.discover_content()
-    tags = set(tags)
+    unique_tags = set(tags)
     for document in site.documents:
         for tag in document.metadata.get('tags', []):
-            if tag in tags:
+            if tag in unique_tags:
                 print(document.src, tag)
                 break
 
@@ -327,9 +327,11 @@ def list_content(env: Environment,
     if format == 'tree':
         root = _create_node_tree_for_site(nodes)
         import sys
+        import io
         # This seems to be required to get UTF-8 output redirection to work
         # in powershell. Unclear why
-        sys.stdout.reconfigure(encoding='utf-8')
+        if isinstance(sys.stdout, io.TextIOWrapper):
+            sys.stdout.reconfigure(encoding='utf-8')
 
         def get_label(node):
             if node.data:
@@ -495,7 +497,7 @@ class _SiteShim(Site):
     we can match selectors with `?kind=` specified."""
     def __init__(self, site: Site):
         self.__site = site
-        self.__fakes = {}
+        self.__fakes: dict[pathlib.PurePosixPath, NodeKind] = {}
 
     def register_fake_node(self, path: str, kind: NodeKind):
         self.__fakes[pathlib.PurePosixPath(path)] = kind

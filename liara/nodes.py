@@ -55,10 +55,13 @@ class Publisher(ABC):
         ...
 
     @abstractmethod
-    def publish_resource(self, resource: 'ResourceNode') -> pathlib.Path:
+    def publish_resource(self, resource: 'ResourceNode') -> \
+            pathlib.Path | None:
         """Publish a resource node.
 
-        :return: The path of the generated file."""
+        :return: The path of the generated file, or ``None`` if no file
+                 content was generated.
+        """
         ...
 
     @abstractmethod
@@ -69,10 +72,13 @@ class Publisher(ABC):
         ...
 
     @abstractmethod
-    def publish_generated(self, generated: 'GeneratedNode') -> pathlib.Path:
+    def publish_generated(self, generated: 'GeneratedNode') -> \
+            pathlib.Path | None:
         """Publish a generated node.
 
-        :return: The path of the generated file."""
+        :return: The path of the generated file, or ``None`` if no file
+                 content was generated.
+        """
         ...
 
 
@@ -94,13 +100,13 @@ class _AsyncTask(ABC):
     The function must return the new content of the node.
     """
     @abstractmethod
-    def process(self) -> object:
+    def process(self) -> object | bytes:
         """
         Process the task and return the new content for the node.
         """
         ...
 
-    def update_cache(self, content: object, cache: Cache):
+    def update_cache(self, content: object | bytes, cache: Cache):
         """
         After processing, an async task may update the cache in a separate
         step.
@@ -290,15 +296,19 @@ def fixup_relative_links(document: 'DocumentNode'):
         return
 
     from bs4 import BeautifulSoup
+    from bs4.element import Tag
     soup = BeautifulSoup(document.content, 'lxml')
 
     def is_relative_url(s):
         return s and s[0] == '.'
 
     for link in soup.find_all('a', {'href': is_relative_url}):
+        assert (isinstance(link, Tag))
         target = link.attrs.get('href')
-        link.attrs['href'] = \
-            str(document.path.parent / pathlib.PurePosixPath(target))
+        if target:
+            assert (isinstance(target, str))
+            link.attrs['href'] = \
+                str(document.path.parent / pathlib.PurePosixPath(target))
 
     document.content = str(soup)
 
@@ -595,7 +605,7 @@ class ResourceNode(Node):
         self.kind = NodeKind.Resource
         self.src = src
         self.path = path
-        self.content = None
+        self.content: bytes | None = None
         if metadata_path:
             self.metadata = load_yaml(open(metadata_path, 'r'))
 
@@ -604,7 +614,7 @@ class ResourceNode(Node):
     def reload(self) -> None:
         pass
 
-    def publish(self, publisher: Publisher) -> pathlib.Path:
+    def publish(self, publisher: Publisher) -> pathlib.Path | None:
         """Publish this node using the provided publisher."""
         return publisher.publish_resource(self)
 
@@ -698,6 +708,7 @@ class SassResourceNode(ResourceNode):
         cache_key = hashlib.sha256(self.src.open('rb').read()).digest()
 
         if (value := cache.get(cache_key)) is not None:
+            assert (isinstance(value, bytes))
             self.content = value
             return
 
@@ -801,7 +812,7 @@ class ResourceNodeFactory(NodeFactory[ResourceNode]):
                 'Please check the documentation how to use the SASS '
                 'command line compiler.')
 
-    def _on_node_created(self, node: NT):
+    def _on_node_created(self, node: ResourceNode):
         if isinstance(node, SassResourceNode):
             node.set_compiler(self.__sass_compiler)
         return node
@@ -845,9 +856,9 @@ class StaticNode(Node):
 
     Static nodes are suitable for large static data which never changes, for
     instance, binary files, videos, images etc.
+
+    Static nodes have always a valid ``src``.
     """
-    # Unlike a generic Node, a StaticNode always has a source path
-    src: pathlib.Path
 
     def __init__(self, src: pathlib.Path, path: pathlib.PurePosixPath,
                  metadata_path=None):
@@ -871,8 +882,10 @@ class StaticNode(Node):
         .. versionchanged:: 2.7.3
 
           ``image_size`` was renamed to ``$image_size``, and ``$size``
-          was added."""
+          was added.
+        """
         from PIL import Image
+        assert (self.src)
         if self.is_image:
             image = Image.open(self.src)
             self.metadata['$image_size'] = image.size
@@ -883,6 +896,7 @@ class StaticNode(Node):
     @property
     def is_image(self):
         """Return ``True`` if this static file is pointing to an image."""
+        assert (self.src)
         return self.src.suffix in {'.jpg', '.png', '.webp'}
 
     def publish(self, publisher: Publisher) -> pathlib.Path:
@@ -943,7 +957,7 @@ class _AsyncThumbnailTask(_AsyncTask):
         return result
 
     def update_cache(self, content: object, cache: Cache):
-        cache.put(self.__cache_key, bytes(content))
+        cache.put(self.__cache_key, content)
 
 
 class ThumbnailNode(ResourceNode):
@@ -977,6 +991,7 @@ class ThumbnailNode(ResourceNode):
     def process(self, cache: Cache, **kwargs) -> _AsyncThumbnailTask | None:
         cache_key = self.__get_cache_key()
         if content := cache.get(cache_key):
+            assert (isinstance(content, bytes))
             self.content = content
             return None
 
@@ -1018,5 +1033,17 @@ def _process_node_sync(node: Union[ResourceNode, DocumentNode],
     Process a node synchronously, even if it returned an async result.
     """
     if task := node.process(cache, **kwargs):
-        node.content = task.process()
+        content = task.process()
+        match node.kind:
+            case NodeKind.Document:
+                assert isinstance(content, str), "`content` must be a `str` "\
+                                                 "document nodes"
+                assert isinstance(node, DocumentNode)
+                node.content = content
+            case NodeKind.Resource:
+                assert isinstance(content, bytes), "`content` must be `bytes` "\
+                                                   "resource nodes"
+                assert isinstance(node, ResourceNode)
+                node.content = content
+
         task.update_cache(node.content, cache)

@@ -83,9 +83,9 @@ class TemplateRepository(ABC):
         Returns a tuple containing the matching template name, and the pattern
         that matched.
         """
-        best_match = None
-        best_pattern = None
-        best_score = None
+        best_match: str | None = None
+        best_pattern: str | None = None
+        best_score: int | None = None
         longest_matching_pattern_length = -1
         for pattern, template in self.__paths.items():
             score = _match_url(url, pattern, site)

@@ -818,7 +818,7 @@ class Liara:
         publisher = TemplatePublisher(output_path, site,
                                       self.__template_repository)
 
-        published_files = []
+        published_files: List[pathlib.Path | None] = []
 
         self.__log.info('Publishing ...')
         for document in site.documents:
@@ -854,6 +854,7 @@ class Liara:
                                  f'{node["dst"]}\n')
             self.__log.info(f'Wrote {len(self.__redirections)} redirections')
 
+        # Remove `None` entries
         published_files = list(filter(None, published_files))
 
         signals.content_published.send(self, files=published_files)
@@ -873,6 +874,8 @@ class Liara:
                         compression_result += result_list
             else:
                 for published_file in published_files:
+                    # We filtered out `None` above
+                    assert published_file
                     compression_result += compressor.compress(published_file)
 
             self.__log.info('Finished compressing')

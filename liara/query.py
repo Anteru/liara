@@ -1,7 +1,7 @@
 from typing import Iterable, List, Iterator, Optional
 from .nodes import Node, NodeKind, _parse_node_kind
 from .template import Page
-from typing import Union
+from typing import Union, Any
 from abc import abstractmethod, ABC
 import logging
 
@@ -78,7 +78,7 @@ class Sorter(ABC):
         self._reverse = reverse
 
     @abstractmethod
-    def get_key(self, item: Node):
+    def get_key(self, item: Node) -> Any:
         """Return the key to be used for sorting."""
         ...
 

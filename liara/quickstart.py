@@ -1,5 +1,6 @@
 from .yaml import dump_yaml
 from .config import create_default_metadata
+from typing import Literal
 
 __TEMPLATES_JINJA2 = {
     'page.jinja2': r"""
@@ -314,7 +315,7 @@ def generate(site: liara.site.Site, configuration) -> pathlib.Path:
 """
 
 
-def generate_templates(backend):
+def generate_templates(backend: Literal['jinja2', 'mako']):
     if backend == 'jinja2':
         templates = __TEMPLATES_JINJA2
     elif backend == 'mako':
@@ -330,7 +331,7 @@ def generate_css():
     open('templates/resources/style.scss', 'w').write(__SCSS)
 
 
-def generate_theme(backend):
+def generate_theme(backend: Literal['jinja2', 'mako']):
     import os
     os.makedirs('templates', exist_ok=True)
     generate_templates(backend)

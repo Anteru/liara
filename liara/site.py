@@ -29,7 +29,7 @@ from abc import abstractmethod, ABC
 from types import MappingProxyType
 
 
-def _create_metadata_accessor(field_name):
+def _create_metadata_accessor(field_name: str):
     """Create an accessor for nested metadata fields.
 
     This allows accessing attributes or dictionary entries recursively, i.e.
@@ -635,13 +635,15 @@ class Site:
         """
         from .util import add_suffix
 
-        def create_thumbnail(new_path, format, size):
+        def create_thumbnail(node: StaticNode, new_path, format, size):
             if format == 'original':
                 format = None
             else:
                 new_path = new_path.with_suffix(
                     f'.{format.lower()}'
                 )
+
+            assert node.src
 
             if self.get_node(new_path):
                 # This happens when the thumbnail format is the same as the
@@ -652,13 +654,13 @@ class Site:
                 self.__log.debug(
                     'Skipping ".%s" thumbnail creation for "%s" as '
                     'that image already exists as "%s"',
-                    format if format else static.src.suffix[1:],
-                    static.src,
+                    format if format else node.src.suffix[1:],
+                    node.src,
                     new_path)
                 return
 
             thumbnail = ThumbnailNode(
-                static.src,
+                node.src,
                 new_path,
                 size,
                 format)
@@ -669,6 +671,7 @@ class Site:
             if not static.is_image:
                 continue
             static.update_metadata()
+            assert static.src
             width, height = static.metadata['$image_size']
             for k, v in thumbnail_definition['sizes'].items():
                 if 'exclude' in v and 'include' in v:
@@ -695,7 +698,7 @@ class Site:
                 if self.get_node(new_url):
                     self.__log.debug('Skipping thumbnail creation for "%s" '
                                      'as a file with the same name already '
-                                     'exists ("%s")', static.src, new_url);
+                                     'exists ("%s")', static.src, new_url)
                     continue
                 thumbnail_width = v.get('width', width)
                 thumbnail_height = v.get('height', height)
@@ -722,10 +725,10 @@ class Site:
                                 'Converting image "%s" for thumbnail due to '
                                 'format change request to ".%s"',
                                 static.src, format)
-                            create_thumbnail(new_url, format, {})
+                            create_thumbnail(static, new_url, format, {})
                 else:
                     for format in thumbnail_definition['formats']:
-                        create_thumbnail(new_url, format, v)
+                        create_thumbnail(static, new_url, format, v)
 
         for static in new_static:
             self.add_static(static)

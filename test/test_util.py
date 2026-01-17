@@ -89,3 +89,5 @@ def test_case_insensitive_dictionary():
 
     assert a["FOO"] == 23
     assert a["bar"] == 42
+
+    assert len(a) == 2

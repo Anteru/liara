@@ -184,7 +184,7 @@ class CaseInsensitiveDictionary:
         return key.lower() in self.__data
 
     def __len__(self):
-        return len(self.__d)
+        return len(self.__data)
 
     def get(self, key, default=None):
         if v := self.__data.get(key.lower()):

@@ -65,6 +65,8 @@ class SassCompiler(Tool):
 
 
 class TypescriptCompiler(Tool):
+    __log = logging.getLogger(f'{__name__}.{__qualname__}')
+
     def is_present(self) -> bool:
         try:
             subprocess.check_output(
@@ -76,7 +78,7 @@ class TypescriptCompiler(Tool):
         except Exception:
             return False
 
-    def invoke(self, cmd_line_arguments: List[str]) -> bool:
+    def invoke(self, cmd_line_arguments: List[str]):
         return subprocess.run(
             ['tsc'] + cmd_line_arguments,
             # See above

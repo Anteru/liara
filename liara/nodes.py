@@ -1036,14 +1036,16 @@ def _process_node_sync(node: Union[ResourceNode, DocumentNode],
         content = task.process()
         match node.kind:
             case NodeKind.Document:
-                assert isinstance(content, str), "`content` must be a `str` "\
-                                                 "document nodes"
+                assert isinstance(content, str), \
+                    '`content` must be a `str` document nodes'
                 assert isinstance(node, DocumentNode)
                 node.content = content
             case NodeKind.Resource:
-                assert isinstance(content, bytes), "`content` must be `bytes` "\
-                                                   "resource nodes"
+                assert isinstance(content, bytes), \
+                    '`content` must be `bytes` resource nodes'
                 assert isinstance(node, ResourceNode)
                 node.content = content
+            case _:
+                raise RuntimeError(f'Unexpected node type {node.kind}')
 
         task.update_cache(node.content, cache)

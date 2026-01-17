@@ -193,3 +193,50 @@ class CaseInsensitiveDictionary:
 
     def keys(self):
         return [v[0] for v in self.__data.values()]
+
+
+class _Node:
+    """Helper class for tree printing, as the liara site node tree doesn't
+    contain intermediate nodes."""
+    def __init__(self, name: str, data=None):
+        self.__name = name
+        self.__children = []
+        self.__data = data
+
+    def add_child(self, node: "_Node"):
+        self.__children.append(node)
+
+    @property
+    def children(self) -> list["_Node"]:
+        return self.__children
+
+    @property
+    def name(self):
+        return self.__name
+
+    @property
+    def data(self):
+        return self.__data
+
+
+def _create_node_tree_for_site(nodes: List) -> _Node:
+    root = _Node('Site')
+    node_map = {'/': root}
+
+    def add_or_create(path, data=None):
+        if str(path) in node_map:
+            return
+
+        # Create parent nodes recursively, as needed
+        add_or_create(path.parent)
+
+        n = _Node(path.name, data)
+        node_map[str(path.parent)].add_child(n)
+        node_map[str(path)] = n
+
+    for node in nodes:
+        path = node.path
+
+        add_or_create(path, node)
+
+    return root

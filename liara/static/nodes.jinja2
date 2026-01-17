@@ -1,0 +1,107 @@
+{% macro pretty_print_dict(d, indent=0) %}
+    {% for key, value in d.items() %}
+    {{ '  ' * indent }}<code>{{ key }}</code>:
+    {% if value is mapping %}
+        {{ pretty_print_dict(value, indent + 1) }}
+    {% else %}
+        {{ '  ' * (indent + 1) }}<code>{{ value|e }}</code><br>
+    {% endif %}
+    {% endfor %}
+{% endmacro %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Liara - Resource view</title>
+        <style>
+            a.expand {
+                text-decoration: none;
+                border: 1px solid #CCC;
+                padding: 0.25rem;
+                display: inline-block;
+
+                &:hover {
+                    background-color: #DDD;
+                }
+            }
+
+            .children[aria-expanded="false"] {
+                display: none;
+            }
+
+            .details[aria-expanded="false"] {
+                display: none;
+            }
+
+            .details {
+                border: 1px solid #CCC;
+                border-radius: 0.1rem;
+                padding: 0.25rem;
+
+                ul {
+                    list-style-type: none;
+                    padding-left: 0;
+                }
+
+                .metadata {
+                    display: block;
+                    padding-left: 1rem;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <ul>
+        {%- for item in nodes recursive %}
+            <li aria-expanded="false">
+                {%- if item.children %}<a class="expand" href="#" onclick="toggleTree(event)" title="{{ item.children|length }} children">➕</a>{%- endif -%}
+                {% if item.data %}
+                <a href="#" onclick="toggleDetails(event)"><code>{{ item.name }}</code></a>
+                <div class="details" aria-expanded="false">
+                    <ul>
+                        <li>Source file: <code>{{ item.data.src|default("Generated") }}</code></li>
+                        <li>Node kind: {{ item.data.kind.name }}</li>
+                        {%- if item.data.metadata -%}
+                        <li>Metadata:
+                            <div class="metadata">{{ pretty_print_dict(item.data.metadata) }}</div>
+                        </li>
+                        {%- endif -%}
+                    </ul>
+                </div>
+                {% else %}
+                <code>{{ item.name }}</code>
+                {% endif %}
+            {%- if item.children -%}
+                <ul class="children" aria-expanded="false">{{ loop(item.children) }}</ul>
+            {%- endif %}</li>
+        {%- endfor %}
+        </ul>
+    </body>
+    <script>
+    function toggleDetails(event) {
+        const detailsElement = event.target.closest("li").querySelector(".details");
+        if (detailsElement.getAttribute("aria-expanded") == "false") {
+            detailsElement.setAttribute("aria-expanded", "true");
+        } else {
+            detailsElement.setAttribute("aria-expanded", "false");
+        }
+
+        event.preventDefault();
+    }
+
+    function toggleTree(event) {
+        const childrenElement = event.target.closest("li").querySelector(".children");
+        if (childrenElement.getAttribute("aria-expanded") == "false") {
+            childrenElement.setAttribute("aria-expanded", "true");
+            event.target.innerText = '➖';
+        } else {
+            childrenElement.setAttribute("aria-expanded", "false");
+            event.target.innerText = '➕';
+        }
+
+        event.preventDefault();
+
+    }
+    </script>
+</html>

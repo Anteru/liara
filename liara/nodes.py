@@ -527,6 +527,7 @@ class GeneratedNode(Node):
         self.path = path
         self.metadata = metadata if metadata else {}
         self.content: Optional[Union[bytes, str]] = None
+        self.metadata['$type'] = self.__class__.__name__
 
     def generate(self) -> None:
         """Generate the content of this node.
@@ -597,6 +598,8 @@ class ResourceNode(Node):
         self.content = None
         if metadata_path:
             self.metadata = load_yaml(open(metadata_path, 'r'))
+
+        self.metadata['$type'] = self.__class__.__name__
 
     def reload(self) -> None:
         pass
@@ -860,13 +863,22 @@ class StaticNode(Node):
         if possible.
 
         For static nodes pointing to images, this will create a new metadata
-        field ``image_size`` and populate it with the image resolution."""
+        field ``$image_size`` and populate it with the image resolution.
+
+        For all static nodes, this will populate ``$size`` with the
+        file size.
+
+        .. versionchanged:: 2.7.3
+
+          ``image_size`` was renamed to ``$image_size``, and ``$size``
+          was added."""
         from PIL import Image
         if self.is_image:
             image = Image.open(self.src)
-            self.metadata.update({
-                'image_size': image.size
-            })
+            self.metadata['$image_size'] = image.size
+            # For back-compat, we also set image_size
+            self.metadata['image_size'] = image.size
+        self.metadata['$size'] = self.src.stat().st_size
 
     @property
     def is_image(self):

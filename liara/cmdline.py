@@ -7,6 +7,7 @@ import os
 import click
 from typing import Literal, IO, Callable, Optional, Union
 from .site import Site
+from .util import _Node, _create_node_tree_for_site
 from .nodes import Node, NodeKind, _parse_node_kind
 import pathlib
 from .cache import NullCache
@@ -252,30 +253,6 @@ def check_tools(env: Environment, try_install: bool):
     print('All required tools are present')
 
 
-class _Node:
-    """Helper class for tree printing, as the liara site node tree doesn't
-    contain intermediate nodes."""
-    def __init__(self, name: str, data=None):
-        self.__name = name
-        self.__children = []
-        self.__data = data
-
-    def add_child(self, node: "_Node"):
-        self.__children.append(node)
-
-    @property
-    def children(self) -> list["_Node"]:
-        return self.__children
-
-    @property
-    def name(self):
-        return self.__name
-
-    @property
-    def data(self):
-        return self.__data
-
-
 def _print_tree(node: _Node, get_label: Callable[[_Node], str],
                 prefix='', last=True):
     """Pretty-print a fully populated tree (meaning: all intermediate nodes
@@ -344,29 +321,11 @@ def list_content(env: Environment,
             label += f"(Resource, generated from '{node.src}')"
         else:
             label += f"({node.kind.name})"
-        
+
         return label
 
     if format == 'tree':
-        root = _Node('Site')
-        node_map = {'/': root}
-
-        def add_or_create(path, data=None):
-            if str(path) in node_map:
-                return
-
-            # Create parent nodes recursively, as needed
-            add_or_create(path.parent)
-            
-            n = _Node(path.name, data)
-            node_map[str(path.parent)].add_child(n)
-            node_map[str(path)] = n
-        
-        for node in nodes:
-            path = node.path
-
-            add_or_create(path, node)
-
+        root = _create_node_tree_for_site(nodes)
         import sys
         # This seems to be required to get UTF-8 output redirection to work
         # in powershell. Unclear why
@@ -407,20 +366,27 @@ def list_content(env: Environment,
               help='The port to use for the local server')
 @click.option('--cache/--no-cache', default=True,
               help='Enable or disable the configured cache')
+@click.option('--admin', is_flag=True, help='Serve the admin interface instead')
 @pass_environment
-def serve(env: Environment, browser: bool, port: int, cache: bool):
+def serve(env: Environment, browser: bool, port: int, cache: bool, admin: bool):
     """Run a local development server."""
     import watchfiles
-    from .server import HttpServer
+    from .server import (
+        HttpServer,
+        DefaultRequestHandler,
+        InspectRequestHandler
+    )
 
     liara = _create_liara(env.config)
+
     # The HTTP server runs a thread internally
-    server = HttpServer(open_browser=browser, port=port)
+    server = HttpServer(DefaultRequestHandler
+                        if not admin else InspectRequestHandler,
+                        open_browser=browser, port=port)
 
     liara._set_base_url_override(server.get_url())
 
-    server.start(liara,
-                 liara._get_cache() if cache else NullCache())
+    server.start(liara, liara._get_cache() if cache else NullCache())
 
     def get_ignore_directories(config):
         output_directory = config["output_directory"]
@@ -431,7 +397,7 @@ def serve(env: Environment, browser: bool, port: int, cache: bool):
                 ignore_dirs.append(config["build.cache.fs.directory"])
             case "db":
                 ignore_dirs.append(config["build.cache.db.directory"])
-        
+
         return ignore_dirs
 
     try:
@@ -444,9 +410,9 @@ def serve(env: Environment, browser: bool, port: int, cache: bool):
 
             watch_filter = watchfiles.DefaultFilter(ignore_dirs=ignore_dirs)
 
-            for change in watchfiles.watch('.',
-                                           watch_filter=watch_filter,
-                                           recursive=True):
+            for _ in watchfiles.watch('.',
+                                      watch_filter=watch_filter,
+                                      recursive=True):
                 # TODO We can optimize this by skipping  the reconfigure
                 # if it's a _known_ content node that changes
 

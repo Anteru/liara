@@ -669,7 +669,7 @@ class Site:
             if not static.is_image:
                 continue
             static.update_metadata()
-            width, height = static.metadata['image_size']
+            width, height = static.metadata['$image_size']
             for k, v in thumbnail_definition['sizes'].items():
                 if 'exclude' in v and 'include' in v:
                     self.__log.warning('Thumbnail size "%s" has both '

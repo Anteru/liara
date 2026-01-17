@@ -20,17 +20,22 @@ import http.server
 import threading
 from urllib.parse import unquote
 
+
 class _ServerState:
     __log = logging.getLogger('liara.HttpServer')
 
     def __init__(self, liara: Liara, site: Site, cache: Cache):
         self.__site = site
         self.__cache = cache
-        
+
         output_path = pathlib.Path(
             liara._get_configuration()['output_directory'])
         self.__publisher = TemplatePublisher(output_path, self.__site,
                                              liara._get_template_repository())
+        
+    @property
+    def site(self):
+        return self.__site
 
     def _build_single_node(self, path: pathlib.PurePosixPath):
         """Build a single node.
@@ -106,6 +111,82 @@ class _ServerThread(threading.Thread):
         self.__server.shutdown()
 
 
+class DefaultRequestHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        assert isinstance(self.server, _HttpServer)
+        with self.server.mutex:
+            # Paths with spaces will get encoded as %20 for example,
+            # we need to unquote here first
+            path = pathlib.PurePosixPath(unquote(self.path))
+
+            if path.name == 'index.html':
+                path = path.parent
+
+            if path not in self.server.cache:
+                node_path, cache = \
+                    self.server.state._build_single_node(path)
+
+                if node_path is None:
+                    return
+
+                if cache:
+                    self.server.cache[path] = node_path
+            else:
+                node_path = self.server.cache[path]
+
+            self.send_response(200)
+
+            content_type, _ = mimetypes.guess_type(path.name)
+            if content_type:
+                self.send_header('Content-Type', content_type)
+            self.end_headers()
+        self.wfile.write(node_path.open('rb').read())
+
+    def log_message(self, format, *args):
+        assert isinstance(self.server, _HttpServer)
+        self.server.log.info(format, *args)
+
+
+class InspectRequestHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        assert isinstance(self.server, _HttpServer)
+        with self.server.mutex:
+            # Paths with spaces will get encoded as %20 for example,
+            # we need to unquote here first
+            path = pathlib.PurePosixPath(unquote(self.path))
+            if str(path) == '/':
+                self.__render_nodes()
+                return
+
+            self.send_error(404, "Page not found")
+
+    def __render_nodes(self):
+        from importlib.resources import files
+        from jinja2 import Template
+        from .util import _create_node_tree_for_site
+
+        assert isinstance(self.server, _HttpServer)
+        site = self.server.state.site
+
+        for node in site.nodes:
+            if node.kind == NodeKind.Static:
+                assert (isinstance(node, StaticNode))
+                node.update_metadata()
+
+        nodes = nodes = sorted(site.nodes, key=lambda x: x.path)
+        root = _create_node_tree_for_site(nodes)
+        t = Template(
+            files('liara').joinpath('static', 'nodes.jinja2').read_text())
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(t.render(nodes=[root]).encode('utf-8'))
+
+    def log_message(self, format, *args):
+        assert isinstance(self.server, _HttpServer)
+        self.server.log.info(format, *args)
+
+
 class HttpServer:
     __log = logging.getLogger('liara.HttpServer')
 
@@ -113,11 +194,13 @@ class HttpServer:
         """Get the URL at which the site is hosted."""
         return f'http://127.0.0.1:{self.__port}'
 
-    def __init__(self, *, open_browser=True, port=8080):
+    def __init__(self, request_handler,
+                 *, open_browser=True, port=8080):
         self.__open_browser = open_browser
         self.__port = port
         self.__server: _HttpServer | None = None
         self.__server_thread: threading.Thread | None = None
+        self.__request_handler = request_handler
 
     def stop(self):
         """Stop the server.
@@ -137,8 +220,8 @@ class HttpServer:
         This can be only called after the server has been started using
         :py:meth:`start`."""
         server_state = _ServerState(liara, liara.discover_content(),
-                            cache)
-        
+                                    cache)
+
         assert self.__server
         self.__server.update_state(server_state)
 
@@ -148,52 +231,16 @@ class HttpServer:
         This does not build the whole site up-front, but rather builds nodes
         on demand. It will run the server in a separate thread, which needs
         to be shut down using :py:meth:`stop`.
-        
+
         The server can be reconfigured to use a different liara instance
         using :py:meth:`reconfigure`, in which case it will keep running and
         switch seamlessly to the new instance.
         """
-        import http.server
         server_state = _ServerState(liara, liara.discover_content(),
                                     cache)
 
-        class RequestHandler(http.server.BaseHTTPRequestHandler):
-            def do_GET(self):
-                assert isinstance(self.server, _HttpServer)
-                with self.server.mutex:
-                    # Paths with spaces will get encoded as %20 for example,
-                    # we need to unquote here first
-                    path = pathlib.PurePosixPath(unquote(self.path))
-
-                    if path.name == 'index.html':
-                        path = path.parent
-
-                    if path not in self.server.cache:
-                        node_path, cache = \
-                            self.server.state._build_single_node(path)
-
-                        if node_path is None:
-                            return
-
-                        if cache:
-                            self.server.cache[path] = node_path
-                    else:
-                        node_path = self.server.cache[path]
-
-                    self.send_response(200)
-
-                    content_type, _ = mimetypes.guess_type(path.name)
-                    if content_type:
-                        self.send_header('Content-Type', content_type)
-                    self.end_headers()
-                self.wfile.write(node_path.open('rb').read())
-
-            def log_message(self, f, *args):
-                assert isinstance(self.server, _HttpServer)
-                self.server.log.info(f, *args)
-
         server_address = ('', self.__port)
-        self.__server = _HttpServer(server_address, RequestHandler,
+        self.__server = _HttpServer(server_address, self.__request_handler,
                                     server_state, self.__log)
         url = self.get_url()
         self.__log.info(f'Listening on {url}')

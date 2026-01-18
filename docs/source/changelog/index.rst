@@ -1,15 +1,15 @@
 Changelog
 =========
 
-2.7.3 (unreleased)
-------------------
+2.7.3
+-----
 
-* Add a new ``check-tools`` command which verifies that the tools requested in the configuration (for example, the SASS compiler) are present, and optionally help with the installation.
+* Add a new ``check-tools`` command which verifies that the tools requested in the configuration (for example, the SASS compiler) are present. ``check-tools`` can optionally also help with the installation.
 * Add a new :py:data:`~liara.signals.content_published` signal.
 * Rename ``image_size`` metadata field on images to ``$image_size`` (``image_size`` is still present to maintain backwards compatibility.)
 * Add a ``$size`` metadata entry to all static files, containing the file size.
-* Add ``--admin`` flag to ``liara serve`` which shows a web-based content view.
 * Generated and resource nodes have a metadata field ``$type`` with the class name of the underlying node.
+* Add ``--admin`` flag to ``liara serve`` which shows a web-based content view.
 
 2.7.2
 -----

@@ -10,9 +10,6 @@ import pickle
 import sqlite3
 
 
-type CacheValueType = object | bytes
-
-
 @dataclass
 class CacheInfo:
     """Information about a cache. Note that the information can be approximated
@@ -39,7 +36,7 @@ class Cache(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def put(self, key: bytes, value: CacheValueType) -> bool:
+    def put(self, key: bytes, value: object | bytes) -> bool:
         """Put a value into the cache using the provided key.
 
         :param key: The key under which ``value`` will be stored.
@@ -49,7 +46,7 @@ class Cache(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get(self, key: bytes) -> Optional[CacheValueType]:
+    def get(self, key: bytes) -> Optional[object | bytes]:
         """Get a stored object.
 
         :param key: The object key.
@@ -80,7 +77,7 @@ class Cache(abc.ABC):
 
 
 class _CacheBase(Cache):
-    """A base class which handles the 
+    """A base class which handles the
     :py:meth:`~liara.cache.Cache.set_key_prefix` transparently."""
 
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
@@ -94,21 +91,21 @@ class _CacheBase(Cache):
         self.__prefix = prefix
 
     @abc.abstractmethod
-    def _put(self, key: bytes, value: CacheValueType) -> bool:
+    def _put(self, key: bytes, value: object | bytes) -> bool:
         """To be implemented by derived classes, this method will be called
         with the prefix already applied."""
         pass
 
     @abc.abstractmethod
-    def _get(self, key: bytes) -> Optional[CacheValueType]:
+    def _get(self, key: bytes) -> Optional[object | bytes]:
         """To be implemented by derived classes, this method will be called
         with the prefix already applied."""
         pass
 
-    def put(self, key: bytes, value: CacheValueType) -> bool:
+    def put(self, key: bytes, value: object | bytes) -> bool:
         return self._put(self.__prefix + key, value)
 
-    def get(self, key: bytes) -> Optional[CacheValueType]:
+    def get(self, key: bytes) -> Optional[object | bytes]:
         return self._get(self.__prefix + key)
 
 
@@ -146,7 +143,7 @@ class FilesystemCache(_CacheBase):
     def persist(self):
         pickle.dump(self.__index, self.__index_file.open('wb'))
 
-    def _put(self, key: bytes, value: CacheValueType) -> bool:
+    def _put(self, key: bytes, value: object | bytes) -> bool:
         if key in self.__index:
             return False
 
@@ -156,7 +153,7 @@ class FilesystemCache(_CacheBase):
         self.__index[key] = cache_object_path
         return True
 
-    def _get(self, key: bytes) -> Optional[CacheValueType]:
+    def _get(self, key: bytes) -> Optional[object | bytes]:
         if key not in self.__index:
             return None
 
@@ -191,7 +188,8 @@ class Sqlite3Cache(_CacheBase):
         self.__db_file = self.__path / 'cache.db'
         # We're only ever used by one thread, but we may get passed around
         # from one thread to another when running `serve`.
-        self.__connection = sqlite3.connect(self.__db_file, check_same_thread=False)
+        self.__connection = sqlite3.connect(self.__db_file,
+                                            check_same_thread=False)
         self.__cursor = self.__connection.cursor()
         self.__cursor.execute("""CREATE TABLE IF NOT EXISTS cache
             (key BLOB PRIMARY KEY NOT NULL,
@@ -207,7 +205,7 @@ class Sqlite3Cache(_CacheBase):
     def persist(self):
         self.__connection.commit()
 
-    def _put(self, key: bytes, value: CacheValueType) -> bool:
+    def _put(self, key: bytes, value: object | bytes) -> bool:
         # The semantics are such that inserting the same key twice should not
         # cause a failure, so we ignore failures here
         q = 'INSERT OR IGNORE INTO cache VALUES(?, ?, ?);'
@@ -225,7 +223,7 @@ class Sqlite3Cache(_CacheBase):
 
         return r.lastrowid != 0
 
-    def _get(self, key: bytes) -> Optional[CacheValueType]:
+    def _get(self, key: bytes) -> Optional[object | bytes]:
         q = 'SELECT data, object_type FROM cache WHERE key=?'
         self.__cursor.execute(q, (key,))
         r = self.__cursor.fetchone()
@@ -258,20 +256,20 @@ class MemoryCache(_CacheBase):
 
     This cache stores all objects in-memory.
     """
-    __index: Dict[bytes, CacheValueType]
+    __index: Dict[bytes, object | bytes]
 
     def __init__(self):
         super().__init__()
         self.__index = {}
 
-    def _put(self, key: bytes, value: CacheValueType) -> bool:
+    def _put(self, key: bytes, value: object | bytes) -> bool:
         if key in self.__index:
             return False
 
         self.__index[key] = value
         return True
 
-    def _get(self, key: bytes) -> Optional[CacheValueType]:
+    def _get(self, key: bytes) -> Optional[object | bytes]:
         return self.__index.get(key, None)
 
     def clear(self):
@@ -302,7 +300,7 @@ class RedisCache(_CacheBase):
     def __make_key(self, key: bytes, suffix: str) -> str:
         return f'liara/{key.hex()}/{suffix}'
 
-    def _put(self, key: bytes, value: CacheValueType) -> bool:
+    def _put(self, key: bytes, value: object | bytes) -> bool:
         if isinstance(value, bytes):
             object_type = 'bin'
         else:
@@ -317,7 +315,7 @@ class RedisCache(_CacheBase):
 
         return all(pipeline.execute())
 
-    def _get(self, key) -> Optional[CacheValueType]:
+    def _get(self, key) -> Optional[object | bytes]:
         pipeline = self.__redis.pipeline()
 
         pipeline.get(self.__make_key(key, 'type'))
@@ -352,10 +350,10 @@ class NullCache(_CacheBase):
     def __init__(self):
         super().__init__()
 
-    def _put(self, key: bytes, value: CacheValueType) -> bool:
+    def _put(self, key: bytes, value: object | bytes) -> bool:
         return True
 
-    def _get(self, key: bytes) -> Optional[CacheValueType]:
+    def _get(self, key: bytes) -> Optional[object | bytes]:
         return None
 
     def clear(self) -> None:

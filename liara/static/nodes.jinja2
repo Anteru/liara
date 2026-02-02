@@ -46,15 +46,31 @@
                     padding-left: 1rem;
                 }
             }
+
+            body {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                min-height: 100vh;
+                margin: 0;
+                padding: 0;
+            }
+
+            iframe {
+                border: none;
+                border-left: 1px solid #CCC;
+                width: 100%;
+                height: 100%;
+            }
         </style>
     </head>
     <body>
+        <section id="navigation">
         <ul>
         {%- for item in nodes recursive %}
             <li aria-expanded="false">
                 {%- if item.children %}<a class="expand" href="#" onclick="toggleTree(event)" title="{{ item.children|length }} children">➕</a>{%- endif -%}
                 {% if item.data %}
-                <a href="#" onclick="toggleDetails(event)"><code>{{ item.name }}</code></a>
+                <a href="#" onclick="toggleDetails(event)" data-path="{{ item.data.path }}"><code>{{ item.name }}</code></a> (<a href="#" onclick="preview(event)" title="Preview node" data-path="{{ item.data.path }}">👁</a>)
                 <div class="details" aria-expanded="false">
                     <ul>
                         <li>Source file: <code>{{ item.data.src|default("Generated") }}</code></li>
@@ -67,15 +83,25 @@
                     </ul>
                 </div>
                 {% else %}
-                <code>{{ item.name }}</code>
+                <code>{{ item.name }}</code>{% if item.path|string == '/' %} (<a href="#" onclick="preview(event)" data-path="/">preview</a>){% endif %}
                 {% endif %}
             {%- if item.children -%}
                 <ul class="children" aria-expanded="false">{{ loop(item.children) }}</ul>
             {%- endif %}</li>
         {%- endfor %}
         </ul>
+        </section>
+        <section>
+            <iframe id="preview">
+            </iframe>
+        </section>
     </body>
     <script>
+    function preview(event) {
+        const link = event.target.closest("a").getAttribute("data-path");
+        document.getElementById("preview").src = link;
+    }
+
     function toggleDetails(event) {
         const detailsElement = event.target.closest("li").querySelector(".details");
         if (detailsElement.getAttribute("aria-expanded") == "false") {

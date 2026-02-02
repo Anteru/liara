@@ -198,10 +198,11 @@ class CaseInsensitiveDictionary:
 class _Node:
     """Helper class for tree printing, as the liara site node tree doesn't
     contain intermediate nodes."""
-    def __init__(self, name: str, data=None):
+    def __init__(self, name: str, path: pathlib.PurePosixPath, data=None):
         self.__name = name
         self.__children = []
         self.__data = data
+        self.__path = path
 
     def add_child(self, node: "_Node"):
         self.__children.append(node)
@@ -218,9 +219,13 @@ class _Node:
     def data(self):
         return self.__data
 
+    @property
+    def path(self):
+        return self.__path
+
 
 def _create_node_tree_for_site(nodes: List) -> _Node:
-    root = _Node('Site')
+    root = _Node('Site', pathlib.PurePosixPath('/'))
     node_map = {'/': root}
 
     def add_or_create(path, data=None):
@@ -230,7 +235,7 @@ def _create_node_tree_for_site(nodes: List) -> _Node:
         # Create parent nodes recursively, as needed
         add_or_create(path.parent)
 
-        n = _Node(path.name, data)
+        n = _Node(path.name, path, data)
         node_map[str(path.parent)].add_child(n)
         node_map[str(path)] = n
 

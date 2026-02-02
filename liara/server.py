@@ -24,15 +24,21 @@ from urllib.parse import unquote
 class _ServerState:
     __log = logging.getLogger('liara.HttpServer')
 
-    def __init__(self, liara: Liara, site: Site, cache: Cache):
+    def __init__(self, liara: Liara, site: Site, cache: Cache,
+                 enable_admin: bool):
         self.__site = site
         self.__cache = cache
+        self.__enable_admin = enable_admin
 
         output_path = pathlib.Path(
             liara._get_configuration()['output_directory'])
         self.__publisher = TemplatePublisher(output_path, self.__site,
                                              liara._get_template_repository())
-        
+
+    @property
+    def enable_admin(self):
+        return self.__enable_admin
+
     @property
     def site(self):
         return self.__site
@@ -111,13 +117,17 @@ class _ServerThread(threading.Thread):
         self.__server.shutdown()
 
 
-class DefaultRequestHandler(http.server.BaseHTTPRequestHandler):
+class _RequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         assert isinstance(self.server, _HttpServer)
         with self.server.mutex:
             # Paths with spaces will get encoded as %20 for example,
             # we need to unquote here first
             path = pathlib.PurePosixPath(unquote(self.path))
+
+            if path.name == '$admin' and self.server.state.enable_admin:
+                self.__render_nodes()
+                return
 
             if path.name == 'index.html':
                 path = path.parent
@@ -146,20 +156,6 @@ class DefaultRequestHandler(http.server.BaseHTTPRequestHandler):
         assert isinstance(self.server, _HttpServer)
         self.server.log.info(format, *args)
 
-
-class InspectRequestHandler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        assert isinstance(self.server, _HttpServer)
-        with self.server.mutex:
-            # Paths with spaces will get encoded as %20 for example,
-            # we need to unquote here first
-            path = pathlib.PurePosixPath(unquote(self.path))
-            if str(path) == '/':
-                self.__render_nodes()
-                return
-
-            self.send_error(404, "Page not found")
-
     def __render_nodes(self):
         from importlib.resources import files
         from jinja2 import Template
@@ -182,10 +178,6 @@ class InspectRequestHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(t.render(nodes=[root]).encode('utf-8'))
 
-    def log_message(self, format, *args):
-        assert isinstance(self.server, _HttpServer)
-        self.server.log.info(format, *args)
-
 
 class HttpServer:
     __log = logging.getLogger('liara.HttpServer')
@@ -194,13 +186,13 @@ class HttpServer:
         """Get the URL at which the site is hosted."""
         return f'http://127.0.0.1:{self.__port}'
 
-    def __init__(self, request_handler,
-                 *, open_browser=True, port=8080):
+    def __init__(self, *, open_browser=True, port=8080, enable_admin=False):
         self.__open_browser = open_browser
         self.__port = port
         self.__server: _HttpServer | None = None
         self.__server_thread: threading.Thread | None = None
-        self.__request_handler = request_handler
+        self.__request_handler = _RequestHandler
+        self.__enable_admin = enable_admin
 
     def stop(self):
         """Stop the server.
@@ -220,7 +212,7 @@ class HttpServer:
         This can be only called after the server has been started using
         :py:meth:`start`."""
         server_state = _ServerState(liara, liara.discover_content(),
-                                    cache)
+                                    cache, self.__enable_admin)
 
         assert self.__server
         self.__server.update_state(server_state)
@@ -237,7 +229,7 @@ class HttpServer:
         switch seamlessly to the new instance.
         """
         server_state = _ServerState(liara, liara.discover_content(),
-                                    cache)
+                                    cache, self.__enable_admin)
 
         server_address = ('', self.__port)
         self.__server = _HttpServer(server_address, self.__request_handler,
@@ -246,7 +238,10 @@ class HttpServer:
         self.__log.info(f'Listening on {url}')
 
         if self.__open_browser:
-            webbrowser.open(url)
+            if self.__enable_admin:
+                webbrowser.open(url + '/$admin')
+            else:
+                webbrowser.open(url)
         else:
             print(f'Listening on {url}')
 

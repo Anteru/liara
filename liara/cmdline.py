@@ -374,17 +374,14 @@ def serve(env: Environment, browser: bool, port: int, cache: bool, admin: bool):
     """Run a local development server."""
     import watchfiles
     from .server import (
-        HttpServer,
-        DefaultRequestHandler,
-        InspectRequestHandler
+        HttpServer
     )
 
     liara = _create_liara(env.config)
 
     # The HTTP server runs a thread internally
-    server = HttpServer(DefaultRequestHandler
-                        if not admin else InspectRequestHandler,
-                        open_browser=browser, port=port)
+    server = HttpServer(open_browser=browser, port=port,
+                        enable_admin=admin)
 
     liara._set_base_url_override(server.get_url())
 

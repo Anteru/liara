@@ -225,7 +225,10 @@ class _Node:
 
 
 def _create_node_tree_for_site(nodes: List) -> _Node:
-    root = _Node('Site', pathlib.PurePosixPath('/'))
+    root_node = list(filter(
+        lambda n: n.path.name == '', nodes))
+    assert len(root_node) == 1, "Did not find a root node"
+    root = _Node('Site', pathlib.PurePosixPath('/'), root_node[0])
     node_map = {'/': root}
 
     def add_or_create(path, data=None):

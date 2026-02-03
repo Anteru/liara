@@ -19,6 +19,7 @@ import mimetypes
 import http.server
 import threading
 from urllib.parse import unquote
+import traceback
 
 
 class _ServerState:
@@ -133,9 +134,15 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
                 path = path.parent
 
             if path not in self.server.cache:
-                node_path, cache = \
-                    self.server.state._build_single_node(path)
-
+                try:
+                    node_path, cache = \
+                        self.server.state._build_single_node(path)
+                except Exception:
+                    self.send_response(500, 'Failed to render node')
+                    self.wfile.write(traceback.format_exc().encode('utf-8'))
+                    for line in traceback.format_stack():
+                        self.wfile.write(line.encode('utf-8'))
+                    return
                 if node_path is None:
                     return
 

@@ -1,6 +1,6 @@
 {% macro pretty_print_dict(d, indent=0) %}
     {% for key, value in d.items() %}
-    {{ '  ' * indent }}<code>{{ key }}</code>:
+    {{ '  ' * indent }}<code class="key">{{ key }}</code>:
     {% if value is mapping %}
         {{ pretty_print_dict(value, indent + 1) }}
     {% else %}
@@ -32,8 +32,7 @@
             }
 
             .details {
-                border: 1px solid #CCC;
-                border-radius: 0.1rem;
+                border-top: 1px solid #CCC;
                 padding: 0.25rem;
 
                 ul {
@@ -47,9 +46,13 @@
                 }
             }
 
+            code.key {
+                font-weight: bold;
+            }
+
             body {
                 display: grid;
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr 3fr;
                 min-height: 100vh;
                 margin: 0;
                 padding: 0;
@@ -61,6 +64,16 @@
                 width: 100%;
                 height: 100%;
             }
+
+            #navigation {
+                display: grid;
+                grid-template-rows: 1fr auto;
+                max-height: 100vh;
+
+                ul {
+                    overflow-y: scroll;
+                }
+            }
         </style>
     </head>
     <body>
@@ -71,17 +84,7 @@
                 {%- if item.children %}<a class="expand" href="#" onclick="toggleTree(event)" title="{{ item.children|length }} children">➕</a>{%- endif -%}
                 {% if item.data %}
                 <a href="#" onclick="toggleDetails(event)" data-path="{{ item.data.path }}"><code>{{ item.name }}</code></a> (<a href="#" onclick="preview(event)" title="Preview node" data-path="{{ item.data.path }}">👁</a>)
-                <div class="details" aria-expanded="false">
-                    <ul>
-                        <li>Source file: <code>{{ item.data.src|default("Generated") }}</code></li>
-                        <li>Node kind: {{ item.data.kind.name }}</li>
-                        {%- if item.data.metadata -%}
-                        <li>Metadata:
-                            <div class="metadata">{{ pretty_print_dict(item.data.metadata) }}</div>
-                        </li>
-                        {%- endif -%}
-                    </ul>
-                </div>
+                
                 {% else %}
                 <code>{{ item.name }}</code>{% if item.path|string == '/' %} (<a href="#" onclick="preview(event)" data-path="/">preview</a>){% endif %}
                 {% endif %}
@@ -90,9 +93,29 @@
             {%- endif %}</li>
         {%- endfor %}
         </ul>
+        <div class="metadata">
+        {%- for item in nodes recursive %}
+            {% if item.data %}
+            <div class="details" aria-expanded="false" data-path="{{ item.data.path }}">
+                <ul>
+                    <li>Source file: <code>{{ item.data.src|default("Generated") }}</code></li>
+                    <li>Node kind: {{ item.data.kind.name }}</li>
+                    {%- if item.data.metadata -%}
+                    <li>Metadata:
+                        <div class="metadata">{{ pretty_print_dict(item.data.metadata) }}</div>
+                    </li>
+                    {%- endif -%}
+                </ul>
+            </div>
+            {% endif %}
+            {%- if item.children -%}
+                {{ loop(item.children) }}
+            {%- endif %}</li>
+        {%- endfor %}
+        </div>
         </section>
         <section>
-            <iframe id="preview">
+            <iframe id="preview" src="/">
             </iframe>
         </section>
     </body>
@@ -103,12 +126,10 @@
     }
 
     function toggleDetails(event) {
-        const detailsElement = event.target.closest("li").querySelector(".details");
-        if (detailsElement.getAttribute("aria-expanded") == "false") {
-            detailsElement.setAttribute("aria-expanded", "true");
-        } else {
-            detailsElement.setAttribute("aria-expanded", "false");
-        }
+        const path = event.target.closest("a").getAttribute("data-path");
+        document.querySelectorAll(".details").forEach((e) => e.setAttribute("aria-expanded", "false"));
+        const detailsElement = document.querySelector(`.details[data-path="${path}"]`);
+        detailsElement.setAttribute("aria-expanded", "true");
 
         event.preventDefault();
     }

@@ -57,13 +57,26 @@
 
             body {
                 display: grid;
-                grid-template-columns: 1fr 3fr;
+                grid-template-columns: 1fr 5px 3fr;
                 padding: 0;
+            }
+
+            .splitter {
+                display: block;
+                height: 100%;
+                width: 1px;
+                border-left: 4px solid rgb(255,255,255);
+                background-color: green;
+
+                &:hover, &.hover {
+                    border-left: none;
+                    width: 5px;
+                    cursor: ew-resize;
+                }
             }
 
             iframe {
                 border: none;
-                border-left: 1px solid #CCC;
                 width: 100%;
                 height: 100%;
                 display: block; /* Otherwise, there's some extra whitespace after */
@@ -122,6 +135,7 @@
         {%- endfor %}
         </div>
         </section>
+        <div class="splitter"></div>
         <section>
             <iframe id="preview" src="/">
             </iframe>
@@ -161,6 +175,49 @@
     }
 
     document.querySelector(".metadata .details").setAttribute("aria-expanded", "true");
+
+    const splitter = document.querySelector(".splitter");
+
+    const splitterMouseMoveHandler = (e) => {
+        if (!splitter.classList.contains("hover")) return;
+        
+        const rect = document.body.getBoundingClientRect();
+        const newLeftWidth = event.clientX - rect.left;
+        const newRightWidth = rect.width - newLeftWidth - splitter.offsetWidth;
+
+        e.preventDefault();
+
+        if ((newLeftWidth > (0.1 * rect.width))
+            && (newRightWidth > (0.1 * rect.width))) {
+            const leftFraction = newLeftWidth / rect.width;
+            const rightFraction = newRightWidth / rect.width;
+
+            document.body.style.gridTemplateColumns = `${leftFraction}fr 5px ${rightFraction}fr`;
+        }
+    };
+
+    const splitterMouseUpHandler = () => {
+        splitter.classList.remove("hover");
+        document.body.style.userSelect = "";
+
+        document.getElementById("preview").style.pointerEvents = "auto";
+
+        document.removeEventListener("mousemove", splitterMouseMoveHandler);
+        document.removeEventListener("mouseup", splitterMouseUpHandler);
+    }
+
+    const splitterMouseDownHandler = (e) => {
+        e.preventDefault();
+        splitter.classList.add("hover");
+        document.body.style.userSelect = "none";
+
+        document.getElementById("preview").style.pointerEvents = "none";
+
+        document.addEventListener("mousemove", splitterMouseMoveHandler);
+        document.addEventListener("mouseup", splitterMouseUpHandler);
+    }
+
+    splitter.addEventListener("mousedown", splitterMouseDownHandler);
 
     document.getElementById("preview").addEventListener("load",
         (e) => {

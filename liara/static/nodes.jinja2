@@ -23,7 +23,7 @@
                 }
             }
 
-            .children[aria-expanded="false"] {
+            li[aria-expanded="false"] .children {
                 display: none;
             }
 
@@ -50,11 +50,14 @@
                 font-weight: bold;
             }
 
+            html, body {
+                margin: 0;
+                height: 100%;
+            }
+
             body {
                 display: grid;
                 grid-template-columns: 1fr 3fr;
-                min-height: 100vh;
-                margin: 0;
                 padding: 0;
             }
 
@@ -63,6 +66,7 @@
                 border-left: 1px solid #CCC;
                 width: 100%;
                 height: 100%;
+                display: block; /* Otherwise, there's some extra whitespace after */
             }
 
             #navigation {
@@ -72,6 +76,10 @@
 
                 ul {
                     overflow-y: scroll;
+                }
+
+                a.highlighted {
+                    color: red;
                 }
             }
         </style>
@@ -83,13 +91,13 @@
             <li aria-expanded="false">
                 {%- if item.children %}<a class="expand" href="#" onclick="toggleTree(event)" title="{{ item.children|length }} children">➕</a>{%- endif -%}
                 {% if item.data %}
-                <a href="#" onclick="toggleDetails(event)" data-path="{{ item.data.path }}"><code>{{ item.name }}</code></a> (<a href="#" onclick="preview(event)" title="Preview node" data-path="{{ item.data.path }}">👁</a>)
+                <a href="#" onclick="select(event)" data-path="{{ item.data.path }}"><code>{{ item.name }}</code></a>
                 
                 {% else %}
                 <code>{{ item.name }}</code>{% if item.path|string == '/' %} (<a href="#" onclick="preview(event)" data-path="/">preview</a>){% endif %}
                 {% endif %}
             {%- if item.children -%}
-                <ul class="children" aria-expanded="false">{{ loop(item.children) }}</ul>
+                <ul class="children">{{ loop(item.children) }}</ul>
             {%- endif %}</li>
         {%- endfor %}
         </ul>
@@ -119,13 +127,18 @@
             </iframe>
         </section>
     </body>
-    <script>
+    <script defer>
+    function select(event) {
+        showDetails(event);
+        preview(event);
+    }
+
     function preview(event) {
         const link = event.target.closest("a").getAttribute("data-path");
         document.getElementById("preview").src = link;
     }
 
-    function toggleDetails(event) {
+    function showDetails(event) {
         const path = event.target.closest("a").getAttribute("data-path");
         document.querySelectorAll(".details").forEach((e) => e.setAttribute("aria-expanded", "false"));
         const detailsElement = document.querySelector(`.details[data-path="${path}"]`);
@@ -135,17 +148,42 @@
     }
 
     function toggleTree(event) {
-        const childrenElement = event.target.closest("li").querySelector(".children");
-        if (childrenElement.getAttribute("aria-expanded") == "false") {
-            childrenElement.setAttribute("aria-expanded", "true");
+        const liElement = event.target.closest("li");
+        if (liElement.getAttribute("aria-expanded") == "false") {
+            liElement.setAttribute("aria-expanded", "true");
             event.target.innerText = '➖';
         } else {
-            childrenElement.setAttribute("aria-expanded", "false");
+            liElement.setAttribute("aria-expanded", "false");
             event.target.innerText = '➕';
         }
 
         event.preventDefault();
-
     }
+
+    document.querySelector(".metadata .details").setAttribute("aria-expanded", "true");
+
+    document.getElementById("preview").addEventListener("load",
+        (e) => {
+            const path = e.target.contentWindow.location.pathname;
+            if (path === undefined) return;
+
+            const treeElement = document.querySelector(`#navigation [data-path="${path}"]`);
+            setTimeout(() => {
+                treeElement.classList.remove("highlighted")
+            }, 2500);
+            let parent = treeElement.closest("li");
+            for (;;) {
+                if (parent === null) break;
+                parent.setAttribute("aria-expanded", "true");
+                console.trace(parent);
+
+                if (parent.parentElement === undefined) break;
+                parent = parent.parentElement.closest("li");
+            }
+            treeElement.classList.add("highlighted");
+            treeElement.scrollIntoView({
+                behavior:"smooth"
+            });
+        });
     </script>
 </html>

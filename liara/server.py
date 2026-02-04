@@ -57,8 +57,7 @@ class _ServerState:
         node = self.__site.get_node(path)
 
         if node is None:
-            self.__log.warning(f'Could not find node for path: "{path}"')
-            return (None, None,)
+            raise Exception(f'Could not find node for path: "{path}"')
 
         # We always regenerate the content
         match node.kind:

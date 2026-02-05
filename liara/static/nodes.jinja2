@@ -15,6 +15,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Liara - Resource view</title>
         <style>
+            code, pre {
+                font-size: 1rem;
+            }
+
             a.expand {
                 text-decoration: none;
 
@@ -31,13 +35,43 @@
                 display: none;
             }
 
+            .metadata {
+
+                background-color: #EEE;
+            }
+
             .details {
                 border-top: 1px solid #CCC;
                 padding: 0.25rem;
 
-                ul {
-                    list-style-type: none;
-                    padding-left: 0;
+                display: grid;
+                grid-template-columns: auto 1fr;
+                gap: 1px;
+                
+                > .key {
+                    grid-column: 1;
+                    background-color: #DDD;
+                    padding: 0.25rem;
+                }
+
+                > .value {
+                    grid-column: 2;
+                    padding: 0.25rem;
+                    background-color: #FFF;
+                }
+
+                .index {
+                    overflow-y: scroll;
+
+                    ul {
+                        margin: 0;
+                        padding: 0;
+
+                        li {
+                            font-family: monospace;
+                            font-size: 1rem;
+                        }
+                    }
                 }
 
                 .metadata {
@@ -84,7 +118,7 @@
 
             #navigation {
                 display: grid;
-                grid-template-rows: 1fr auto;
+                grid-template-rows: 2fr 1fr;
                 max-height: 100vh;
 
                 ul {
@@ -93,6 +127,10 @@
 
                 a.highlighted {
                     color: red;
+                }
+
+                > .metadata {
+                    overflow: scroll;
                 }
             }
         </style>
@@ -118,15 +156,27 @@
         {%- for item in nodes recursive %}
             {% if item.data %}
             <div class="details" aria-expanded="false" data-path="{{ item.data.path }}">
-                <ul>
-                    <li>Source file: <code>{{ item.data.src|default("Generated") }}</code></li>
-                    <li>Node kind: {{ item.data.kind.name }}</li>
-                    {%- if item.data.metadata -%}
-                    <li>Metadata:
-                        <div class="metadata">{{ pretty_print_dict(item.data.metadata) }}</div>
-                    </li>
-                    {%- endif -%}
-                </ul>
+                <span class="key">Source file</span>
+                <code class="value">{{ item.data.src|default("Generated") }}</code>
+
+                <span class="key">Node kind</span>
+                <span class="value">{{ item.data.kind.name }}</span>
+                {%- if item.data.metadata -%}
+                <span class="key">Metadata</span>
+                <div class="value">{{ pretty_print_dict(item.data.metadata) }}</div>
+                {%- endif -%}
+                {%- if is_index_node(item.data) -%}
+                <span class="key">References</span>
+                <div class="value">
+                    <div class="index">
+                        <ul>
+                            {% for ref in item.data.references %}
+                            <li>{{ ref.path }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {%- endif -%}
             </div>
             {% endif %}
             {%- if item.children -%}
@@ -143,22 +193,21 @@
     </body>
     <script defer>
     function select(event) {
-        showDetails(event);
-        preview(event);
-    }
-
-    function preview(event) {
-        const link = event.target.closest("a").getAttribute("data-path");
-        document.getElementById("preview").src = link;
-    }
-
-    function showDetails(event) {
         const path = event.target.closest("a").getAttribute("data-path");
+        showDetails(path);
+        preview(path);
+
+        event.preventDefault();
+    }
+
+    function preview(path) {
+        document.getElementById("preview").src = path;
+    }
+
+    function showDetails(path) {
         document.querySelectorAll(".details").forEach((e) => e.setAttribute("aria-expanded", "false"));
         const detailsElement = document.querySelector(`.details[data-path="${path}"]`);
         detailsElement.setAttribute("aria-expanded", "true");
-
-        event.preventDefault();
     }
 
     function toggleTree(event) {
@@ -241,6 +290,8 @@
             treeElement.scrollIntoView({
                 behavior:"smooth"
             });
+
+            showDetails(path);
         });
     </script>
 </html>

@@ -175,6 +175,9 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
                 assert (isinstance(node, StaticNode))
                 node.update_metadata()
 
+        def is_index_node(node):
+            return node.kind == NodeKind.Index
+
         nodes = nodes = sorted(site.nodes, key=lambda x: x.path)
         root = _create_node_tree_for_site(nodes)
         t = Template(
@@ -182,7 +185,8 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
-        self.wfile.write(t.render(nodes=[root]).encode('utf-8'))
+        self.wfile.write(t.render(nodes=[root],
+                                  is_index_node=is_index_node).encode('utf-8'))
 
 
 class HttpServer:

@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.7.4
+-----
+
+* Various improvements to the ``--admin`` view.
+
 2.7.3
 -----
 

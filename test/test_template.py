@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import pathlib
 from liara.template import Template, _match_url, TemplateRepository
 import pytest

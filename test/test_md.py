@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023 Matthäus G. Chajdas <dev@anteru.net>
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 from liara.md import ShortcodePreprocessor, _ParseBuffer, _ShortcodeParser
 import pytest
 

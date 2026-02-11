@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 from typing import Iterable, List, Iterator, Optional
 from .nodes import Node, NodeKind, _parse_node_kind
 from .template import Page

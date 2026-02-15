@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.7.5
+-----
+
+* Render data files in the ``--admin`` view.
+* Change license to AGPLv3. See ``LICENSE.txt`` for details. For almost all users, this license change has no implications as the generated output is served.
+
 2.7.4
 -----
 

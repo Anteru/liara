@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 from .nodes import (
+    DataNode,
     DocumentNode,
     GeneratedNode,
     IndexNode,
@@ -23,6 +24,9 @@ import http.server
 import threading
 from urllib.parse import unquote
 import traceback
+import pygments
+import pygments.lexers
+import pygments.formatters
 
 
 class _ServerState:
@@ -47,16 +51,19 @@ class _ServerState:
     def site(self):
         return self.__site
 
-    def _build_single_node(self, path: pathlib.PurePosixPath):
+    def _build_single_node(self, path: pathlib.PurePosixPath,
+                           enable_admin: bool):
         """Build a single node.
 
         Build a single node on-demand. We assume the state is regenerated
         on any config changes, and the cache is cleared. As an optimization,
         we process resource and document nodes every time here, so we don't
         need to rediscover the whole content when a known content or
-        resource node has changed."""
+        resource node has changed.
+
+        If ``enable_admin`` is set, this will also render data nodes."""
         from collections import namedtuple
-        BuildResult = namedtuple('BuildResult', ['path', 'cache'])
+        BuildResult = namedtuple('BuildResult', ['path', 'content', 'cache'])
         node = self.__site.get_node(path)
 
         if node is None:
@@ -83,13 +90,26 @@ class _ServerState:
             case _:
                 cache = True
 
+        if isinstance(node, DataNode) and enable_admin:
+            from .yaml import dump_yaml
+            yaml_content = dump_yaml(node.content)
+
+            html: str = pygments.highlight(
+                yaml_content,
+                pygments.lexers.get_lexer_by_name('yaml'),
+                pygments.formatters.get_formatter_by_name(
+                    'html',
+                    full=True))
+
+            return BuildResult(None, html.encode('utf-8'), False)
+
         assert isinstance(node, StaticNode) \
                or isinstance(node, DocumentNode) \
                or isinstance(node, GeneratedNode) \
                or isinstance(node, IndexNode) \
                or isinstance(node, ResourceNode)
 
-        return BuildResult(node.publish(self.__publisher), cache)
+        return BuildResult(node.publish(self.__publisher), None, cache)
 
 
 class _HttpServer(http.server.HTTPServer):
@@ -137,14 +157,24 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
 
             if path not in self.server.cache:
                 try:
-                    node_path, cache = \
-                        self.server.state._build_single_node(path)
+                    node_path, content, cache = \
+                        self.server.state._build_single_node(
+                            path,
+                            self.server.state.enable_admin)
                 except Exception:
                     self.send_response(500, 'Failed to render node')
                     self.wfile.write(traceback.format_exc().encode('utf-8'))
                     for line in traceback.format_stack():
                         self.wfile.write(line.encode('utf-8'))
                     return
+
+                # Serve transient data immediately
+                if content is not None:
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write(content)
+                    return
+
                 if node_path is None:
                     return
 

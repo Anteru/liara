@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2.7.6 (unreleased)
+------------------
+
+* ``liara serve`` ignores changes to ``.git``, ``.hg`` and ``.svn`` by default now.
+* Thumbnail processing has been improved:
+  * Thumbnail nodes have a new metadata entry, ``$thumbnail_size``, which stores the thumbnail size as a tuple (similar to ``$image_size`` on images.)
+  * Thumbnails can be defined using ``longest_edge`` now. See :ref:`templates <image-thumbnails-option>` for more details.
+
 2.7.5
 -----
 

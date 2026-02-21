@@ -103,7 +103,7 @@ class _AsyncTask(ABC):
     The function must return the new content of the node.
     """
     @abstractmethod
-    def process(self) -> object | bytes:
+    def process(self) -> object | bytes | None:
         """
         Process the task and return the new content for the node.
         """
@@ -911,7 +911,7 @@ class _AsyncThumbnailTask(_AsyncTask):
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self, cache_key: bytes, src: pathlib.Path,
-                 size: Dict[str, int],
+                 size: tuple[int, int],
                  format: Optional[str]):
         self.__src = src
         self.__size = size
@@ -922,19 +922,15 @@ class _AsyncThumbnailTask(_AsyncTask):
     def process(self):
         from PIL import Image
         import io
-        self.__log.debug('Processing "%s"', self.__src)
+        self.__log.debug(
+            'Generating thumbnail from "%s", with size %dx%d '
+            'and format "%s"',
+            self.__src,
+            self.__size[0], self.__size[1],
+            'original' if self.__format is None else self.__format)
         image = Image.open(self.__src)
-        width, height = image.size
 
-        scale = 1
-        if 'height' in self.__size:
-            scale = min(self.__size['height'] / height, scale)
-        if 'width' in self.__size:
-            scale = min(self.__size['width'] / width, scale)
-        width *= scale
-        height *= scale
-
-        image.thumbnail((int(width), int(height),))
+        image.thumbnail(self.__size)
         storage = io.BytesIO()
         assert self.__src
         result = None
@@ -965,29 +961,25 @@ class _AsyncThumbnailTask(_AsyncTask):
 
 class ThumbnailNode(ResourceNode):
     def __init__(self, src: pathlib.Path,
-                 path: pathlib.PurePosixPath, size: Dict[str, int],
+                 path: pathlib.PurePosixPath, size: tuple[int, int],
                  format: str | None = 'original'):
         super().__init__(src, path)
         self.__size = size
         self.__format = format
+        self.metadata['$thumbnail_size'] = size
 
     def __get_cache_key(self) -> bytes:
         import hashlib
         assert self.src
         cache_key = hashlib.sha256(self.src.open('rb').read()).digest()
 
-        if 'height' in self.__size:
-            cache_key += self.__size['height'].to_bytes(4, 'little')
-        else:
-            cache_key += bytes([0, 0, 0, 0])
-
-        if 'width' in self.__size:
-            cache_key += self.__size['width'].to_bytes(4, 'little')
-        else:
-            cache_key += bytes([0, 0, 0, 0])
+        cache_key += '-thumb-'.encode('utf-8')
+        cache_key += f'{self.__size[0]}x{self.__size[1]}-'.encode('utf-8')
 
         if self.__format:
             cache_key += self.__format.encode('utf-8')
+        else:
+            cache_key += '<original>'.encode('utf-8')
 
         return cache_key
 

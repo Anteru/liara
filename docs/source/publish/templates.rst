@@ -44,7 +44,9 @@ Template definitions also support the following fields:
 
   .. deprecated:: 2.4.1
 
-* ``image_thumbnails`` is a dictionary used to configure image thumbnails:
+* .. _`image-thumbnails-option`:
+
+  ``image_thumbnails`` is a dictionary used to configure image thumbnails:
 
   .. code:: yaml
 
@@ -52,7 +54,7 @@ Template definitions also support the following fields:
       sizes:
         thumbnail-md: {width: 640}
         thumbnail-xs: {width: 320, exclude: "*.preview.*"}
-        hero: {width: 960, include: "*.hero.*"}
+        hero: {longest_edge: 500, include: "*.hero.*"}
       formats:
         - original
         - webp
@@ -62,6 +64,8 @@ Template definitions also support the following fields:
 
   Additionally, it will create files with a ``thumbnail-xs`` suffix for all files which *don't* match the exclude pattern, and ``hero`` thumbnails for all files with *do* match the include pattern. This is useful to exclude manually created thumbnails, or only create thumbnails for files which are particularly large. ``include`` and ``exclude`` are mutually exclusive, only one can be set per thumbnail size.
 
+  The definition can use ``width`` or ``height`` (or both, in which case the smaller size is used.) Alternatively, you can use ``longest_edge`` to scale the longest edge to the desired length. In all cases, the aspect ratio will be maintained.
+
   ``formats`` is a list of formats to use for the thumbnails.
   ``original`` means the original format is used (determined from the file extension). Additional supported formats are: ``JPG``, ``PNG`` and ``WEBP``.
 
@@ -69,6 +73,8 @@ Template definitions also support the following fields:
       ``formats`` and ``sizes`` were added.
   .. versionadded:: 2.5.0
       ``exclude`` and ``include`` were added.
+  .. versionadded:: 2.7.6
+      ``longest_edge`` was added.
 
 .. note::
 

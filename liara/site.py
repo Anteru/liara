@@ -636,9 +636,10 @@ class Site:
         formats  -- this function iterates over all static nodes that contain
         images, and creates new thumbnail nodes as required.
         """
-        from .util import add_suffix
+        from .util import add_suffix, get_thumbnail_size
 
-        def create_thumbnail(node: StaticNode, new_path, format, size):
+        def create_thumbnail(node: StaticNode, new_path, format,
+                             size: tuple[int, int]):
             if format == 'original':
                 format = None
             else:
@@ -662,6 +663,11 @@ class Site:
                     new_path)
                 return
 
+            self.__log.debug('Creating thumbnail for "%s" with size %dx%d '
+                             'and format "%s"',
+                             node.path,
+                             size[0], size[1],
+                             "original" if format is None else format)
             thumbnail = ThumbnailNode(
                 node.src,
                 new_path,
@@ -674,6 +680,7 @@ class Site:
             if not static.is_image:
                 continue
             static.update_metadata()
+
             assert static.src
             width, height = static.metadata['$image_size']
             for k, v in thumbnail_definition['sizes'].items():
@@ -703,11 +710,12 @@ class Site:
                                      'as a file with the same name already '
                                      'exists ("%s")', static.src, new_url)
                     continue
-                thumbnail_width = v.get('width', width)
-                thumbnail_height = v.get('height', height)
-                if width <= thumbnail_width and height <= thumbnail_height:
+
+                thumbnail_size = get_thumbnail_size((width, height,), v)
+
+                if thumbnail_size is None:
                     # Check for any other formats present and generate those
-                    # as needed
+                    # as needed, there is nothing to scale here
                     for format in thumbnail_definition['formats']:
                         if format == 'original':
                             # The image has the right size already (smaller or
@@ -715,11 +723,10 @@ class Site:
                             # static node
                             self.__log.debug(
                                 'Copying image "%s" for thumbnail as size '
-                                '%d x %d is larger or equal than image size '
-                                '%d x %d',
+                                '%d x %d is larger or equal than the '
+                                'requested size',
                                 static.src,
-                                width, height,
-                                thumbnail_width, thumbnail_height)
+                                width, height)
                             copy = StaticNode(static.src, new_url)
                             copy.metadata = static.metadata
                             new_static.append(copy)
@@ -728,10 +735,12 @@ class Site:
                                 'Converting image "%s" for thumbnail due to '
                                 'format change request to ".%s"',
                                 static.src, format)
-                            create_thumbnail(static, new_url, format, {})
+                            create_thumbnail(static, new_url, format,
+                                             (width, height,))
                 else:
                     for format in thumbnail_definition['formats']:
-                        create_thumbnail(static, new_url, format, v)
+                        create_thumbnail(static, new_url, format,
+                                         thumbnail_size)
 
         for static in new_static:
             self.add_static(static)

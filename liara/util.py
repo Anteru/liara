@@ -251,3 +251,47 @@ def _create_node_tree_for_site(nodes: List) -> _Node:
         add_or_create(path, node)
 
     return root
+
+
+def get_thumbnail_size(
+        image_size: tuple[int, int],
+        thumbnail_size: Dict[str, int]) -> tuple[int, int] | None:
+    """Calculate the thumbnail size from a given image size.
+
+    The thumbnail size must be a dictionary with either:
+      * ``width`` or ``height`` (or both) set, which define the maximum
+        thumbnail dimensions
+      * ``longest_edge`` which defines the longest edge after scaling,
+        maintaining the aspect ratio
+    """
+    width, height = image_size
+
+    if 'longest_edge' in thumbnail_size:
+        assert 'width' not in thumbnail_size
+        assert 'height' not in thumbnail_size
+        longest_edge = max(width, height)
+        thumbnail_longest_edge = thumbnail_size.get('longest_edge',
+                                                    longest_edge)
+        if longest_edge >= thumbnail_longest_edge:
+            scale = thumbnail_longest_edge / longest_edge
+            width *= scale
+            height *= scale
+
+            return (round(width), round(height), )
+    else:
+        assert 'width' in thumbnail_size or 'height' in thumbnail_size
+        thumbnail_width = thumbnail_size.get('width', width)
+        thumbnail_height = thumbnail_size.get('height', height)
+
+        if width <= thumbnail_width and height <= thumbnail_height:
+            return None
+
+        scale_x = thumbnail_width / width
+        scale_y = thumbnail_height / height
+
+        scale = min(scale_x, scale_y)
+
+        width *= scale
+        height *= scale
+
+        return (round(width), round(height),)

@@ -8,6 +8,7 @@ from liara.util import (
     flatten_dictionary,
     pairwise,
     merge_dictionaries,
+    get_thumbnail_size,
 )
 import pytest
 
@@ -94,3 +95,52 @@ def test_case_insensitive_dictionary():
     assert a["bar"] == 42
 
     assert len(a) == 2
+
+
+def test_get_thumbnail_size_width_height():
+    s0 = (512, 256,)
+    ts = {'width': 400, 'height': 300}
+
+    r = get_thumbnail_size(s0, ts)
+    assert r is not None
+    assert r[0] == 400
+    assert r[1] == 200
+
+
+def test_get_thumbnail_size_longest_edge():
+    s0 = (512, 256,)
+    ts = {'longest_edge': 400}
+
+    r = get_thumbnail_size(s0, ts)
+    assert r is not None
+    assert r[0] == 400
+    assert r[1] == 200
+
+
+def test_get_thumbnail_size_width():
+    s0 = (512, 256,)
+    ts = {'width': 400}
+
+    r = get_thumbnail_size(s0, ts)
+    assert r is not None
+    assert r[0] == 400
+    assert r[1] == 200
+
+
+def test_get_thumbnail_size_height():
+    s0 = (512, 256,)
+    ts = {'height': 200}
+
+    r = get_thumbnail_size(s0, ts)
+    assert r is not None
+    assert r[0] == 400
+    assert r[1] == 200
+
+
+def test_get_thumbnail_size_none_if_no_scaling_needed():
+    s0 = (512, 256,)
+
+    assert get_thumbnail_size(s0, {'width': 600, 'height': 400}) is None
+    assert get_thumbnail_size(s0, {'width': 600}) is None
+    assert get_thumbnail_size(s0, {'height': 400}) is None
+    assert get_thumbnail_size(s0, {'longest_edge': 600}) is None

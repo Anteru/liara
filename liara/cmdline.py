@@ -392,7 +392,12 @@ def serve(env: Environment, browser: bool, port: int, cache: bool, admin: bool):
 
     def get_ignore_directories(config):
         output_directory = config["output_directory"]
-        ignore_dirs = [output_directory]
+        ignore_dirs = [
+            # Default ignore paths, new with 2.7.6
+            '.git',
+            '.hg',
+            '.svn',
+            output_directory]
 
         match config["build.cache.type"]:
             case "fs":

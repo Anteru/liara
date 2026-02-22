@@ -48,7 +48,7 @@ from .util import (
 )
 from .yaml import load_yaml
 
-__version__ = '2.7.5'
+__version__ = '2.7.6'
 __all__ = [
     'actions',
     'cache',

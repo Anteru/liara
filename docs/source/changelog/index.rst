@@ -1,8 +1,8 @@
 Changelog
 =========
 
-2.7.6 (unreleased)
-------------------
+2.7.6
+-----
 
 * ``liara serve`` ignores changes to ``.git``, ``.hg`` and ``.svn`` by default now.
 * Thumbnail processing has been improved:

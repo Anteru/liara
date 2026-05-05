@@ -436,6 +436,8 @@ class Liara:
                     pathlib.PurePosixPath(route['src']),
                     pathlib.PurePosixPath(route['dst']),
                     base_url=base_url)
+            node.metadata['$source'] = route['src']
+            node.metadata['$destination'] = route['dst']
             if route.get('server_rule_only', False):
                 self.__redirections.append({
                     'src': route['src'],

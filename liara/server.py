@@ -7,6 +7,7 @@ from .nodes import (
     GeneratedNode,
     IndexNode,
     NodeKind,
+    RedirectionNode,
     ResourceNode,
     StaticNode,
 
@@ -82,7 +83,13 @@ class _ServerState:
                 cache = False
             case NodeKind.Generated:
                 assert isinstance(node, GeneratedNode)
-                node.generate()
+
+                # Special case redirection nodes as they otherwise redirect
+                # immediately
+                if isinstance(node, RedirectionNode):
+                    node.content = 'Redirection node to: ' + node.metadata['$destination']
+                else:
+                    node.generate()
                 cache = False
             # We don't cache index nodes so templates get re-applied
             case NodeKind.Index:
@@ -152,7 +159,10 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
                 self.__render_nodes()
                 return
 
-            if path.name == 'index.html':
+            # We use the extra check to make sure pages which are specifically
+            # generated for a path containing index.html get processed
+            # correctly
+            if path.name == 'index.html' and self.server.state.site.get_node(path) is None:
                 path = path.parent
 
             if path not in self.server.cache:

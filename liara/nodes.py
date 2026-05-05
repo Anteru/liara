@@ -532,6 +532,11 @@ class IndexNode(Node):
 
 
 class GeneratedNode(Node):
+    """A generated node.
+    
+    A generated node synthesizes all its content by itself, not referencing
+    a single node as an input. For example, redirections or feeds are generated
+    based off site-level data."""
     def __init__(self, path: pathlib.PurePosixPath,
                  metadata: Optional[Dict] = None):
         super().__init__()
@@ -960,6 +965,10 @@ class _AsyncThumbnailTask(_AsyncTask):
 
 
 class ThumbnailNode(ResourceNode):
+    """A thumbnail node, derived from a static image file.
+    
+    The thumbnail node is a resource node which holds the thumbnail of an
+    image."""
     def __init__(self, src: pathlib.Path,
                  path: pathlib.PurePosixPath, size: tuple[int, int],
                  format: str | None = 'original'):

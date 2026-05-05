@@ -161,6 +161,8 @@
 
                 <span class="key">Node kind</span>
                 <span class="value">{{ item.data.kind.name }}</span>
+                <span class="key">Path</span>
+                <span class="value">{{ item.data.path }}</span>
                 {%- if item.data.metadata -%}
                 <span class="key">Metadata</span>
                 <div class="value">{{ pretty_print_dict(item.data.metadata) }}</div>

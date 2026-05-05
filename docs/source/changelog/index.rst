@@ -1,13 +1,20 @@
 Changelog
 =========
 
+2.7.7
+-----
+
+* ``liara serve --admin`` now handles feeds and redirection nodes gracefully
+* Feeds don't fail to generate if ``content`` is not populated
+* :py:class:`~liara.nodes.RedirectionNode` instances have new metadata: ``$source`` and ``$destination`` describing the source and destination of the redirection, respectively.
+
 2.7.6
 -----
 
 * ``liara serve`` ignores changes to ``.git``, ``.hg`` and ``.svn`` by default now.
 * Thumbnail processing has been improved:
   
-  * Thumbnail nodes have a new metadata entry, ``$thumbnail_size``, which stores the thumbnail size as a tuple (similar to ``$image_size`` on images.)
+  * :py:class:`~liara.nodes.ThumbnailNode` instances have a new metadata entry, ``$thumbnail_size``, which stores the thumbnail size as a tuple (similar to ``$image_size`` on images.)
   * Thumbnails can be defined using ``longest_edge`` now. See :ref:`templates <image-thumbnails-option>` for more details.
 
 2.7.5

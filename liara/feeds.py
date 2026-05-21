@@ -61,7 +61,7 @@ class RSSFeedNode(FeedNode):
                 E.link(meta['base_url'] + str(item.path)),
                 E.pubDate(email.utils.format_datetime(item.metadata['date'])),
                 E.guid(meta['base_url'] + str(item.path)),
-                E.description(item.content or '')
+                E.description(etree.CDATA(item.content or ''))
             )
             c.append(e)
         r.append(c)
@@ -129,7 +129,7 @@ class SitemapXmlFeedNode(FeedNode):
             })
 
         metadata = self.__site.metadata
-        now = datetime.datetime.now()
+        now = local_now()
 
         urlset = E.urlset()
         for node in self.__site.nodes:

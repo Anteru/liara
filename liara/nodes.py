@@ -742,7 +742,7 @@ class NodeFactory(Generic[NT]):
                       suffixes: Union[str, Iterable[str]],
                       node_type: type,
                       *,
-                      extra_args: Dict[str, Any] = dict()) -> None:
+                      extra_args: Dict[str, Any] | None = None) -> None:
         """Register a new node type.
 
         :param suffixes: Either one suffix, or a list of suffixes to be
@@ -758,7 +758,9 @@ class NodeFactory(Generic[NT]):
             suffixes = [suffixes]
 
         for suffix in suffixes:
-            self.__known_types[suffix] = (node_type, extra_args,)
+            self.__known_types[suffix] = (
+                node_type,
+                extra_args if extra_args is not None else dict(),)
 
     def _create_node(self,
                      cls,
@@ -938,7 +940,6 @@ class _AsyncThumbnailTask(_AsyncTask):
         image.thumbnail(self.__size)
         storage = io.BytesIO()
         assert self.__src
-        result = None
 
         format_from_suffix = {
             '.jpg': 'JPEG',

@@ -180,7 +180,7 @@ def validate_links(env: Environment,
     if error_count > 0:
         env.log.error(f'Found {error_count} broken links')
 
-        return 1
+        raise click.exceptions.Exit(1)
 
 
 @cli.command()

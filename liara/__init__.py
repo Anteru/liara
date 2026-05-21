@@ -124,9 +124,9 @@ def _compress_helper(path: pathlib.Path,
                      format: str):
     output_path = path.with_suffix(path.suffix + suffix)
 
-    input_data = path.open('rb').read()
+    input_data = path.read_bytes()
     compressed = method(input_data)
-    output_path.open('wb').write(compressed)
+    output_path.write_bytes(compressed)
 
     return CompressionResult(output_path, len(input_data), len(compressed),
                              format)

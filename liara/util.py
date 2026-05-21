@@ -79,7 +79,7 @@ def create_slug(s: str) -> str:
 
 
 __TZ = tzlocal.get_localzone()
-__override_now = None
+__override_now: datetime.datetime | None = None
 
 
 def set_local_now(dt: datetime.datetime):
@@ -99,7 +99,7 @@ def local_now() -> datetime.datetime:
     This can be overridden using ``set_local_now`` to build the page at a
     different point in time.
     """
-    if __override_now:
+    if __override_now is not None:
         return __override_now
     return datetime.datetime.now(tz=__TZ)
 

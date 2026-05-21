@@ -30,6 +30,7 @@ import logging
 import fnmatch
 from abc import abstractmethod, ABC
 from types import MappingProxyType
+import functools
 
 
 def _create_metadata_accessor(field_name: str):
@@ -75,17 +76,16 @@ def _create_metadata_filter(exclude_without:
         if isinstance(f, str):
             key = f
 
-            def key_function(node: Node):
+            def key_function(node: Node, key: str):
                 return _create_metadata_accessor(key)(node) is not None
-            key_functions.append(key_function)
+            key_functions.append(functools.partial(key_function, key=key))
         else:
             assert isinstance(f, tuple)
             assert len(f) == 2
-            key = f[0]
 
-            def key_function(node: Node):
-                return _create_metadata_accessor(key)(node) == f[1]
-            key_functions.append(key_function)
+            def key_function(node: Node, kv):
+                return _create_metadata_accessor(kv[0])(node) == kv[1]
+            key_functions.append(functools.partial(key_function, kv=f))
 
     def filter_function(node: Node):
         for key_function in key_functions:
@@ -213,7 +213,7 @@ class Collection:
         specified order, or ``None`` if this is the first node."""
         if not self.__order_by:
             self.__log.warning(
-                'Using get_next() on an unordered collection has '
+                'Using get_previous() on an unordered collection has '
                 'undefined results')
         return self.__previous.get(node.path)
 

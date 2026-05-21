@@ -173,6 +173,7 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
                             self.server.state.enable_admin)
                 except Exception:
                     self.send_response(500, 'Failed to render node')
+                    self.end_headers()
                     self.wfile.write(traceback.format_exc().encode('utf-8'))
                     for line in traceback.format_stack():
                         self.wfile.write(line.encode('utf-8'))
@@ -195,11 +196,12 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
 
             self.send_response(200)
 
-            content_type, _ = mimetypes.guess_type(path.name)
+            # Run on the input file so we get the right extension
+            content_type, _ = mimetypes.guess_type(node_path.name)
             if content_type:
                 self.send_header('Content-Type', content_type)
             self.end_headers()
-        self.wfile.write(node_path.open('rb').read())
+        self.wfile.write(node_path.read_bytes())
 
     def log_message(self, format, *args):
         assert isinstance(self.server, _HttpServer)
@@ -221,7 +223,7 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
         def is_index_node(node):
             return node.kind == NodeKind.Index
 
-        nodes = nodes = sorted(site.nodes, key=lambda x: x.path)
+        nodes = sorted(site.nodes, key=lambda x: x.path)
         root = _create_node_tree_for_site(nodes)
         t = Template(
             files('liara').joinpath('static', 'nodes.jinja2').read_text())

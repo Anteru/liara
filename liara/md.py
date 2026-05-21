@@ -201,25 +201,43 @@ class _ShortcodeParser:
         # Strings can be multi-line while inside "
         # Our strategy is as following: Find the next ", check if it was
         # escaped or not, and continue until we find one
+        def count_successive_characters(s: str, char: str):
+            r = 0
+            for i in s:
+                if i == char:
+                    r += 1
+                else:
+                    break
+            return r
+
         self.__buffer.consume('"')
         result = []
         while True:
             line = self.__buffer.get_current_line()
             next_quote = 0
+
             while True:
-                if (quote_position := line.find('"', next_quote)) != -1:
-                    if quote_position > 0 and line[quote_position-1] != '\\':
-                        result.append(line[:quote_position])
-                        self.__buffer.advance(quote_position)
-                        self.__buffer.consume('"')
-                        return ''.join(result).replace('\\"', '"')
-                    else:
-                        next_quote = quote_position+1
-                else:
+                if (quote_position := line.find('"', next_quote)) == -1:
                     # No terminating quote in this line
                     result.append(line)
                     self.__buffer.advance_line()
                     break
+                
+                # Odd number means the escape is "active"
+                escapes = count_successive_characters(
+                    reversed(line[:quote_position]), '\\')
+                is_escaped = quote_position > 0 and escapes % 2 == 1
+                if is_escaped:
+                    next_quote = quote_position + 1
+                    continue
+                
+                # Not escaped, extract the text between the line start and
+                # the quote position
+                result.append(line[:quote_position])
+                self.__buffer.advance(quote_position)
+                self.__buffer.consume('"')
+                return ''.join(result).replace('\\"', '"')
+                
 
     def __consume_key(self, what: str) -> str:
         """Consume a key from the buffer.

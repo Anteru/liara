@@ -139,6 +139,25 @@ def test_shortcode_parser_5():
     assert len(args) == 3
 
 
+def test_shortcode_parser_6():
+    lines = """<% figure
+    arg0="foo"
+    arg1=""
+    arg2="ba\\z\\\\"
+/%>
+""".splitlines()
+
+    pb = _ParseBuffer(0, lines)
+    sp = _ShortcodeParser(pb)
+
+    rest, last_line, func_name, args = sp.parse()
+    assert func_name == 'figure'
+    assert args['arg0'] == 'foo'
+    assert args['arg1'] == ''
+    assert args['arg2'] == 'ba\\z\\\\'
+    assert len(args) == 3
+
+
 def test_shortcode_register_requires_kwargs():
     def h1(arg1):
         pass

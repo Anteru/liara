@@ -70,6 +70,9 @@ class _ServerState:
         if node is None:
             raise Exception(f'Could not find node for path: "{path}"')
 
+        if isinstance(node, StaticNode) and node.skip_publish:
+            raise Exception(f'Node "{path}" has `skip_publish` set')
+
         # We always regenerate the content
         match node.kind:
             case NodeKind.Document | NodeKind.Resource:

@@ -7,6 +7,7 @@ Changelog
 * ``liara serve --admin`` now handles feeds and redirection nodes gracefully
 * Feeds don't fail to generate if ``content`` is not populated
 * :py:class:`~liara.nodes.RedirectionNode` instances have new metadata: ``$source`` and ``$destination`` describing the source and destination of the redirection, respectively.
+* Add :py:attr:`~liara.nodes.StaticNode.skip_publish` attribute to :py:class:`~liara.nodes.StaticNode`. This can be used to skip certain files from getting published, for example, image originals while still their thumbnails.
 
 2.7.6
 -----

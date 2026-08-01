@@ -868,7 +868,16 @@ class StaticNode(Node):
     instance, binary files, videos, images etc.
 
     Static nodes have always a valid ``src``.
+
+    Static nodes can be excluded from publishing (this is useful for example
+    for images to only publish their thumbnails but not the original files.)
+    Set ``skip_publish`` to ``True`` for this.
     """
+
+    skip_publish: bool
+    """Skip this node while publishing.
+
+    .. versionadded:: 2.7.7"""
 
     def __init__(self, src: pathlib.Path, path: pathlib.PurePosixPath,
                  metadata_path=None):
@@ -878,6 +887,8 @@ class StaticNode(Node):
         self.path = path
         if metadata_path:
             self.metadata = load_yaml(open(metadata_path, 'r'))
+
+        self.skip_publish = False
 
     def update_metadata(self) -> None:
         """Update metadata by deriving some metadata from the source file,
@@ -967,7 +978,7 @@ class _AsyncThumbnailTask(_AsyncTask):
 
 class ThumbnailNode(ResourceNode):
     """A thumbnail node, derived from a static image file.
-    
+
     The thumbnail node is a resource node which holds the thumbnail of an
     image."""
     def __init__(self, src: pathlib.Path,

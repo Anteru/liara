@@ -29,7 +29,8 @@ commandline_prepared = signal('commandline-prepared')
 """
 
 content_discovered = signal('content-discovered')
-"""Raised after all content has been discovered.
+"""Raised after all content has been discovered and all dependent nodes have
+   been created (thumbnails, resource nodes, etc.)
 
   :param liara.site.Site site: the site instance
 """

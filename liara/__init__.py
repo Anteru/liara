@@ -48,7 +48,7 @@ from .util import (
 )
 from .yaml import load_yaml
 
-__version__ = '2.7.6'
+__version__ = '2.7.7'
 __all__ = [
     'actions',
     'cache',
@@ -839,9 +839,14 @@ class Liara:
             published_files.append(resource.publish(publisher))
         self.__log.info(f'Published {len(site.resources)} resource(s)')
 
+        published_static_file_count = 0
         for static in site.static:
+            if static.skip_publish:
+                continue
             published_files.append(static.publish(publisher))
-        self.__log.info('Published %d static file(s)', len(site.static))
+        published_static_file_count += 1
+        self.__log.info('Published %d static file(s)', 
+                        published_static_file_count)
 
         if site.generated:
             for generated in site.generated:

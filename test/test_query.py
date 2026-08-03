@@ -102,6 +102,32 @@ def test_query_limit():
 
     assert len(list(root.select_children().limit(10))) == 10
 
+
+def test_query_offset():
+    root = Node()
+    root.path = pathlib.PurePosixPath('/')
+
+    for i in range(4):
+        root.add_child(MockDocumentNode(f'/{i}', {'title': f'Page {i}'}))
+
+    assert len(list(root.select_children().offset(2))) == 2
+
+
+def test_query_limit_offset():
+    root = Node()
+    root.path = pathlib.PurePosixPath('/')
+
+    for i in range(8):
+        root.add_child(MockDocumentNode(f'/{i}', {'title': f'Page {i}'}))
+
+    result = list(root.select_children().limit(2).offset(2))
+
+    assert len(result) == 2
+    assert result[0].metadata['title'] == 'Page 2'
+    assert result[1].metadata['title'] == 'Page 3'
+
+
+
 def test_query_filter_reversed():
     """Test a query which filters and reverses, but doesn't sort."""
     n1 = MockDocumentNode('/a', {'title': 'A', 'foo': 'bar'})
@@ -115,6 +141,7 @@ def test_query_filter_reversed():
     s1 = list(root.select_children().with_metadata('foo').reversed())
 
     assert len(s1) == 2
+
 
 def test_query_filter_non_string_metadata():
     """Test a query which sort by a non-string entry."""
@@ -132,6 +159,7 @@ def test_query_filter_non_string_metadata():
 
     assert isinstance(s1[0], Page)
     assert s1[0].metadata['title'] == 'B'
+
 
 def test_query_exclude():
     """Test exclusion by regex."""

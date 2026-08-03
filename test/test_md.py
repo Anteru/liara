@@ -4,6 +4,7 @@
 from liara.md import ShortcodePreprocessor, _ParseBuffer, _ShortcodeParser
 import pytest
 
+
 def _get_lines(document: str) -> list[str]:
     # document.splitlines() returns a list of string literals, so you shouldn't
     # modify it, but our pre-processor does actually replace things. This makes

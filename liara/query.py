@@ -130,6 +130,7 @@ class Query(Iterable[Union[Node, Page]]):
     __nodes: List[Node]
     __sorters: List[Sorter]
     __limit: int
+    __offset: int
     __reversed: bool
     __result: Optional[List[Union[Node, Page]]]
 
@@ -138,15 +139,26 @@ class Query(Iterable[Union[Node, Page]]):
     def __init__(self, nodes: Iterable[Node]):
         """Create a query object for the list of specified nodes."""
         self.__nodes = list(nodes)
-        self.__limit = -1
+        self.__limit = 0
+        self.__offset = 0
         self.__filters = []
         self.__sorters = []
         self.__reversed = False
         self.__result = None
 
     def limit(self, limit: int) -> 'Query':
-        """Limit this query to return at most ``limit`` results."""
+        """Limit this query to return at most ``limit`` results.
+        
+        Pass ``0`` to disable the limit."""
         self.__limit = limit
+        return self
+
+    def offset(self, offset: int) -> 'Query':
+        """Offset this query so the first ``offset`` number of results are
+        skipped.
+        
+        .. versionadded:: 2.7.8"""
+        self.__offset = offset
         return self
 
     def with_metadata(self, name, value=None) -> 'Query':
@@ -242,14 +254,9 @@ class Query(Iterable[Union[Node, Page]]):
 
             return n
 
-        if self.__limit > 0:
-            for i, e in enumerate(result):
-                if i >= self.__limit:
-                    break
-                self.__result.append(Wrap(e))
-        else:
-            for e in result:
-                self.__result.append(Wrap(e))
+        # result is always a list at this point, so we can simply slice it
+        end = self.__offset + self.__limit if self.__limit > 0 else len(result)
+        self.__result = [Wrap(e) for e in result[self.__offset:end]]
 
     def __iter__(self) -> Iterator[Union[Node, Page]]:
         self.__execute()

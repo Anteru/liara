@@ -41,9 +41,9 @@ For an interactive preview, run:
   
 This starts a local web-server which will show the generated page. You can edit pages and templates while in this mode and hit refresh to see updates.
 
-By default, the ``serve`` command will open a server that listens on port 8080
-and will open your configured browser. This can be configured from the command
-line.
+By default, the ``serve`` command will open a server that listens on port 8080 and will open your configured browser.
+
+The hostname, port number and whether your browser should be opened can all be configured from the command line.
 
 Build the site
 --------------

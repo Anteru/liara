@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.7.8 (unreleased)
+------------------
+
+* Add ``--name`` to ``liara serve`` to set the server name. On some systems that avoids a costly DNS lookup.
+
 2.7.7
 -----
 

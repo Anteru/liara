@@ -372,8 +372,10 @@ def list_content(env: Environment,
 @click.option('--cache/--no-cache', default=True,
               help='Enable or disable the configured cache')
 @click.option('--admin', is_flag=True, help='Serve the admin interface instead')
+@click.option('--name', '-n', default='',
+              help='The hostname to use for the local server')
 @pass_environment
-def serve(env: Environment, browser: bool, port: int, cache: bool, admin: bool):
+def serve(env: Environment, browser: bool, port: int, cache: bool, admin: bool, name: str):
     """Run a local development server."""
     import watchfiles
     from .server import (
@@ -384,7 +386,7 @@ def serve(env: Environment, browser: bool, port: int, cache: bool, admin: bool):
 
     # The HTTP server runs a thread internally
     server = HttpServer(open_browser=browser, port=port,
-                        enable_admin=admin)
+                        enable_admin=admin, server_name=name)
 
     liara._set_base_url_override(server.get_url())
 

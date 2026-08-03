@@ -27,7 +27,7 @@ classifiers = [
   "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: Content Management System",
 ]
 
-requires-python = ">= 3.10"
+requires-python = ">= 3.12"
 dependencies = [
   "beautifulsoup4~=4.12",
   "blinker~=1.7",

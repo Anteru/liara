@@ -244,13 +244,14 @@ class HttpServer:
         """Get the URL at which the site is hosted."""
         return f'http://127.0.0.1:{self.__port}'
 
-    def __init__(self, *, open_browser=True, port=8080, enable_admin=False):
+    def __init__(self, *, open_browser=True, port=8080, enable_admin=False, server_name=''):
         self.__open_browser = open_browser
         self.__port = port
         self.__server: _HttpServer | None = None
         self.__server_thread: threading.Thread | None = None
         self.__request_handler = _RequestHandler
         self.__enable_admin = enable_admin
+        self.__server_name = server_name
 
     def stop(self):
         """Stop the server.
@@ -289,7 +290,7 @@ class HttpServer:
         server_state = _ServerState(liara, liara.discover_content(),
                                     cache, self.__enable_admin)
 
-        server_address = ('', self.__port)
+        server_address = (self.__server_name, self.__port)
         self.__server = _HttpServer(server_address, self.__request_handler,
                                     server_state, self.__log)
         url = self.get_url()

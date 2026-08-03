@@ -68,7 +68,8 @@ dev = [
 ]
 
 docs = [
-  "Sphinx~=9.0",
+  "Sphinx~=9.0; python_version >= '3.11'",
+  "Sphinx~=8.1; python_version < '3.11'",
   "furo",
   "sphinx-autodoc2"
 ]

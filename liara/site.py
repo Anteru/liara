@@ -6,7 +6,7 @@ import functools
 import logging
 import pathlib
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, KeysView, ValuesView
+from collections.abc import Callable, Iterable, KeysView, ValuesView
 from types import MappingProxyType
 from typing import (
     Any,
@@ -27,7 +27,9 @@ from .nodes import (
 from .util import merge_dictionaries, pairwise
 
 
-def _create_metadata_accessor(field_name: str):
+def _create_metadata_accessor(
+    field_name: str,
+) -> Callable[[object], object | None]:
     """Create an accessor for nested metadata fields.
 
     This allows accessing attributes or dictionary entries recursively, i.e.
@@ -173,7 +175,7 @@ class Collection:
             else:
                 reverse = False
 
-            def key_fun(node):
+            def key_fun(node, ordering):
                 accessor = _create_metadata_accessor(ordering)
                 result = accessor(node)
                 if result is None:
@@ -191,7 +193,11 @@ class Collection:
                     )
                 return result
 
-            nodes = sorted(nodes, key=key_fun, reverse=reverse)
+            nodes = sorted(
+                nodes,
+                key=functools.partial(key_fun, ordering=ordering),
+                reverse=reverse,
+            )
 
         # Need to convert to a list here, as we're going to iterate over it
         # twice (once for the pairs, once for the nodes property)
@@ -226,7 +232,7 @@ class Collection:
         return self.__previous.get(node.path)
 
 
-def _group_recursive(iterable, group_keys: list[str]):
+def _group_recursive(iterable: Iterable, group_keys: list[str]):
     import collections
     import itertools
 
@@ -255,7 +261,7 @@ def _group_recursive(iterable, group_keys: list[str]):
     else:
         key_func = _create_metadata_accessor(current_key)
         iterable = sorted(iterable, key=key_func)
-        result = dict()
+        result = {}
         for k, v in itertools.groupby(iterable, key_func):
             values = _group_recursive(v, group_keys)
             result[k] = values

@@ -12,15 +12,7 @@ from collections import ChainMap
 from collections.abc import Callable
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import (
-    IO,
-    Any,
-    Dict,
-    List,
-    Optional,
-    Text,
-    Union,
-)
+from typing import IO, Any, ClassVar
 
 from liara.template import TemplateRepository
 
@@ -203,7 +195,7 @@ class Liara:
     __cache: Cache
     # When running using 'serve', this will be set to the local URL
     __base_url_override: str | None = None
-    __registered_plugins: dict[object, _LoadedModule] = dict()
+    __registered_plugins: ClassVar[dict[object, _LoadedModule]] = {}
     __filesystem_walker: FilesystemWalker
     __template_repository: TemplateRepository
 
@@ -234,7 +226,7 @@ class Liara:
         # new site from scratch. In this case, set it to an empty dict as
         # flatten_dictionary cannot handle None
         if project_configuration is None:
-            project_configuration = dict()
+            project_configuration = {}
 
         ignore_list = {
             'content.markdown.extensions',
@@ -777,7 +769,7 @@ class Liara:
         and plugin hashes of loaded plugins."""
         import hashlib
 
-        site_data = dict()
+        site_data = {}
         for data_node in self.__site.data:
             site_data.update(data_node.content)
 
@@ -944,7 +936,7 @@ class Liara:
 
             self.__log.info('Finished compressing')
 
-            for format in _COMPRESSION_FORMATS.keys():
+            for format in _COMPRESSION_FORMATS:
                 filtered = list(
                     filter(lambda x: x.format == format, compression_result)
                 )

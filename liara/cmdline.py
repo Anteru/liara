@@ -356,9 +356,7 @@ def list_content(
         return
 
     def filter_nodes(node):
-        if node.kind.name.lower() not in content_type:
-            return False
-        return True
+        return node.kind.name.lower() in content_type
 
     if content_type:
         nodes = list(filter(filter_nodes, nodes))

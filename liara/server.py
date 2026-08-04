@@ -82,9 +82,7 @@ class _ServerState:
         # We always regenerate the content
         match node.kind:
             case NodeKind.Document | NodeKind.Resource:
-                assert isinstance(node, DocumentNode) or isinstance(
-                    node, ResourceNode
-                )
+                assert isinstance(node, (DocumentNode, ResourceNode))
                 node.reload()
                 args = {'$data': self.__site.merged_data}
                 _process_node_sync(node, self.__cache, **args)
@@ -110,7 +108,7 @@ class _ServerState:
         if isinstance(node, DataNode) and enable_admin:
             from .yaml import dump_yaml
 
-            yaml_content = dump_yaml(node.content)
+            yaml_content = dump_yaml(node.content) or ''
 
             html: str = pygments.highlight(
                 yaml_content,
@@ -120,12 +118,9 @@ class _ServerState:
 
             return BuildResult(None, html.encode('utf-8'), False)
 
-        assert (
-            isinstance(node, StaticNode)
-            or isinstance(node, DocumentNode)
-            or isinstance(node, GeneratedNode)
-            or isinstance(node, IndexNode)
-            or isinstance(node, ResourceNode)
+        assert isinstance(
+            node,
+            (StaticNode, DocumentNode, GeneratedNode, IndexNode, ResourceNode),
         )
 
         return BuildResult(node.publish(self.__publisher), None, cache)

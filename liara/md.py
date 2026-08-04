@@ -109,7 +109,7 @@ class _ParseBuffer:
 
 class _ShortcodeParser:
     def __init__(self, buffer: _ParseBuffer):
-        self.__args = dict()
+        self.__args = {}
         self.__function_name = None
         self.__buffer = buffer
         self.__key_re = re.compile(r'^[\w-]+')
@@ -296,7 +296,7 @@ class ShortcodePreprocessor(Preprocessor):
         from .template import Page
 
         super().__init__(md)
-        self.__functions = dict()
+        self.__functions = {}
         self.__page = Page(node)
         self.__data = None
 
@@ -323,7 +323,7 @@ class ShortcodePreprocessor(Preprocessor):
 
         signature = inspect.signature(function)
         if not any(
-            [p.kind == p.VAR_KEYWORD for p in signature.parameters.values()]
+            p.kind == p.VAR_KEYWORD for p in signature.parameters.values()
         ):
             raise Exception(
                 f'Cannot register function "{name}" as a '

@@ -105,11 +105,13 @@ class TemplateRepository(ABC):
                 longest_matching_pattern_length = len(pattern)
 
             # Tie breaker: The longer pattern wins
-            if best_score == score:
-                if len(pattern) > longest_matching_pattern_length:
-                    best_match = template
-                    best_pattern = pattern
-                    longest_matching_pattern_length = len(pattern)
+            if (
+                best_score == score
+                and len(pattern) > longest_matching_pattern_length
+            ):
+                best_match = template
+                best_pattern = pattern
+                longest_matching_pattern_length = len(pattern)
 
         if not best_match:
             raise Exception(
@@ -177,7 +179,7 @@ class Jinja2TemplateRepository(TemplateRepository):
 
         def sanitize_options(options):
             if not options:
-                return dict()
+                return {}
 
             forbidden_options = {
                 'undefined',

@@ -78,7 +78,7 @@ def test_merge_dictionaries_fails_with_mismatch():
     a = {'key1': {'foo': {'bar': 'baz'}}}
     b = {'key1': {'foo': 'bug'}}
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(TypeError):
         merge_dictionaries(a, b)
 
 

@@ -629,14 +629,19 @@ class ResourceNode(Node):
     ``SASS`` to ``CSS`` compilation.
     """
 
-    def __init__(self, src, path: pathlib.PurePosixPath, metadata_path=None):
+    def __init__(
+        self,
+        src,
+        path: pathlib.PurePosixPath,
+        metadata_path: pathlib.Path | None = None,
+    ):
         super().__init__()
         self.kind = NodeKind.Resource
         self.src = src
         self.path = path
         self.content: bytes | None = None
         if metadata_path:
-            self.metadata = load_yaml(open(metadata_path, 'r'))
+            self.metadata = load_yaml(metadata_path.read_text())
 
         self.metadata['$type'] = self.__class__.__name__
 
@@ -793,7 +798,7 @@ class NodeFactory(Generic[NT]):
         for suffix in suffixes:
             self.__known_types[suffix] = (
                 node_type,
-                extra_args if extra_args is not None else dict(),
+                extra_args if extra_args is not None else {},
             )
 
     def _create_node(
@@ -921,14 +926,17 @@ class StaticNode(Node):
     .. versionadded:: 2.7.7"""
 
     def __init__(
-        self, src: pathlib.Path, path: pathlib.PurePosixPath, metadata_path=None
+        self,
+        src: pathlib.Path,
+        path: pathlib.PurePosixPath,
+        metadata_path: pathlib.Path | None = None,
     ):
         super().__init__()
         self.kind = NodeKind.Static
         self.src = src
         self.path = path
         if metadata_path:
-            self.metadata = load_yaml(open(metadata_path, 'r'))
+            self.metadata = load_yaml(metadata_path.read_text())
 
         self.skip_publish = False
 

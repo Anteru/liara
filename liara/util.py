@@ -179,7 +179,7 @@ def merge_dictionaries(a: dict, b: dict) -> dict:
 
     def _m(a: dict, b: dict, path: list[str]):
         if not isinstance(b, dict):
-            raise RuntimeError(
+            raise TypeError(
                 f'Cannot merge non-dictionary into dictionary at key: {".".join(path)}'
             )
 

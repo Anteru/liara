@@ -53,8 +53,7 @@ class SassCompiler(Tool):
             ['sass'] + cmd_line_arguments,
             # See above
             shell=sys.platform == 'win32',
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
 
     def try_install(self):
@@ -92,8 +91,7 @@ class TypescriptCompiler(Tool):
             ['tsc'] + cmd_line_arguments,
             # See above
             shell=sys.platform == 'win32',
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
 
     def try_install(self):

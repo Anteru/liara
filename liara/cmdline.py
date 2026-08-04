@@ -21,6 +21,7 @@ class Environment:
 
     This provides access to global variables that are useful for command line
     commands, as well as a global liara instance."""
+
     __liara: Liara | None
 
     def __init__(self):
@@ -45,7 +46,8 @@ def _setup_logging(*, debug: bool, verbose: bool):
     if debug:
         logging.basicConfig(
             level=logging.DEBUG,
-            format='%(asctime)s %(levelname)-7s %(name)s %(message)s')
+            format='%(asctime)s %(levelname)-7s %(name)s %(message)s',
+        )
         # Unfortunately PIL writes a lot of debug output, so we're disabling it
         # manually here to make debug output useful
         # This doesn't remove critical debug output -- PIL writes things like
@@ -56,19 +58,23 @@ def _setup_logging(*, debug: bool, verbose: bool):
         logging.getLogger('MARKDOWN').setLevel(logging.INFO)
     elif verbose:
         logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s %(levelname)-7s %(message)s')
+            level=logging.INFO, format='%(asctime)s %(levelname)-7s %(message)s'
+        )
     else:
         logging.basicConfig(
-            level=logging.WARN,
-            format='%(asctime)s %(levelname)-7s %(message)s')
+            level=logging.WARN, format='%(asctime)s %(levelname)-7s %(message)s'
+        )
 
 
 @click.group(name='Built-in commands')
 @click.option('--debug/--no-debug', default=False, help='Enable debug output.')
 @click.option('--verbose', is_flag=True, help='Enable verbose output.')
-@click.option('--config', default='config.yaml', type=click.Path(),
-              help='Set the path to the configuration file.')
+@click.option(
+    '--config',
+    default='config.yaml',
+    type=click.Path(),
+    help='Set the path to the configuration file.',
+)
 @click.option('--date', default=None, help='Override the current date.')
 @click.version_option()
 @pass_environment
@@ -79,12 +85,14 @@ def cli(env: Environment, debug: bool, verbose: bool, config, date: str):
     if date:
         from .util import set_local_now
         import dateparser
+
         now = dateparser.parse(date)
         if now:
             set_local_now(now)
         else:
-            env.log.error(f'Could not parse date {date}, ignoring it for this '
-                          'build')
+            env.log.error(
+                f'Could not parse date {date}, ignoring it for this build'
+            )
 
     env.config = config
 
@@ -106,34 +114,47 @@ def _create_liara(config, *, overrides=None):
 
 @cli.command()
 @click.option('--profile/--no-profile')
-@click.option('--profile-file', type=click.Path(writable=True),
-              default='build.prof')
-@click.option('--cache/--no-cache', default=True,
-              help='Enable or disable the configured cache')
-@click.option('--parallel/--no-parallel', default=True,
-              help='Enable or disable parallel processing.')
+@click.option(
+    '--profile-file', type=click.Path(writable=True), default='build.prof'
+)
+@click.option(
+    '--cache/--no-cache',
+    default=True,
+    help='Enable or disable the configured cache',
+)
+@click.option(
+    '--parallel/--no-parallel',
+    default=True,
+    help='Enable or disable parallel processing.',
+)
 @pass_environment
-def build(env: Environment, profile: bool,
-          profile_file: str | bytes | os.PathLike,
-          cache: bool, parallel: bool):
+def build(
+    env: Environment,
+    profile: bool,
+    profile_file: str | bytes | os.PathLike,
+    cache: bool,
+    parallel: bool,
+):
     """Build a site."""
     if profile:
         pr = cProfile.Profile()
         pr.enable()
-    env.liara.build(disable_cache=not cache,
-                    parallel_build=parallel)
+    env.liara.build(disable_cache=not cache, parallel_build=parallel)
     if profile:
         pr.disable()
         pr.dump_stats(profile_file)
 
 
 @cli.command()
-@click.option('--type', '-t', 'link_type',
-              type=click.Choice(['internal', 'external']),
-              default='internal')
+@click.option(
+    '--type',
+    '-t',
+    'link_type',
+    type=click.Choice(['internal', 'external']),
+    default='internal',
+)
 @pass_environment
-def validate_links(env: Environment,
-                   link_type):
+def validate_links(env: Environment, link_type):
     """Validate links.
 
     Checks all internal/external links for validity. For internal links,
@@ -145,17 +166,16 @@ def validate_links(env: Environment,
         validate_internal_links,
         validate_external_links,
         gather_links,
-        LinkType
+        LinkType,
     )
+
     liara = env.liara
     site = liara.discover_content()
     cache = MemoryCache()
 
     env.log.debug('Processing site ...')
-    args = {
-        '$data': site.merged_data
-    }
-    for document in site.documents:   
+    args = {'$data': site.merged_data}
+    for document in site.documents:
         document.process(cache, **args)
 
     env.log.debug('done')
@@ -191,14 +211,16 @@ def list_tags(env: Environment):
     This uses a metadata field named 'tags' and returns the union of all tags,
     as well as the count how often each tag is used."""
     from collections import Counter
+
     liara = env.liara
     site = liara.discover_content()
     tags = []
     for document in site.documents:
         tags += document.metadata.get('tags', [])
 
-    counted_tags = sorted(Counter(tags).items(), key=lambda x: x[1],
-                          reverse=True)
+    counted_tags = sorted(
+        Counter(tags).items(), key=lambda x: x[1], reverse=True
+    )
     for k, v in counted_tags:
         print(k, v)
 
@@ -239,12 +261,16 @@ def create_config(output: IO):
 
 
 @cli.command()
-@click.option('--template-backend', '-t',
-              type=click.Choice(['jinja2', 'mako']),
-              default='jinja2')
+@click.option(
+    '--template-backend',
+    '-t',
+    type=click.Choice(['jinja2', 'mako']),
+    default='jinja2',
+)
 def quickstart(template_backend: Literal['jinja2', 'mako']):
     """Create a quickstart project."""
     from .quickstart import generate
+
     generate(template_backend)
 
 
@@ -256,14 +282,15 @@ def check_tools(env: Environment, try_install: bool):
     print('All required tools are present')
 
 
-def _print_tree(node: _Node, get_label: Callable[[_Node], str],
-                prefix='', last=True):
+def _print_tree(
+    node: _Node, get_label: Callable[[_Node], str], prefix='', last=True
+):
     """Pretty-print a fully populated tree (meaning: all intermediate nodes
     are present.)"""
-    empty = "    "
-    last_branch = "└── "
-    continue_traversal = "│   "
-    branch = "├── "
+    empty = '    '
+    last_branch = '└── '
+    continue_traversal = '│   '
+    branch = '├── '
 
     if node.name == 'Site':
         # Special case the root node: Don't add a prefix here
@@ -277,23 +304,36 @@ def _print_tree(node: _Node, get_label: Callable[[_Node], str],
         print(prefix + (last_branch if last else branch) + get_label(node))
         if node.children:
             for i, c in enumerate(sorted(node.children, key=lambda n: n.name)):
-                _print_tree(c, get_label, 
-                            # Logic here is: If we're last we're not adding
-                            # a vertical bar, just spaces
-                            prefix + (empty if last else continue_traversal),
-                            i == (len(node.children) - 1))
+                _print_tree(
+                    c,
+                    get_label,
+                    # Logic here is: If we're last we're not adding
+                    # a vertical bar, just spaces
+                    prefix + (empty if last else continue_traversal),
+                    i == (len(node.children) - 1),
+                )
 
 
 @cli.command()
-@click.option('--format', '-f', type=click.Choice(['tree', 'list', 'json']),
-              default='tree')
-@click.option('--type', '-t', 'content_type', multiple=True,
-              type=click.Choice(
-                  list(map(str.lower, NodeKind.__members__.keys()))))
+@click.option(
+    '--format',
+    '-f',
+    type=click.Choice(['tree', 'list', 'json']),
+    default='tree',
+)
+@click.option(
+    '--type',
+    '-t',
+    'content_type',
+    multiple=True,
+    type=click.Choice(list(map(str.lower, NodeKind.__members__.keys()))),
+)
 @pass_environment
-def list_content(env: Environment,
-                 format: Literal['tree', 'list', 'json'],
-                 content_type: list[str]):
+def list_content(
+    env: Environment,
+    format: Literal['tree', 'list', 'json'],
+    content_type: list[str],
+):
     """List all content.
 
     If ``format`` is set to ``tree``, this will print the content as a
@@ -319,11 +359,11 @@ def list_content(env: Environment,
         nodes = list(filter(filter_nodes, nodes))
 
     def get_node_label(node):
-        label = f"{node.path.parts[-1]}"
+        label = f'{node.path.parts[-1]}'
         if node.kind == NodeKind.Resource:
             label += f"(Resource, generated from '{node.src}')"
         else:
-            label += f"({node.kind.name})"
+            label += f'({node.kind.name})'
 
         return label
 
@@ -331,6 +371,7 @@ def list_content(env: Environment,
         root = _create_node_tree_for_site(nodes)
         import sys
         import io
+
         # This seems to be required to get UTF-8 output redirection to work
         # in powershell. Unclear why
         if isinstance(sys.stdout, io.TextIOWrapper):
@@ -347,15 +388,10 @@ def list_content(env: Environment,
             print(str(node.path), get_node_label(node))
     elif format == 'json':
         import json
-        result = {
-            'version': 1,
-            'nodes': []
-        }
+
+        result = {'version': 1, 'nodes': []}
         for node in nodes:
-            data = {
-                'path': str(node.path),
-                'kind': node.kind.name
-            }
+            data = {'path': str(node.path), 'kind': node.kind.name}
             if node.src:
                 data['source'] = str(node.src)
 
@@ -364,48 +400,62 @@ def list_content(env: Environment,
 
 
 @cli.command()
-@click.option('--browser/--no-browser',
-              default=True,
-              help='Open a browser window automatically')
-@click.option('--port', '-p', default=8080,
-              help='The port to use for the local server')
-@click.option('--cache/--no-cache', default=True,
-              help='Enable or disable the configured cache')
+@click.option(
+    '--browser/--no-browser',
+    default=True,
+    help='Open a browser window automatically',
+)
+@click.option(
+    '--port', '-p', default=8080, help='The port to use for the local server'
+)
+@click.option(
+    '--cache/--no-cache',
+    default=True,
+    help='Enable or disable the configured cache',
+)
 @click.option('--admin', is_flag=True, help='Serve the admin interface instead')
-@click.option('--name', '-n', default='',
-              help='The hostname to use for the local server')
+@click.option(
+    '--name', '-n', default='', help='The hostname to use for the local server'
+)
 @pass_environment
-def serve(env: Environment, browser: bool, port: int, cache: bool, admin: bool, name: str):
+def serve(
+    env: Environment,
+    browser: bool,
+    port: int,
+    cache: bool,
+    admin: bool,
+    name: str,
+):
     """Run a local development server."""
     import watchfiles
-    from .server import (
-        HttpServer
-    )
+    from .server import HttpServer
 
     liara = _create_liara(env.config)
 
     # The HTTP server runs a thread internally
-    server = HttpServer(open_browser=browser, port=port,
-                        enable_admin=admin, server_name=name)
+    server = HttpServer(
+        open_browser=browser, port=port, enable_admin=admin, server_name=name
+    )
 
     liara._set_base_url_override(server.get_url())
 
     server.start(liara, liara._get_cache() if cache else NullCache())
 
     def get_ignore_directories(config):
-        output_directory = config["output_directory"]
+        output_directory = config['output_directory']
         ignore_dirs = [
             # Default ignore paths, new with 2.7.6
             '.git',
             '.hg',
             '.svn',
-            output_directory]
+            output_directory,
+        ]
 
-        match config["build.cache.type"]:
-            case "fs":
-                ignore_dirs.append(config["build.cache.fs.directory"])
-            case "db":
-                ignore_dirs.append(config["build.cache.db.directory"])
+        match config['build.cache.type']:
+            case 'fs':
+                ignore_dirs.append(config['build.cache.fs.directory'])
+            case 'db':
+                ignore_dirs.append(config['build.cache.db.directory'])
 
         return ignore_dirs
 
@@ -419,9 +469,9 @@ def serve(env: Environment, browser: bool, port: int, cache: bool, admin: bool, 
 
             watch_filter = watchfiles.DefaultFilter(ignore_dirs=ignore_dirs)
 
-            for _ in watchfiles.watch('.',
-                                      watch_filter=watch_filter,
-                                      recursive=True):
+            for _ in watchfiles.watch(
+                '.', watch_filter=watch_filter, recursive=True
+            ):
                 # TODO We can optimize this by skipping  the reconfigure
                 # if it's a _known_ content node that changes
 
@@ -434,13 +484,14 @@ def serve(env: Environment, browser: bool, port: int, cache: bool, admin: bool, 
                 liara._set_base_url_override(server.get_url())
 
                 server.reconfigure(
-                    liara,
-                    liara._get_cache() if cache else NullCache())
+                    liara, liara._get_cache() if cache else NullCache()
+                )
 
                 # If the directories didn't change, there's no need to setup
                 # the watch again, so we skip this and return to the loop early
                 new_ignore_dirs = get_ignore_directories(
-                    liara._get_configuration())
+                    liara._get_configuration()
+                )
                 if new_ignore_dirs != ignore_dirs:
                     break
     except KeyboardInterrupt:
@@ -478,14 +529,19 @@ def inspect():
 def inspect_data(env: Environment):
     """Inspect the content of `site.data`."""
     import yaml
+
     liara = env.liara
     liara.discover_content()
 
     # Using dict() here improves formatting, as pprint starts with
     # mappingproxy(...) otherwise which is an implementation detail
-    print(yaml.dump(dict(liara.site.merged_data),
-                    default_flow_style=False,
-                    allow_unicode=True))
+    print(
+        yaml.dump(
+            dict(liara.site.merged_data),
+            default_flow_style=False,
+            allow_unicode=True,
+        )
+    )
 
 
 @inspect.command('list-data-files')
@@ -502,6 +558,7 @@ def inspect_data_files(env: Environment):
 class _SiteShim(Site):
     """Helper class to inject fake nodes for `template-match` so
     we can match selectors with `?kind=` specified."""
+
     def __init__(self, site: Site):
         self.__site = site
         self.__fakes: dict[pathlib.PurePosixPath, NodeKind] = {}
@@ -509,8 +566,9 @@ class _SiteShim(Site):
     def register_fake_node(self, path: str, kind: NodeKind):
         self.__fakes[pathlib.PurePosixPath(path)] = kind
 
-    def get_node(self, path: Union[str, pathlib.PurePosixPath]) \
-            -> Optional[Node]:
+    def get_node(
+        self, path: Union[str, pathlib.PurePosixPath]
+    ) -> Optional[Node]:
         if path in self.__fakes:
             assert isinstance(path, pathlib.PurePosixPath)
             n = Node()
@@ -528,12 +586,15 @@ class _SiteShim(Site):
 
 @inspect.command('template-match')
 @click.argument('path')
-@click.option('--kind', type=click.Choice(['document', 'index']),
-              help='Override or set the node kind at the specified path.')
+@click.option(
+    '--kind',
+    type=click.Choice(['document', 'index']),
+    help='Override or set the node kind at the specified path.',
+)
 @pass_environment
-def inspect_template_match(env: Environment,
-                           path: str,
-                           kind: Optional[Literal['document', 'index']]):
+def inspect_template_match(
+    env: Environment, path: str, kind: Optional[Literal['document', 'index']]
+):
     """Match a template pattern."""
     liara = env.liara
     liara.discover_content()
@@ -552,9 +613,11 @@ def inspect_template_match(env: Environment,
 
     template_repository = liara._get_template_repository()
     match, pattern = template_repository._match_template(
-        pathlib.PurePosixPath(path), site_shim)
-    print(f'Using template "{match}" for path "{path}" due to pattern '
-          f'"{pattern}"')
+        pathlib.PurePosixPath(path), site_shim
+    )
+    print(
+        f'Using template "{match}" for path "{path}" due to pattern "{pattern}"'
+    )
 
 
 if __name__ == '__main__':

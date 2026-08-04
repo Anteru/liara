@@ -33,7 +33,10 @@ def _register_cli(sender, cli):
         known_dates = set()
 
         def get_sort_key(node):
-            return (node.metadata['date'], node.metadata['title'], )
+            return (
+                node.metadata['date'],
+                node.metadata['title'],
+            )
 
         for document in sorted(documents_in_series, key=get_sort_key):
             date_format = '%x' if day_only else '%x %X'
@@ -41,7 +44,9 @@ def _register_cli(sender, cli):
             if date in known_dates:
                 print('* ', end='')
             known_dates.add(date)
-            print(document.metadata['date'].strftime(date_format),
-                  document.metadata['title'])
+            print(
+                document.metadata['date'].strftime(date_format),
+                document.metadata['title'],
+            )
 
         sys.exit(0)

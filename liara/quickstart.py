@@ -116,7 +116,7 @@ __TEMPLATES_JINJA2 = {
     {% endif %}
 </ul>
 {% endblock %}
-"""
+""",
 }
 
 __TEMPLATES_MAKO = {
@@ -233,7 +233,7 @@ ${page.content}
         % endfor
     % endif
 </ul>
-</%block>"""
+</%block>""",
 }
 
 __SCSS = """
@@ -271,7 +271,7 @@ __THEME_CONFIG_JINJA2 = {
         '/archive/*': 'archive.jinja2',
         '/*': 'page.jinja2',
     },
-    'resource_directory': 'resources'
+    'resource_directory': 'resources',
 }
 
 __THEME_CONFIG_MAKO = {
@@ -281,7 +281,7 @@ __THEME_CONFIG_MAKO = {
         '/archive/*': 'archive.mako',
         '/*': 'page.mako',
     },
-    'resource_directory': 'resources'
+    'resource_directory': 'resources',
 }
 
 __BLOG_POST_GENERATOR = r"""
@@ -330,12 +330,14 @@ def generate_templates(backend: Literal['jinja2', 'mako']):
 
 def generate_css():
     import os
+
     os.makedirs('templates/resources', exist_ok=True)
     open('templates/resources/style.scss', 'w').write(__SCSS)
 
 
 def generate_theme(backend: Literal['jinja2', 'mako']):
     import os
+
     os.makedirs('templates', exist_ok=True)
     generate_templates(backend)
     generate_css()
@@ -350,6 +352,7 @@ def generate_theme(backend: Literal['jinja2', 'mako']):
 def generate_content():
     import datetime
     import os
+
     page_template = """---
 title: %TITLE%
 tags: [%TAGS%]
@@ -362,33 +365,21 @@ Sample post using _Markdown_
     dates = [
         datetime.datetime(2019, 1, 3),
         datetime.datetime(2018, 1, 5),
-        datetime.datetime(2017, 3, 1)
+        datetime.datetime(2017, 3, 1),
     ]
 
-    titles = [
-        'Newest post',
-        'Old but not oldest post',
-        'The beginning'
-    ]
+    titles = ['Newest post', 'Old but not oldest post', 'The beginning']
 
-    tags = [
-        ['new', 'featured'],
-        ['old'],
-        ['old', 'historic']
-    ]
+    tags = [['new', 'featured'], ['old'], ['old', 'historic']]
 
-    slugs = [
-        'newest-post',
-        'old-but-not-oldest-post',
-        'the-beginning'
-    ]
+    slugs = ['newest-post', 'old-but-not-oldest-post', 'the-beginning']
 
     os.makedirs('content/blog', exist_ok=True)
 
     for date, title, tag, slug in zip(dates, titles, tags, slugs):
-        t = page_template.replace("%TITLE%", title)
-        t = t.replace("%TAGS%", ', '.join(tag))
-        t = t.replace("%DATE%", str(date))
+        t = page_template.replace('%TITLE%', title)
+        t = t.replace('%TAGS%', ', '.join(tag))
+        t = t.replace('%DATE%', str(date))
         os.makedirs(f'content/blog/{date.year}', exist_ok=True)
         open(f'content/blog/{date.year}/{slug}.md', 'w').write(t)
 
@@ -413,26 +404,21 @@ __DEFAULT_CONFIG = {
     'indices': 'indices.yaml',
 }
 
-__DEFAULT_COLLECTIONS = {
-    'blog': {
-        'filter': '/blog/**',
-        'order_by': 'date'
-    }
-}
+__DEFAULT_COLLECTIONS = {'blog': {'filter': '/blog/**', 'order_by': 'date'}}
 
 __DEFAULT_INDICES = [
     {
         'collection': 'blog',
         'group_by': ['date.year'],
         'path': '/archive/by-year/%1',
-        'create_top_level_index': True
+        'create_top_level_index': True,
     },
     {
         'collection': 'blog',
         'group_by': ['*tags'],
         'path': '/archive/by-tag/%1',
-        'create_top_level_index': True
-    }
+        'create_top_level_index': True,
+    },
 ]
 
 
@@ -445,6 +431,7 @@ def generate_configs():
 
 def generate_generator():
     import os
+
     os.makedirs('generators', exist_ok=True)
     output_file = os.path.join('generators', 'blog-post.py')
     open(output_file, 'w').write(__BLOG_POST_GENERATOR)

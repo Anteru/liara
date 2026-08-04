@@ -24,13 +24,13 @@ class CacheInfo:
     entry_count: int = 0
     """Approximate number of objects stored in the cache."""
 
-    name: str = ""
+    name: str = ''
     """A human-friendly name for this cache."""
 
 
 class Cache(abc.ABC):
-    """Interface for key-value caches.
-    """
+    """Interface for key-value caches."""
+
     @abc.abstractmethod
     def set_key_prefix(self, prefix: bytes):
         """Set a prefix for all keys. This can be for example used to
@@ -89,8 +89,7 @@ class _CacheBase(Cache):
         self.__prefix = bytes()
 
     def set_key_prefix(self, prefix: bytes):
-        self.__log.debug('Setting cache key prefix to: "%s"',
-                         prefix.hex())
+        self.__log.debug('Setting cache key prefix to: "%s"', prefix.hex())
         self.__prefix = prefix
 
     @abc.abstractmethod
@@ -119,6 +118,7 @@ class FilesystemCache(_CacheBase):
     This cache tries to load a previously generated index. Use
     :py:meth:`persist` to write the cache index to disk.
     """
+
     __index: Dict[bytes, pathlib.Path]
 
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
@@ -138,6 +138,7 @@ class FilesystemCache(_CacheBase):
 
     def clear(self) -> None:
         import shutil
+
         self.__log.debug('Clearing cache')
         self.__index = {}
         shutil.rmtree(self.__path, ignore_errors=True)
@@ -191,8 +192,9 @@ class Sqlite3Cache(_CacheBase):
         self.__db_file = self.__path / 'cache.db'
         # We're only ever used by one thread, but we may get passed around
         # from one thread to another when running `serve`.
-        self.__connection = sqlite3.connect(self.__db_file,
-                                            check_same_thread=False)
+        self.__connection = sqlite3.connect(
+            self.__db_file, check_same_thread=False
+        )
         self.__cursor = self.__connection.cursor()
         self.__cursor.execute("""CREATE TABLE IF NOT EXISTS cache
             (key BLOB PRIMARY KEY NOT NULL,
@@ -201,9 +203,9 @@ class Sqlite3Cache(_CacheBase):
 
     def clear(self) -> None:
         self.__log.debug('Clearing cache')
-        self.__cursor.execute("DELETE FROM cache;")
+        self.__cursor.execute('DELETE FROM cache;')
         self.__connection.commit()
-        self.__cursor.execute("VACUUM;")
+        self.__cursor.execute('VACUUM;')
 
     def persist(self):
         self.__connection.commit()
@@ -222,7 +224,14 @@ class Sqlite3Cache(_CacheBase):
             object_type = 'OBJECT'
             value = pickle.dumps(value)
 
-        r = self.__cursor.execute(q, (key, value, object_type,))
+        r = self.__cursor.execute(
+            q,
+            (
+                key,
+                value,
+                object_type,
+            ),
+        )
 
         return r.lastrowid != 0
 
@@ -259,6 +268,7 @@ class MemoryCache(_CacheBase):
 
     This cache stores all objects in-memory.
     """
+
     __index: Dict[bytes, object | bytes]
 
     def __init__(self):
@@ -280,10 +290,15 @@ class MemoryCache(_CacheBase):
 
     def inspect(self):
         import sys
+
         size = sys.getsizeof(self.__index)
 
-        size += sum([sys.getsizeof(k) + sys.getsizeof(v)
-                     for k, v in self.__index.items()])
+        size += sum(
+            [
+                sys.getsizeof(k) + sys.getsizeof(v)
+                for k, v in self.__index.items()
+            ]
+        )
 
         count = len(self.__index)
 
@@ -293,9 +308,11 @@ class MemoryCache(_CacheBase):
 class RedisCache(_CacheBase):
     """A cache using Redis as the storage backend."""
 
-    def __init__(self, host: str, port: int, db: int,
-                 expiration_time=timedelta(hours=1)):
+    def __init__(
+        self, host: str, port: int, db: int, expiration_time=timedelta(hours=1)
+    ):
         import redis
+
         super().__init__()
         self.__redis = redis.Redis(host, port, db)
         self.__expiration_time = expiration_time
@@ -311,10 +328,12 @@ class RedisCache(_CacheBase):
             value = pickle.dumps(value)
 
         pipeline = self.__redis.pipeline()
-        pipeline.set(self.__make_key(key, 'content'),
-                     value, ex=self.__expiration_time)
-        pipeline.set(self.__make_key(key, 'type'),
-                     object_type, ex=self.__expiration_time)
+        pipeline.set(
+            self.__make_key(key, 'content'), value, ex=self.__expiration_time
+        )
+        pipeline.set(
+            self.__make_key(key, 'type'), object_type, ex=self.__expiration_time
+        )
 
         return all(pipeline.execute())
 
@@ -350,6 +369,7 @@ class NullCache(_CacheBase):
     This is mostly useful to disable caching in APIs which require a cache
     instance.
     """
+
     def __init__(self):
         super().__init__()
 

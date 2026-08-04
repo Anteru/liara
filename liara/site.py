@@ -44,6 +44,7 @@ def _create_metadata_accessor(field_name: str):
     If the field is not present, this function returns ``None``.
     """
     if '.' in field_name:
+
         def dict_key_fun(o):
             field = field_name.split('.')
             o = o.metadata.get(field[0])
@@ -57,15 +58,17 @@ def _create_metadata_accessor(field_name: str):
                 else:
                     return None
             return o
+
         return dict_key_fun
     else:
+
         def metadata_key_fun(o):
             return o.metadata.get(field_name)
+
         return metadata_key_fun
 
 
-def _create_metadata_filter(exclude_without:
-                            List[Union[str, Tuple[str, Any]]]):
+def _create_metadata_filter(exclude_without: List[Union[str, Tuple[str, Any]]]):
     """Create a function to filter out nodes based on metadata fields.
 
     The filter function will check if the specified fields are present,
@@ -78,6 +81,7 @@ def _create_metadata_filter(exclude_without:
 
             def key_function(node: Node, key: str):
                 return _create_metadata_accessor(key)(node) is not None
+
             key_functions.append(functools.partial(key_function, key=key))
         else:
             assert isinstance(f, tuple)
@@ -85,6 +89,7 @@ def _create_metadata_filter(exclude_without:
 
             def key_function(node: Node, kv):
                 return _create_metadata_accessor(kv[0])(node) == kv[1]
+
             key_functions.append(functools.partial(key_function, kv=f))
 
     def filter_function(node: Node):
@@ -103,11 +108,16 @@ class Collection:
 
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
-    def __init__(self, site: 'Site', name: str, pattern: str, *,
-                 exclude_without: Optional[List[Union[str, Tuple[str, Any]]]]
-                 = None,
-                 order_by: Optional[Union[str, List[str]]] = None,
-                 node_kinds: Optional[List[Union[str, NodeKind]]] = None):
+    def __init__(
+        self,
+        site: 'Site',
+        name: str,
+        pattern: str,
+        *,
+        exclude_without: Optional[List[Union[str, Tuple[str, Any]]]] = None,
+        order_by: Optional[Union[str, List[str]]] = None,
+        node_kinds: Optional[List[Union[str, NodeKind]]] = None,
+    ):
         """
         Create a new collection.
 
@@ -158,8 +168,9 @@ class Collection:
         nodes = filter(filter_kind, nodes)
 
         if self.__exclude_without:
-            nodes = filter(_create_metadata_filter(self.__exclude_without),
-                           nodes)
+            nodes = filter(
+                _create_metadata_filter(self.__exclude_without), nodes
+            )
 
         for ordering in self.__order_by:
             if ordering.startswith('-'):
@@ -178,9 +189,12 @@ class Collection:
                         'order_by statement. Use exclude_without to '
                         'excludes nodes which miss certain metadata '
                         'fields.',
-                        node.path, ordering)
-                    raise Exception(f'Cannot order collection "{self.__name}" '
-                                    f'by key "{ordering}"')
+                        node.path,
+                        ordering,
+                    )
+                    raise Exception(
+                        f'Cannot order collection "{self.__name}" by key "{ordering}"'
+                    )
                 return result
 
             nodes = sorted(nodes, key=key_fun, reverse=reverse)
@@ -204,8 +218,8 @@ class Collection:
         order, or ``None`` if this is the last node."""
         if not self.__order_by:
             self.__log.warning(
-                'Using get_next() on an unordered collection has '
-                'undefined results')
+                'Using get_next() on an unordered collection has undefined results'
+            )
         return self.__next.get(node.path)
 
     def get_previous(self, node: Node) -> Optional[Node]:
@@ -213,14 +227,15 @@ class Collection:
         specified order, or ``None`` if this is the first node."""
         if not self.__order_by:
             self.__log.warning(
-                'Using get_previous() on an unordered collection has '
-                'undefined results')
+                'Using get_previous() on an unordered collection has undefined results'
+            )
         return self.__previous.get(node.path)
 
 
 def _group_recursive(iterable, group_keys: List[str]):
     import collections
     import itertools
+
     if not group_keys:
         return list(iterable)
 
@@ -239,8 +254,9 @@ def _group_recursive(iterable, group_keys: List[str]):
                 result[group].append(item)
 
         if group_keys:
-            return {k: _group_recursive(v, group_keys)
-                    for k, v in result.items()}
+            return {
+                k: _group_recursive(v, group_keys) for k, v in result.items()
+            }
         return result
     else:
         key_func = _create_metadata_accessor(current_key)
@@ -260,11 +276,16 @@ class Index:
     The index structure requires a grouping schema -- for instance, all nodes
     containing some tag can get grouped under one index node.
     """
-    def __init__(self, collection: Collection,
-                 path: str, group_by: List[str], *,
-                 exclude_without: Optional[List[Union[str, Tuple[str, Any]]]]
-                 = None,
-                 create_top_level_index=False):
+
+    def __init__(
+        self,
+        collection: Collection,
+        path: str,
+        group_by: List[str],
+        *,
+        exclude_without: Optional[List[Union[str, Tuple[str, Any]]]] = None,
+        create_top_level_index=False,
+    ):
         """
         Create a new index.
 
@@ -299,22 +320,22 @@ class Index:
             url = self.__path
             # Strip off components until we have no parameter left
             while '%' in url:
-                url = url[:url.rfind('/')]
-            node = IndexNode(pathlib.PurePosixPath(url), {
-                'path': self.__path,
-                'top_level_index': True
-            })
+                url = url[: url.rfind('/')]
+            node = IndexNode(
+                pathlib.PurePosixPath(url),
+                {'path': self.__path, 'top_level_index': True},
+            )
             site.add_index(node)
             self.__top_level_node = node
-            self.__log.debug('Created top-level index at "%s"',
-                             self.__path)
+            self.__log.debug('Created top-level index at "%s"', self.__path)
 
-        self._create_nodes_recursive(site, self.__path,
-                                     self.__groups, 1,
-                                     self.__top_level_node)
+        self._create_nodes_recursive(
+            site, self.__path, self.__groups, 1, self.__top_level_node
+        )
 
-    def _create_nodes_recursive(self, site: 'Site', path, d, index,
-                                parent: Optional[IndexNode] = None):
+    def _create_nodes_recursive(
+        self, site: 'Site', path, d, index, parent: Optional[IndexNode] = None
+    ):
         for k, v in d.items():
             url = pathlib.PurePosixPath(path.replace(f'%{index}', str(k)))
             # TODO Find out what to do here -- either don't create intermediate
@@ -327,7 +348,7 @@ class Index:
                 parent.add_reference(node)
 
             if isinstance(v, dict):
-                self._create_nodes_recursive(site, url, v, index+1, node)
+                self._create_nodes_recursive(site, url, v, index + 1, node)
             else:
                 for reference in v:
                     node.add_reference(reference)
@@ -335,6 +356,7 @@ class Index:
 
 class ContentFilter(ABC):
     """Content filters can filter out nodes based on various criteria."""
+
     @abstractmethod
     def apply(self, node: Node) -> bool:
         """Return ``True`` if the node should be kept, and ``False``
@@ -356,8 +378,10 @@ class DateFilter(ContentFilter):
     """Filter content based on the metadata field ``date``.
 
     If the date is in the future, the node will be filtered."""
+
     def __init__(self):
         from .util import local_now
+
         self.__now = local_now()
 
     def apply(self, node: Node) -> bool:
@@ -382,6 +406,7 @@ class StatusFilter(ContentFilter):
     If ``status`` is set to ``private``, the node will be filtered. The
     comparison is case-insensitive.
     """
+
     def apply(self, node: Node) -> bool:
         return node.metadata.get('status', '').lower() != 'private'
 
@@ -396,10 +421,7 @@ class StatusFilter(ContentFilter):
 
 class ContentFilterFactory:
     def __init__(self):
-        self.__filters = {
-            'date': DateFilter,
-            'status': StatusFilter
-        }
+        self.__filters = {'date': DateFilter, 'status': StatusFilter}
 
     def create_filter(self, name: str) -> ContentFilter:
         class_ = self.__filters[name]
@@ -482,8 +504,9 @@ class Site:
     def __is_content_filtered(self, node: Node) -> bool:
         for f in self.__content_filters:
             if not f.apply(node):
-                self.__log.info('Filtered node "%s" due to reason: %s',
-                                node.path, f.reason)
+                self.__log.info(
+                    'Filtered node "%s" due to reason: %s', node.path, f.reason
+                )
                 self.__filtered_content[node.path] = f.name
                 signals.content_filtered.send(self, node=node, filter=f)
                 return True
@@ -495,12 +518,13 @@ class Site:
         return self.__filtered_content
 
     def add_data(self, node: DataNode) -> None:
-        "Add a data node to this site."""
+        "Add a data node to this site."
         self.data.append(node)
         self.__register_node(node)
 
-        self.__merged_data = merge_dictionaries(self.__merged_data,
-                                                node.content)
+        self.__merged_data = merge_dictionaries(
+            self.__merged_data, node.content
+        )
 
     def add_index(self, node: IndexNode) -> None:
         """Add an index node to this site."""
@@ -532,14 +556,13 @@ class Site:
         self.__register_node(node)
 
     def add_generated(self, node: GeneratedNode) -> None:
-        "Add a generated node to this site."""
+        "Add a generated node to this site."
         self.generated.append(node)
         self.__register_node(node)
 
     def __register_node(self, node: Node) -> None:
         if node.path in self.__nodes:
-            raise Exception(f'"{node.path}" already exists, '
-                            'cannot overwrite.')
+            raise Exception(f'"{node.path}" already exists, cannot overwrite.')
 
         signals.content_added.send(self, node=node)
         self.__nodes[node.path] = node
@@ -587,11 +610,14 @@ class Site:
             node_kinds = collection.get('node_kinds', [])
 
             self.__log.debug('Creating collection "%s" ... ', name)
-            collection = Collection(self, name,
-                                    collection['filter'],
-                                    order_by=order_by,
-                                    exclude_without=exclude_without,
-                                    node_kinds=node_kinds)
+            collection = Collection(
+                self,
+                name,
+                collection['filter'],
+                order_by=order_by,
+                exclude_without=exclude_without,
+                node_kinds=node_kinds,
+            )
             self.__collections[name] = collection
             self.__log.debug('... done creating collection "%s" ... ', name)
 
@@ -612,15 +638,21 @@ class Site:
             if isinstance(exclude_without, str):
                 exclude_without = [exclude_without]
 
-            self.__log.debug('Creating index for path "%s" ...',
-                             index_definition['path'])
-            index = Index(collection, index_definition['path'],
-                          group_by=group_by,
-                          exclude_without=exclude_without,
-                          create_top_level_index=create_top_level_index)
+            self.__log.debug(
+                'Creating index for path "%s" ...', index_definition['path']
+            )
+            index = Index(
+                collection,
+                index_definition['path'],
+                group_by=group_by,
+                exclude_without=exclude_without,
+                create_top_level_index=create_top_level_index,
+            )
             self.__indices.append(index)
-            self.__log.debug('... done creating index for path "%s"',
-                             index_definition['path'])
+            self.__log.debug(
+                '... done creating index for path "%s"',
+                index_definition['path'],
+            )
 
         for index in self.__indices:
             index.create_nodes(self)
@@ -638,14 +670,13 @@ class Site:
         """
         from .util import add_suffix, get_thumbnail_size
 
-        def create_thumbnail(node: StaticNode, new_path, format,
-                             size: tuple[int, int]):
+        def create_thumbnail(
+            node: StaticNode, new_path, format, size: tuple[int, int]
+        ):
             if format == 'original':
                 format = None
             else:
-                new_path = new_path.with_suffix(
-                    f'.{format.lower()}'
-                )
+                new_path = new_path.with_suffix(f'.{format.lower()}')
 
             assert node.src
 
@@ -660,19 +691,18 @@ class Site:
                     'that image already exists as "%s"',
                     format if format else node.src.suffix[1:],
                     node.src,
-                    new_path)
+                    new_path,
+                )
                 return
 
-            self.__log.debug('Creating thumbnail for "%s" with size %dx%d '
-                             'and format "%s"',
-                             node.path,
-                             size[0], size[1],
-                             "original" if format is None else format)
-            thumbnail = ThumbnailNode(
-                node.src,
-                new_path,
-                size,
-                format)
+            self.__log.debug(
+                'Creating thumbnail for "%s" with size %dx%d and format "%s"',
+                node.path,
+                size[0],
+                size[1],
+                'original' if format is None else format,
+            )
+            thumbnail = ThumbnailNode(node.src, new_path, size, format)
             self.add_resource(thumbnail)
 
         new_static = []
@@ -685,33 +715,49 @@ class Site:
             width, height = static.metadata['$image_size']
             for k, v in thumbnail_definition['sizes'].items():
                 if 'exclude' in v and 'include' in v:
-                    self.__log.warning('Thumbnail size "%s" has both '
-                                       '"include" and "exclude" filters '
-                                       'enabled, "include" will be ignored.')
+                    self.__log.warning(
+                        'Thumbnail size "%s" has both '
+                        '"include" and "exclude" filters '
+                        'enabled, "include" will be ignored.'
+                    )
 
                 if pattern := v.get('exclude'):
                     if fnmatch.fnmatch(static.src.name, pattern):
                         self.__log.debug(
-                                'Skipping thumbnail creation for "%s" due to '
-                                'exclude filter "%s"',
-                                static.src, pattern)
+                            'Skipping thumbnail creation for "%s" due to '
+                            'exclude filter "%s"',
+                            static.src,
+                            pattern,
+                        )
                         continue
                 elif pattern := v.get('include'):
                     if not fnmatch.fnmatch(static.src.name, pattern):
                         self.__log.debug(
-                                'Skipping thumbnail creation for "%s" due to '
-                                'include filter "%s"',
-                                static.src, pattern)
+                            'Skipping thumbnail creation for "%s" due to '
+                            'include filter "%s"',
+                            static.src,
+                            pattern,
+                        )
                         continue
 
                 new_url = add_suffix(static.path, k)
                 if self.get_node(new_url):
-                    self.__log.debug('Skipping thumbnail creation for "%s" '
-                                     'as a file with the same name already '
-                                     'exists ("%s")', static.src, new_url)
+                    self.__log.debug(
+                        'Skipping thumbnail creation for "%s" '
+                        'as a file with the same name already '
+                        'exists ("%s")',
+                        static.src,
+                        new_url,
+                    )
                     continue
 
-                thumbnail_size = get_thumbnail_size((width, height,), v)
+                thumbnail_size = get_thumbnail_size(
+                    (
+                        width,
+                        height,
+                    ),
+                    v,
+                )
 
                 if thumbnail_size is None:
                     # Check for any other formats present and generate those
@@ -726,7 +772,9 @@ class Site:
                                 '%d x %d is larger or equal than the '
                                 'requested size',
                                 static.src,
-                                width, height)
+                                width,
+                                height,
+                            )
                             copy = StaticNode(static.src, new_url)
                             copy.metadata = static.metadata
                             new_static.append(copy)
@@ -734,13 +782,23 @@ class Site:
                             self.__log.debug(
                                 'Converting image "%s" for thumbnail due to '
                                 'format change request to ".%s"',
-                                static.src, format)
-                            create_thumbnail(static, new_url, format,
-                                             (width, height,))
+                                static.src,
+                                format,
+                            )
+                            create_thumbnail(
+                                static,
+                                new_url,
+                                format,
+                                (
+                                    width,
+                                    height,
+                                ),
+                            )
                 else:
                     for format in thumbnail_definition['formats']:
-                        create_thumbnail(static, new_url, format,
-                                         thumbnail_size)
+                        create_thumbnail(
+                            static, new_url, format, thumbnail_size
+                        )
 
         for static in new_static:
             self.add_static(static)
@@ -748,16 +806,16 @@ class Site:
         # Static nodes may have been created, so we need to update the links
         self.create_links()
 
-    def get_next_in_collection(self,
-                               collection: str,
-                               node: Node) -> Optional[Node]:
+    def get_next_in_collection(
+        self, collection: str, node: Node
+    ) -> Optional[Node]:
         """Get the next node in a collection."""
         next_node = self.__collections[collection].get_next(node)
         return next_node
 
-    def get_previous_in_collection(self,
-                                   collection: str,
-                                   node: Node) -> Optional[Node]:
+    def get_previous_in_collection(
+        self, collection: str, node: Node
+    ) -> Optional[Node]:
         """Get the previous node in a collection."""
         previous_node = self.__collections[collection].get_previous(node)
         return previous_node
@@ -766,8 +824,9 @@ class Site:
         """Get a collection."""
         return self.__collections[collection]
 
-    def get_node(self, path: Union[str, pathlib.PurePosixPath]) \
-            -> Optional[Node]:
+    def get_node(
+        self, path: Union[str, pathlib.PurePosixPath]
+    ) -> Optional[Node]:
         """Get a node based on the URL, or ``None`` if no such node exists."""
         if isinstance(path, str):
             path = pathlib.PurePosixPath(path)
@@ -806,7 +865,7 @@ class Site:
 
         This is a read-only view, as shortcodes and templates can access the
         data in any order and thus modifications would be unsafe.
-        
+
         .. versionadded:: 2.6.2
         """
         return MappingProxyType(self.__merged_data)

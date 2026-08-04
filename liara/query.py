@@ -13,6 +13,7 @@ import re
 
 class SelectionFilter(ABC):
     """Base class for query selection filters."""
+
     @abstractmethod
     def match(self, node: Node) -> bool:
         """Return ``True`` if the node should be kept, else ``False``."""
@@ -23,6 +24,7 @@ class MetadataFilter(SelectionFilter):
     """Filter items which contain a specific metadata field and optionally
     check if that field matches the provided value.
     """
+
     def __init__(self, name, value=None):
         self.__name = name
         self.__value = value
@@ -40,6 +42,7 @@ class TagFilter(SelectionFilter):
     """Filter items by a specific tag, this expects a metadata field named
     ``tags`` to be present, and that field must support checks for containment
     using ``in``."""
+
     def __init__(self, name):
         self.__name = name
 
@@ -53,6 +56,7 @@ class TagFilter(SelectionFilter):
 class ExcludeFilter(SelectionFilter):
     """Filter items by a provided pattern. The pattern is matched against the
     path. If it matches, the item will be ignored."""
+
     def __init__(self, pattern):
         self.__pattern = re.compile(pattern)
 
@@ -65,6 +69,7 @@ class NodeKindFilter(SelectionFilter):
     """Filter items based on the node kind. Use exclude to invert.
 
     .. versionadded:: 2.4"""
+
     def __init__(self, kinds, *, exclude=False):
         self.__kinds = {_parse_node_kind(kind) for kind in kinds}
         self.__exclude = exclude
@@ -77,6 +82,7 @@ class NodeKindFilter(SelectionFilter):
 
 class Sorter(ABC):
     """Base class for query sorters."""
+
     def __init__(self, reverse=False):
         self._reverse = reverse
 
@@ -93,6 +99,7 @@ class Sorter(ABC):
 
 class MetadataSorter(Sorter):
     """Sort nodes by metadata."""
+
     def __init__(self, item: str, reverse=False, case_sensitive=False):
         super().__init__(reverse)
         self.__item = item
@@ -106,9 +113,11 @@ class MetadataSorter(Sorter):
         # included, not because someone wanted items without a title
         # first/last)
         if key is None:
-            raise Exception(f'Cannot sort node "{item.path}" by key '
-                            f'"{self.__item}" as the node is missing that '
-                            'key from its metadata.')
+            raise Exception(
+                f'Cannot sort node "{item.path}" by key '
+                f'"{self.__item}" as the node is missing that '
+                'key from its metadata.'
+            )
         if isinstance(key, str) and self.__case_sensitive is False:
             return key.lower()
         return key
@@ -148,7 +157,7 @@ class Query(Iterable[Union[Node, Page]]):
 
     def limit(self, limit: int) -> 'Query':
         """Limit this query to return at most ``limit`` results.
-        
+
         Pass ``0`` to disable the limit."""
         self.__limit = limit
         return self
@@ -156,7 +165,7 @@ class Query(Iterable[Union[Node, Page]]):
     def offset(self, offset: int) -> 'Query':
         """Offset this query so the first ``offset`` number of results are
         skipped.
-        
+
         .. versionadded:: 2.7.8"""
         self.__offset = offset
         return self
@@ -181,9 +190,9 @@ class Query(Iterable[Union[Node, Page]]):
     def exclude(self, pattern) -> 'Query':
         """Exclude nodes matching the provided regex pattern. The pattern will
         be applied to the full path.
-        
+
         .. note::
-        
+
           This means that a pattern of ``a`` for example will match a path like
           ``bar``, as ``a`` is found inside ``bar``. If you want to match the
           specific regular expression and not allow for matches within,
@@ -214,8 +223,9 @@ class Query(Iterable[Union[Node, Page]]):
         """Sort the entries in this query by the metadata field ``date``."""
         return self.sorted_by_metadata('date', reverse=reverse)
 
-    def sorted_by_metadata(self, tag: str, *,
-                           reverse=False, case_sensitive=False) -> 'Query':
+    def sorted_by_metadata(
+        self, tag: str, *, reverse=False, case_sensitive=False
+    ) -> 'Query':
         """Sort the entries in this query by the specified metadata field."""
         self.__sorters.append(MetadataSorter(tag, reverse, case_sensitive))
         return self
@@ -240,7 +250,7 @@ class Query(Iterable[Union[Node, Page]]):
                 # returns something comparable using built-in types, and for
                 # now we want to avoid defining types for the sake of type
                 # checking only
-                result = sorted(result, key=s.get_key, reverse=s.reverse) # type: ignore
+                result = sorted(result, key=s.get_key, reverse=s.reverse)  # type: ignore
 
         # Note: Queries can be returned from collections, which are sorted, so
         # not having a sorter specified in this query doesn't imply no specified
@@ -256,7 +266,7 @@ class Query(Iterable[Union[Node, Page]]):
 
         # result is always a list at this point, so we can simply slice it
         end = self.__offset + self.__limit if self.__limit > 0 else len(result)
-        self.__result = [Wrap(e) for e in result[self.__offset:end]]
+        self.__result = [Wrap(e) for e in result[self.__offset : end]]
 
     def __iter__(self) -> Iterator[Union[Node, Page]]:
         self.__execute()

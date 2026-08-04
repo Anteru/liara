@@ -13,13 +13,15 @@ from types import MappingProxyType
 from abc import abstractmethod, ABC
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from .query import Query
     from . import Site
 
 
-def _match_url(url: str | pathlib.PurePosixPath, pattern: str, site: 'Site') \
-        -> Optional[int]:
+def _match_url(
+    url: str | pathlib.PurePosixPath, pattern: str, site: 'Site'
+) -> Optional[int]:
     """Match an url against a pattern.
 
     :return: An integer indicating the match score, with 0 being a perfect
@@ -29,6 +31,7 @@ def _match_url(url: str | pathlib.PurePosixPath, pattern: str, site: 'Site') \
     import fnmatch
     import urllib.parse
     from .nodes import _parse_node_kind
+
     if '?' in pattern and site:
         pattern, params_str = pattern.split('?')
 
@@ -64,8 +67,7 @@ class Template(ABC):
         return self._template_path
 
     @abstractmethod
-    def render(self, **kwargs) -> str:
-        ...
+    def render(self, **kwargs) -> str: ...
 
 
 class TemplateRepository(ABC):
@@ -76,11 +78,13 @@ class TemplateRepository(ABC):
         self.__paths = paths
 
     @abstractmethod
-    def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
-            -> Template:
-        ...
+    def find_template(
+        self, url: pathlib.PurePosixPath, site: 'Site'
+    ) -> Template: ...
 
-    def _match_template(self, url: pathlib.PurePosixPath, site: 'Site') -> tuple[str, str]:
+    def _match_template(
+        self, url: pathlib.PurePosixPath, site: 'Site'
+    ) -> tuple[str, str]:
         """Match a path to a template, if any, otherwise throw an exception.
 
         Returns a tuple containing the matching template name, and the pattern
@@ -110,8 +114,9 @@ class TemplateRepository(ABC):
                     longest_matching_pattern_length = len(pattern)
 
         if not best_match:
-            raise Exception(f'Could not find matching template for path: '
-                            f'"{url}"')
+            raise Exception(
+                f'Could not find matching template for path: "{url}"'
+            )
 
         assert best_pattern
         return best_match, best_pattern
@@ -130,10 +135,12 @@ class MakoTemplateRepository(TemplateRepository):
     def __init__(self, paths: Dict[str, str], path: pathlib.Path):
         super().__init__(paths)
         from mako.lookup import TemplateLookup
+
         self.__lookup = TemplateLookup(directories=[str(path)])
 
-    def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
-            -> Template:
+    def find_template(
+        self, url: pathlib.PurePosixPath, site: 'Site'
+    ) -> Template:
         template, _ = self._match_template(url, site)
         return MakoTemplate(self.__lookup.get_template(template), template)
 
@@ -149,9 +156,15 @@ class Jinja2Template(Template):
 
 class Jinja2TemplateRepository(TemplateRepository):
     """Jinja2 based template repository."""
-    def __init__(self, paths: Dict[str, str], path: pathlib.Path,
-                 cache: Optional[Cache] = None, *,
-                 options: Optional[Dict[str, Any]] = None):
+
+    def __init__(
+        self,
+        paths: Dict[str, str],
+        path: pathlib.Path,
+        cache: Optional[Cache] = None,
+        *,
+        options: Optional[Dict[str, Any]] = None,
+    ):
         super().__init__(paths)
         self.__path = path
         self.__cache = cache
@@ -171,11 +184,12 @@ class Jinja2TemplateRepository(TemplateRepository):
                 'finalize',
                 'loader',
                 'bytecode_cache',
-                'enable_async'
+                'enable_async',
             }
 
-            return {k: v for k, v in options.items()
-                    if k not in forbidden_options}
+            return {
+                k: v for k, v in options.items() if k not in forbidden_options
+            }
 
         class Jinja2BytecodeCache(BytecodeCache):
             def __init__(self, cache: Cache):
@@ -208,11 +222,13 @@ class Jinja2TemplateRepository(TemplateRepository):
         self.__env = Environment(
             loader=FileSystemLoader(str(self.__path)),
             bytecode_cache=cache,
-            **sanitize_options(options))
+            **sanitize_options(options),
+        )
         self.__env.filters['readtime'] = readtime
 
-    def find_template(self, url: pathlib.PurePosixPath, site: 'Site') \
-            -> Template:
+    def find_template(
+        self, url: pathlib.PurePosixPath, site: 'Site'
+    ) -> Template:
         template, _ = self._match_template(url, site)
         return Jinja2Template(self.__env.get_template(template), template)
 
@@ -225,19 +241,18 @@ class Page:
     class provides convenience accessors while hiding the underlying node from
     template code.
     """
+
     def __init__(self, node):
         self.__node = node
 
     @property
     def content(self) -> str:
-        """Provides the content of this page.
-        """
+        """Provides the content of this page."""
         return getattr(self.__node, 'content', '')
 
     @property
     def url(self) -> str:
-        """Provides the current path of this page.
-        """
+        """Provides the current path of this page."""
         # __node.path is a PosixPath object, but inside a template we want to
         # use a basic string
         return str(self.__node.path)
@@ -280,6 +295,7 @@ class Page:
 
         from .nodes import NodeKind
         from .query import Query
+
         assert self.__node.kind == NodeKind.Index
 
         return Query(self.__node.references)
@@ -291,12 +307,13 @@ class Page:
 
         .. versionadded:: 2.4"""
         from .query import Query
+
         return Query(self.__node.children).with_node_kinds('doc', 'idx')
 
 
 class SiteTemplateProxy:
-    """A wrapper around :py:class:`Site` for use inside templates.
-    """
+    """A wrapper around :py:class:`Site` for use inside templates."""
+
     __site: 'Site'
 
     def __init__(self, site: 'Site'):
@@ -325,9 +342,9 @@ class SiteTemplateProxy:
         return MappingProxyType(self.__site.metadata)
 
     def select(self, query) -> 'Query':
-        """Run a query on this site. Returns any node matching the query.
-        """
+        """Run a query on this site. Returns any node matching the query."""
         from .query import Query
+
         return Query(self.__site.select(query))
 
     def select_pages(self, query) -> 'Query':
@@ -347,20 +364,23 @@ class SiteTemplateProxy:
         else:
             return None
 
-    def get_previous_in_collection(self, collection: str, page: Page) \
-            -> Optional[Page]:
+    def get_previous_in_collection(
+        self, collection: str, page: Page
+    ) -> Optional[Page]:
         """Given a collection and a page, return the previous page in this
         collection or ``None`` if this is the first page.
         """
-        previous_node = self.__site.get_previous_in_collection(collection,
-                                                               page._node)
+        previous_node = self.__site.get_previous_in_collection(
+            collection, page._node
+        )
         if previous_node:
             return Page(previous_node)
         else:
             return None
 
-    def get_next_in_collection(self, collection: str, page: Page) \
-            -> Optional[Page]:
+    def get_next_in_collection(
+        self, collection: str, page: Page
+    ) -> Optional[Page]:
         """Given a collection and a page, return the next page in this
         collection or ``None`` if this is the last page.
         """
@@ -375,6 +395,7 @@ class SiteTemplateProxy:
         further filtering/sorting.
         """
         from .query import Query
+
         # We need to turn this into a list as nodes is of type dict_values
         # and can't be sorted/reversed otherwise
         return Query(list(self.__site.get_collection(collection).nodes))

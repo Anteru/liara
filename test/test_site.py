@@ -16,7 +16,7 @@ def test_group_recursive():
         item({'a': 'key_a_1', 'b': 'key_b_1', 'c': 'key_c_2'}, 3),
         item({'a': 'key_a_1', 'b': 'key_b_2', 'c': 'key_c_1'}, 4),
         item({'a': 'key_a_1', 'b': 'key_b_1', 'c': 'key_c_1'}, 5),
-        item({'a': 'key_a_2', 'b': 'key_b_2', 'c': 'key_c_1'}, 6)
+        item({'a': 'key_a_2', 'b': 'key_b_2', 'c': 'key_c_1'}, 6),
     ]
 
     groups = site._group_recursive(items, ['a', 'b', 'c'])
@@ -46,7 +46,7 @@ def test_group_splat():
         item({'tags': ['a', 'd']}, 3),
         item({'tags': ['e', 'b']}, 4),
         item({'tags': ['f', 'b']}, 5),
-        item({'tags': ['g', 'b']}, 6)
+        item({'tags': ['g', 'b']}, 6),
     ]
 
     groups = site._group_recursive(items, ['*tags'])
@@ -152,8 +152,9 @@ def test_collection_exclude_without_removes_items():
     root.add_document(n3)
     root.create_links()
 
-    collection = site.Collection(root, 'test', '/*',
-                                 exclude_without=['title'], order_by=['title'])
+    collection = site.Collection(
+        root, 'test', '/*', exclude_without=['title'], order_by=['title']
+    )
     nodes = list(collection.nodes)
 
     assert len(nodes) == 2
@@ -190,9 +191,13 @@ def test_index_exclude_without_removes_items():
 
     collection = site.Collection(root, 'test', '/*')
 
-    index = site.Index(collection, '/index/%1', group_by=['title'],
-                       exclude_without=['title'],
-                       create_top_level_index=True)
+    index = site.Index(
+        collection,
+        '/index/%1',
+        group_by=['title'],
+        exclude_without=['title'],
+        create_top_level_index=True,
+    )
     index.create_nodes(root)
 
     index_node = root.get_node('/index')
@@ -214,9 +219,18 @@ def test_index_exclude_without_key_matching_removes_items():
 
     collection = site.Collection(root, 'test', '/*')
 
-    index = site.Index(collection, '/index/%1', group_by=['title'],
-                       exclude_without=[('year', 2022,)],
-                       create_top_level_index=True)
+    index = site.Index(
+        collection,
+        '/index/%1',
+        group_by=['title'],
+        exclude_without=[
+            (
+                'year',
+                2022,
+            )
+        ],
+        create_top_level_index=True,
+    )
     index.create_nodes(root)
 
     index_node = root.get_node('/index')

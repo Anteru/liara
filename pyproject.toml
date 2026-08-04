@@ -101,3 +101,9 @@ path = "liara/__init__.py"
 
 [tool.hatch.build.targets.sdist]
 only-include = ["liara"]
+
+[tool.ruff]
+line-length = 80
+
+[tool.ruff.format]
+quote-style = "single"

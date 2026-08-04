@@ -1,12 +1,7 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from typing import (
-    IO,
-    Optional,
-    Text,
-    Union
-)
+from typing import IO, Optional, Text, Union
 
 
 def load_yaml(s: Union[bytes, IO, IO[bytes], Text, IO[Text]]):
@@ -16,6 +11,7 @@ def load_yaml(s: Union[bytes, IO, IO[bytes], Text, IO[Text]]):
     implementation and falls back to the native Python version on failure.
     """
     import yaml
+
     try:
         from yaml import CLoader as Loader
     except ImportError:
@@ -30,6 +26,7 @@ def dump_yaml(data, stream: Optional[IO] = None):
     implementation and falls back to the native Python version on failure.
     """
     import yaml
+
     try:
         from yaml import CDumper as Dumper
     except ImportError:

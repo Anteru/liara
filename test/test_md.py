@@ -18,7 +18,7 @@ def test_shortcode_parse():
     sp = ShortcodePreprocessor()
 
     def code(arg1, arg2, **kwargs):
-        return f"*{arg1}*\n_{arg2}_"
+        return f'*{arg1}*\n_{arg2}_'
 
     sp.register('code', code)
 
@@ -61,7 +61,7 @@ def test_shortcode_two_codes_in_one_line():
 
 
 def test_parse_buffer():
-    lines = ['aaaa\n', 'bbb\n', '\n' 'c\n']
+    lines = ['aaaa\n', 'bbb\n', '\nc\n']
     pb = _ParseBuffer(0, lines)
 
     assert pb.get_current_line() == 'aaaa\n'
@@ -93,7 +93,7 @@ def test_shortcode_parser_1():
 
 
 def test_shortcode_parser_2():
-    lines = ['<% foo bar="baz\n', 'oonga\" foo="bar" /%> remainder']
+    lines = ['<% foo bar="baz\n', 'oonga" foo="bar" /%> remainder']
     pb = _ParseBuffer(0, lines)
     sp = _ShortcodeParser(pb)
 

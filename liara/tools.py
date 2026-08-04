@@ -10,6 +10,7 @@ import abc
 
 class Tool(abc.ABC):
     """Represents a command line tool that can be invoked by Liara."""
+
     @abc.abstractmethod
     def is_present(self) -> bool:
         """Returns ``true`` if the tool is available and ready to use."""
@@ -22,8 +23,9 @@ class Tool(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def invoke(self, cmd_line_arguments: List[str]) \
-            -> subprocess.CompletedProcess:
+    def invoke(
+        self, cmd_line_arguments: List[str]
+    ) -> subprocess.CompletedProcess:
         """Invoke the tool, return a ``subprocess.CompletedProcess`` instance.
         `stderr` and `stdout` is redirected to a ``subprocess.PIPE`` by
         default."""
@@ -40,7 +42,8 @@ class SassCompiler(Tool):
                 # On Windows, we need to set shell=True, otherwise, the
                 # sass binary installed using npm install -g sass won't
                 # be found.
-                shell=sys.platform == 'win32')
+                shell=sys.platform == 'win32',
+            )
 
             return True
         except Exception:
@@ -52,16 +55,19 @@ class SassCompiler(Tool):
             # See above
             shell=sys.platform == 'win32',
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+            stderr=subprocess.PIPE,
+        )
 
     def try_install(self):
         try:
             subprocess.check_call(['npm', 'install', '-g', 'sass'])
         except subprocess.CalledProcessError:
-            self.__log.error('Failed to install `sass` via `npm`. Use '
-                             '`npm install -g sass` to install `sass`. Note: '
-                             'You must have `npm` installed, this comes with '
-                             '`node.js`.')
+            self.__log.error(
+                'Failed to install `sass` via `npm`. Use '
+                '`npm install -g sass` to install `sass`. Note: '
+                'You must have `npm` installed, this comes with '
+                '`node.js`.'
+            )
             return False
 
         return True
@@ -75,7 +81,8 @@ class TypescriptCompiler(Tool):
             subprocess.check_output(
                 ['tsc', '--version'],
                 # See above
-                shell=sys.platform == 'win32')
+                shell=sys.platform == 'win32',
+            )
 
             return True
         except Exception:
@@ -87,17 +94,20 @@ class TypescriptCompiler(Tool):
             # See above
             shell=sys.platform == 'win32',
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+            stderr=subprocess.PIPE,
+        )
 
     def try_install(self):
         try:
             subprocess.check_call(['npm', 'install', '-g', 'typescript'])
         except subprocess.CalledProcessError:
-            self.__log.error('Failed to install `typescript` via `npm`. Use '
-                             '`npm install -g '
-                             'typescript` to install `typescript`. Note: '
-                             'You must have `npm` installed, this comes with '
-                             '`node.js`.')
+            self.__log.error(
+                'Failed to install `typescript` via `npm`. Use '
+                '`npm install -g '
+                'typescript` to install `typescript`. Note: '
+                'You must have `npm` installed, this comes with '
+                '`node.js`.'
+            )
             return False
 
         return True

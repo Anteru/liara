@@ -10,8 +10,7 @@ from .nodes import (
     RedirectionNode,
     ResourceNode,
     StaticNode,
-
-    _process_node_sync
+    _process_node_sync,
 )
 import pathlib
 from . import Liara
@@ -33,16 +32,19 @@ import pygments.formatters
 class _ServerState:
     __log = logging.getLogger('liara.HttpServer')
 
-    def __init__(self, liara: Liara, site: Site, cache: Cache,
-                 enable_admin: bool):
+    def __init__(
+        self, liara: Liara, site: Site, cache: Cache, enable_admin: bool
+    ):
         self.__site = site
         self.__cache = cache
         self.__enable_admin = enable_admin
 
         output_path = pathlib.Path(
-            liara._get_configuration()['output_directory'])
-        self.__publisher = TemplatePublisher(output_path, self.__site,
-                                             liara._get_template_repository())
+            liara._get_configuration()['output_directory']
+        )
+        self.__publisher = TemplatePublisher(
+            output_path, self.__site, liara._get_template_repository()
+        )
 
     @property
     def enable_admin(self):
@@ -52,8 +54,9 @@ class _ServerState:
     def site(self):
         return self.__site
 
-    def _build_single_node(self, path: pathlib.PurePosixPath,
-                           enable_admin: bool):
+    def _build_single_node(
+        self, path: pathlib.PurePosixPath, enable_admin: bool
+    ):
         """Build a single node.
 
         Build a single node on-demand. We assume the state is regenerated
@@ -64,6 +67,7 @@ class _ServerState:
 
         If ``enable_admin`` is set, this will also render data nodes."""
         from collections import namedtuple
+
         BuildResult = namedtuple('BuildResult', ['path', 'content', 'cache'])
         node = self.__site.get_node(path)
 
@@ -76,12 +80,11 @@ class _ServerState:
         # We always regenerate the content
         match node.kind:
             case NodeKind.Document | NodeKind.Resource:
-                assert isinstance(node, DocumentNode) \
-                    or isinstance(node, ResourceNode)
+                assert isinstance(node, DocumentNode) or isinstance(
+                    node, ResourceNode
+                )
                 node.reload()
-                args = {
-                    '$data': self.__site.merged_data
-                }
+                args = {'$data': self.__site.merged_data}
                 _process_node_sync(node, self.__cache, **args)
                 cache = False
             case NodeKind.Generated:
@@ -90,7 +93,9 @@ class _ServerState:
                 # Special case redirection nodes as they otherwise redirect
                 # immediately
                 if isinstance(node, RedirectionNode):
-                    node.content = 'Redirection node to: ' + node.metadata['$destination']
+                    node.content = (
+                        'Redirection node to: ' + node.metadata['$destination']
+                    )
                 else:
                     node.generate()
                 cache = False
@@ -102,30 +107,36 @@ class _ServerState:
 
         if isinstance(node, DataNode) and enable_admin:
             from .yaml import dump_yaml
+
             yaml_content = dump_yaml(node.content)
 
             html: str = pygments.highlight(
                 yaml_content,
                 pygments.lexers.get_lexer_by_name('yaml'),
-                pygments.formatters.get_formatter_by_name(
-                    'html',
-                    full=True))
+                pygments.formatters.get_formatter_by_name('html', full=True),
+            )
 
             return BuildResult(None, html.encode('utf-8'), False)
 
-        assert isinstance(node, StaticNode) \
-               or isinstance(node, DocumentNode) \
-               or isinstance(node, GeneratedNode) \
-               or isinstance(node, IndexNode) \
-               or isinstance(node, ResourceNode)
+        assert (
+            isinstance(node, StaticNode)
+            or isinstance(node, DocumentNode)
+            or isinstance(node, GeneratedNode)
+            or isinstance(node, IndexNode)
+            or isinstance(node, ResourceNode)
+        )
 
         return BuildResult(node.publish(self.__publisher), None, cache)
 
 
 class _HttpServer(http.server.HTTPServer):
-    def __init__(self, address, request_handler_class,
-                 state: _ServerState,
-                 log: logging.Logger):
+    def __init__(
+        self,
+        address,
+        request_handler_class,
+        state: _ServerState,
+        log: logging.Logger,
+    ):
         self.state = state
         self.log = log
         self.mutex = threading.Lock()
@@ -139,6 +150,7 @@ class _HttpServer(http.server.HTTPServer):
 
 class _ServerThread(threading.Thread):
     """Helper class to wrap calling ``serve_forever``."""
+
     def __init__(self, server: _HttpServer):
         super().__init__()
         self.__server = server
@@ -165,15 +177,19 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
             # We use the extra check to make sure pages which are specifically
             # generated for a path containing index.html get processed
             # correctly
-            if path.name == 'index.html' and self.server.state.site.get_node(path) is None:
+            if (
+                path.name == 'index.html'
+                and self.server.state.site.get_node(path) is None
+            ):
                 path = path.parent
 
             if path not in self.server.cache:
                 try:
-                    node_path, content, cache = \
+                    node_path, content, cache = (
                         self.server.state._build_single_node(
-                            path,
-                            self.server.state.enable_admin)
+                            path, self.server.state.enable_admin
+                        )
+                    )
                 except Exception:
                     self.send_response(500, 'Failed to render node')
                     self.end_headers()
@@ -220,7 +236,7 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
 
         for node in site.nodes:
             if node.kind == NodeKind.Static:
-                assert (isinstance(node, StaticNode))
+                assert isinstance(node, StaticNode)
                 node.update_metadata()
 
         def is_index_node(node):
@@ -229,12 +245,14 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
         nodes = sorted(site.nodes, key=lambda x: x.path)
         root = _create_node_tree_for_site(nodes)
         t = Template(
-            files('liara').joinpath('static', 'nodes.jinja2').read_text())
+            files('liara').joinpath('static', 'nodes.jinja2').read_text()
+        )
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
-        self.wfile.write(t.render(nodes=[root],
-                                  is_index_node=is_index_node).encode('utf-8'))
+        self.wfile.write(
+            t.render(nodes=[root], is_index_node=is_index_node).encode('utf-8')
+        )
 
 
 class HttpServer:
@@ -244,7 +262,14 @@ class HttpServer:
         """Get the URL at which the site is hosted."""
         return f'http://127.0.0.1:{self.__port}'
 
-    def __init__(self, *, open_browser=True, port=8080, enable_admin=False, server_name=''):
+    def __init__(
+        self,
+        *,
+        open_browser=True,
+        port=8080,
+        enable_admin=False,
+        server_name='',
+    ):
         self.__open_browser = open_browser
         self.__port = port
         self.__server: _HttpServer | None = None
@@ -270,8 +295,9 @@ class HttpServer:
 
         This can be only called after the server has been started using
         :py:meth:`start`."""
-        server_state = _ServerState(liara, liara.discover_content(),
-                                    cache, self.__enable_admin)
+        server_state = _ServerState(
+            liara, liara.discover_content(), cache, self.__enable_admin
+        )
 
         assert self.__server
         self.__server.update_state(server_state)
@@ -287,12 +313,14 @@ class HttpServer:
         using :py:meth:`reconfigure`, in which case it will keep running and
         switch seamlessly to the new instance.
         """
-        server_state = _ServerState(liara, liara.discover_content(),
-                                    cache, self.__enable_admin)
+        server_state = _ServerState(
+            liara, liara.discover_content(), cache, self.__enable_admin
+        )
 
         server_address = (self.__server_name, self.__port)
-        self.__server = _HttpServer(server_address, self.__request_handler,
-                                    server_state, self.__log)
+        self.__server = _HttpServer(
+            server_address, self.__request_handler, server_state, self.__log
+        )
         url = self.get_url()
         self.__log.info(f'Listening on {url}')
 

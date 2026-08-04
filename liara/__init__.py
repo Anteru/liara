@@ -19,7 +19,7 @@ from typing import (
     Optional,
     Text,
     Union,
-    )
+)
 from types import MappingProxyType
 
 import collections
@@ -32,8 +32,7 @@ from .nodes import (
     DocumentNodeFactory,
     RedirectionNode,
     ResourceNodeFactory,
-
-    _process_node_sync
+    _process_node_sync,
 )
 
 from .cache import Cache, FilesystemCache, NullCache, Sqlite3Cache, RedisCache
@@ -41,10 +40,9 @@ from .tools import SassCompiler
 from .util import (
     CaseInsensitiveDictionary,
     FilesystemWalker,
-
     flatten_dictionary,
     file_digest,
-    get_hash_key_for_map
+    get_hash_key_for_map,
 )
 from .yaml import load_yaml
 
@@ -64,11 +62,12 @@ __all__ = [
     'site',
     'template',
     'util',
-    'yaml'
+    'yaml',
 ]
 
 # Required to allow plugins to participate
 from pkgutil import extend_path
+
 __path__ = extend_path(__path__, __name__)
 
 # We cache it here as it's used a lot during _create_relative_path and shows up
@@ -82,9 +81,10 @@ class _LoadedModule:
     hash: bytes
 
 
-def _create_relative_path(path: pathlib.Path, root: pathlib.Path) \
-        -> pathlib.PurePosixPath:
-    """"Make a root-relative path.
+def _create_relative_path(
+    path: pathlib.Path, root: pathlib.Path
+) -> pathlib.PurePosixPath:
+    """ "Make a root-relative path.
 
     This turns `directory/foo/bar` into `/foo/bar`. Both `root` and `path`
     can be relative or absolute paths."""
@@ -102,6 +102,7 @@ def _process_resource_task(t):
 
 def _setup_multiprocessing_worker(log_level):
     from .cmdline import _setup_logging
+
     if log_level == logging.DEBUG:
         _setup_logging(debug=True, verbose=False)
     elif log_level == logging.INFO:
@@ -118,44 +119,49 @@ class CompressionResult:
     format: str
 
 
-def _compress_helper(path: pathlib.Path,
-                     method: Callable[[bytes], bytes],
-                     suffix: str,
-                     format: str):
+def _compress_helper(
+    path: pathlib.Path,
+    method: Callable[[bytes], bytes],
+    suffix: str,
+    format: str,
+):
     output_path = path.with_suffix(path.suffix + suffix)
 
     input_data = path.read_bytes()
     compressed = method(input_data)
     output_path.write_bytes(compressed)
 
-    return CompressionResult(output_path, len(input_data), len(compressed),
-                             format)
+    return CompressionResult(
+        output_path, len(input_data), len(compressed), format
+    )
 
 
 def _zstd_compress(path: pathlib.Path):
     try:
         import compression.zstd
+
         return _compress_helper(path, compression.zstd.compress, '.zst', 'Zstd')
     except ImportError:
         import zstd
+
         return _compress_helper(path, zstd.compress, '.zst', 'Zstd')
 
 
 def _gz_compress(path: pathlib.Path):
     import gzip
+
     return _compress_helper(path, gzip.compress, '.gz', 'GZip')
 
 
 def _brotli_compress(path: pathlib.Path):
     import brotli
+
     return _compress_helper(path, brotli.compress, '.br', 'Brotli')
 
 
-_COMPRESSION_FORMATS = CaseInsensitiveDictionary({
-    'Zstd': _zstd_compress,
-    'GZip': _gz_compress,
-    'Brotli': _brotli_compress
-})
+_COMPRESSION_FORMATS = CaseInsensitiveDictionary(
+    {'Zstd': _zstd_compress, 'GZip': _gz_compress, 'Brotli': _brotli_compress}
+)
 
 
 class Compressor:
@@ -163,6 +169,7 @@ class Compressor:
         # The configuration is a mapping from file extensions to compressors to
         # use
         from collections import defaultdict
+
         self.__map = defaultdict(list)
         for key, value in configuration.items():
             # Remove leading dot if any
@@ -190,6 +197,7 @@ def _compress(path: pathlib.Path, compressor: Compressor):
 class Liara:
     """Main entry point for Liara. This class handles all the state required
     to process and build a site."""
+
     __site: Site
     __resource_node_factory: ResourceNodeFactory
     __document_node_factory: DocumentNodeFactory
@@ -202,11 +210,12 @@ class Liara:
     __filesystem_walker: FilesystemWalker
     __template_repository: TemplateRepository
 
-    def __init__(self,
-                 configuration: Optional[
-                     Union[str, IO, IO[bytes], IO[Text]]] = None,
-                 *,
-                 configuration_overrides: Optional[Dict] = None):
+    def __init__(
+        self,
+        configuration: Optional[Union[str, IO, IO[bytes], IO[Text]]] = None,
+        *,
+        configuration_overrides: Optional[Dict] = None,
+    ):
         self.__site = Site()
         self.__redirections = []
 
@@ -234,14 +243,15 @@ class Liara:
             'content.markdown.extensions',
             'content.markdown.config',
             'content.markdown.output',
-            'build.compression'
+            'build.compression',
         }
 
         self.__configuration = collections.ChainMap(
             # Must be flattened already
             configuration_overrides,
             flatten_dictionary(project_configuration, ignore_keys=ignore_list),
-            flatten_dictionary(default_configuration, ignore_keys=ignore_list))
+            flatten_dictionary(default_configuration, ignore_keys=ignore_list),
+        )
 
         Liara.setup_plugins()
 
@@ -252,16 +262,13 @@ class Liara:
         for directory in plugin_directories:
             self._load_plugins(directory)
 
-        self.__resource_node_factory = ResourceNodeFactory(
-            self.__configuration
-        )
-        self.__document_node_factory = DocumentNodeFactory(
-            self.__configuration
-        )
+        self.__resource_node_factory = ResourceNodeFactory(self.__configuration)
+        self.__document_node_factory = DocumentNodeFactory(self.__configuration)
 
         # Must come before the template backend, as that can look for files
         self.__filesystem_walker = FilesystemWalker(
-            self.__configuration['ignore_files'])
+            self.__configuration['ignore_files']
+        )
 
         # Must come before the template backend, as those can use caches
         self.__setup_cache()
@@ -279,7 +286,7 @@ class Liara:
         import inspect
 
         def iter_namespace(ns_pkg):
-            return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
+            return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + '.')
 
         plugins = {
             name: importlib.import_module(name)
@@ -294,8 +301,8 @@ class Liara:
             assert hasattr(module, 'register')
             module.register()
             cls.__registered_plugins[name] = _LoadedModule(
-                module,
-                file_digest(open(inspect.getfile(module), 'rb')))
+                module, file_digest(open(inspect.getfile(module), 'rb'))
+            )
 
     def __setup_cache(self) -> None:
         # Deprecated since version 2.2
@@ -303,7 +310,8 @@ class Liara:
         if cache_directory:
             self.__log.warning(
                 "'build.cache_directory' is deprecated. Please "
-                "use 'build.cache.<cache_type>.directory' instead.")
+                "use 'build.cache.<cache_type>.directory' instead."
+            )
             cache_directory = pathlib.Path(cache_directory)
 
         # Deprecated since version 2.2
@@ -311,7 +319,8 @@ class Liara:
         if cache_type:
             self.__log.warning(
                 "'build.cache_type' is deprecated. Please use "
-                "'build.cache.type' instead.")
+                "'build.cache.type' instead."
+            )
 
         # Official value since 2.2
         if cache_type is None:
@@ -341,8 +350,11 @@ class Liara:
                     self.__configuration['build.cache.redis.host'],
                     self.__configuration['build.cache.redis.port'],
                     self.__configuration['build.cache.redis.db'],
-                    datetime.timedelta(minutes=self.__configuration[
-                        'build.cache.redis.expiration_time'])
+                    datetime.timedelta(
+                        minutes=self.__configuration[
+                            'build.cache.redis.expiration_time'
+                        ]
+                    ),
                 )
             case 'none':
                 self.__cache = NullCache()
@@ -370,14 +382,14 @@ class Liara:
             'image_thumbnail_formats',
             # Since 2.4.1
             'image_thumbnails',
-
             'backend_options',
-            'paths'
+            'paths',
         }
 
         configuration = ChainMap(
             flatten_dictionary(configuration, ignore_keys=ignore_list),
-            flatten_dictionary(default_configuration, ignore_keys=ignore_list))
+            flatten_dictionary(default_configuration, ignore_keys=ignore_list),
+        )
 
         backend = configuration['backend']
         paths = configuration['paths']
@@ -387,42 +399,47 @@ class Liara:
             # Deprecated since 2.4.1
             self.__log.warning(
                 "'image_thumbnail_sizes' is deprecated. Please use "
-                "'image_thumbnails.sizes' instead.")
+                "'image_thumbnails.sizes' instead."
+            )
             self.__thumbnail_definition = {
                 'sizes': configuration.get('image_thumbnail_sizes', {}),
-                'formats': ['original']
+                'formats': ['original'],
             }
         else:
             self.__thumbnail_definition = configuration.get(
-                'image_thumbnails',
-                {
-                    'sizes': {},
-                    'formats': ['original']
-                })
+                'image_thumbnails', {'sizes': {}, 'formats': ['original']}
+            )
 
         if backend == 'jinja2':
             self.__template_repository = Jinja2TemplateRepository(
-                paths, template_path, self.__cache,
-                options=configuration['backend_options']['jinja2'])
+                paths,
+                template_path,
+                self.__cache,
+                options=configuration['backend_options']['jinja2'],
+            )
         elif backend == 'mako':
             self.__template_repository = MakoTemplateRepository(
-                paths, template_path)
+                paths, template_path
+            )
         else:
             raise Exception(f'Unknown template backend: "{backend}"')
 
         if 'resource_directory' in configuration:
             resource_directory = pathlib.Path(
-                configuration['resource_directory'])
+                configuration['resource_directory']
+            )
 
-            self.__discover_resources(self.__site,
-                                      self.__resource_node_factory,
-                                      template_path / resource_directory)
+            self.__discover_resources(
+                self.__site,
+                self.__resource_node_factory,
+                template_path / resource_directory,
+            )
 
         if 'static_directory' in configuration:
-            static_directory = pathlib.Path(
-                configuration['static_directory'])
-            self.__discover_static(self.__site,
-                                   template_path / static_directory)
+            static_directory = pathlib.Path(configuration['static_directory'])
+            self.__discover_static(
+                self.__site, template_path / static_directory
+            )
 
     def __discover_redirections(self, site: Site, static_routes: pathlib.Path):
         if not static_routes.exists():
@@ -433,25 +450,25 @@ class Liara:
         routes = load_yaml(static_routes.open('rb'))
         for route in routes:
             node = RedirectionNode(
-                    pathlib.PurePosixPath(route['src']),
-                    pathlib.PurePosixPath(route['dst']),
-                    base_url=base_url)
+                pathlib.PurePosixPath(route['src']),
+                pathlib.PurePosixPath(route['dst']),
+                base_url=base_url,
+            )
             node.metadata['$source'] = route['src']
             node.metadata['$destination'] = route['dst']
             if route.get('server_rule_only', False):
-                self.__redirections.append({
-                    'src': route['src'],
-                    'dst': base_url + route['dst']
-                })
+                self.__redirections.append(
+                    {'src': route['src'], 'dst': base_url + route['dst']}
+                )
             else:
-                self.__redirections.append({
-                    'src': str(node.path),
-                    'dst': base_url + str(node.dst)
-                })
+                self.__redirections.append(
+                    {'src': str(node.path), 'dst': base_url + str(node.dst)}
+                )
                 site.add_generated(node)
 
-    def __discover_content(self, site: Site, content_root: pathlib.Path) \
-            -> None:
+    def __discover_content(
+        self, site: Site, content_root: pathlib.Path
+    ) -> None:
         from .nodes import DataNode, IndexNode, Node, StaticNode
 
         document_factory = self.__document_node_factory
@@ -474,26 +491,28 @@ class Liara:
                         self.__log.warning(
                             f'Ignoring "{src}", unsupported file '
                             'type for index node. Supported file '
-                            f'types are: {supported_file_types}.')
+                            f'types are: {supported_file_types}.'
+                        )
                         continue
 
-                    relative_path = _create_relative_path(directory,
-                                                          content_root)
+                    relative_path = _create_relative_path(
+                        directory, content_root
+                    )
 
                     metadata_path = src.with_suffix('.meta')
                     if metadata_path.exists():
-                        node = document_factory.create_node(src.suffix, src,
-                                                            relative_path,
-                                                            metadata_path)
+                        node = document_factory.create_node(
+                            src.suffix, src, relative_path, metadata_path
+                        )
                     else:
-                        node = document_factory.create_node(src.suffix, src,
-                                                            relative_path)
+                        node = document_factory.create_node(
+                            src.suffix, src, relative_path
+                        )
 
                     site.add_document(node)
                     break
             else:
-                node = IndexNode(_create_relative_path(directory,
-                                                       content_root))
+                node = IndexNode(_create_relative_path(directory, content_root))
                 site.add_index(node)
                 indexNode = node
 
@@ -513,18 +532,18 @@ class Liara:
                     metadata_path = src.with_suffix('.meta')
                     try:
                         if metadata_path.exists():
-                            node = document_factory.create_node(src.suffix,
-                                                                src,
-                                                                path,
-                                                                metadata_path)
+                            node = document_factory.create_node(
+                                src.suffix, src, path, metadata_path
+                            )
                         else:
-                            node = document_factory.create_node(src.suffix,
-                                                                src,
-                                                                path)
+                            node = document_factory.create_node(
+                                src.suffix, src, path
+                            )
                     except Exception as e:
                         self.__log.warning(
                             f'Failed to load "{src}". Skipping file.',
-                            exc_info=e)
+                            exc_info=e,
+                        )
                         continue
 
                     site.add_document(node)
@@ -550,6 +569,7 @@ class Liara:
 
     def __discover_static(self, site: Site, static_root: pathlib.Path) -> None:
         from .nodes import StaticNode
+
         for dirpath, filenames in self.__filesystem_walker.walk(static_root):
             directory = pathlib.Path(dirpath)
 
@@ -570,9 +590,12 @@ class Liara:
                 node = StaticNode(src, path)
                 site.add_static(node)
 
-    def __discover_resources(self, site: Site,
-                             resource_factory: ResourceNodeFactory,
-                             resource_root: pathlib.Path) -> None:
+    def __discover_resources(
+        self,
+        site: Site,
+        resource_factory: ResourceNodeFactory,
+        resource_root: pathlib.Path,
+    ) -> None:
         for dirpath, filenames in self.__filesystem_walker.walk(resource_root):
             for filename in filenames:
                 if filename.endswith('.meta'):
@@ -583,27 +606,32 @@ class Liara:
 
                 if src.suffix not in resource_factory.known_types:
                     supported_resource_types = ','.join(
-                        resource_factory.known_types)
+                        resource_factory.known_types
+                    )
                     self.__log.warning(
                         f'Ignoring resource "{src}" as the file '
                         f'type {src.suffix} is not a supported '
                         'resource file type. Supported resource types are: '
-                        + supported_resource_types + '. '
-                        'Please place static files that don\'t '
+                        + supported_resource_types
+                        + '. '
+                        "Please place static files that don't "
                         'require resource processing into the '
-                        'static directory.')
+                        'static directory.'
+                    )
                     continue
 
                 metadata_path = src.with_suffix('.meta')
                 if metadata_path.exists():
-                    node = resource_factory.create_node(src.suffix, src, path,
-                                                        metadata_path)
+                    node = resource_factory.create_node(
+                        src.suffix, src, path, metadata_path
+                    )
                 else:
                     node = resource_factory.create_node(src.suffix, src, path)
                 site.add_resource(node)
 
-    def __discover_feeds(self, site: Site,
-                         feed_definition: pathlib.Path) -> None:
+    def __discover_feeds(
+        self, site: Site, feed_definition: pathlib.Path
+    ) -> None:
         from .feeds import JsonFeedNode, RSSFeedNode, SitemapXmlFeedNode
 
         if not feed_definition.exists():
@@ -619,8 +647,9 @@ class Liara:
                 case 'json':
                     site.add_generated(JsonFeedNode(path, site, **options))
                 case 'sitemap':
-                    site.add_generated(SitemapXmlFeedNode(path, site,
-                                                          **options))
+                    site.add_generated(
+                        SitemapXmlFeedNode(path, site, **options)
+                    )
                 case _:
                     self.__log.warning(f'Unknown feed type: "{key}", ignored')
 
@@ -649,8 +678,9 @@ class Liara:
         self.__discover_static(self.__site, static_root)
 
         resource_root = pathlib.Path(configuration['resource_directory'])
-        self.__discover_resources(self.__site, self.__resource_node_factory,
-                                  resource_root)
+        self.__discover_resources(
+            self.__site, self.__resource_node_factory, resource_root
+        )
 
         static_routes = pathlib.Path(configuration['routes.static'])
         self.__discover_redirections(self.__site, static_routes)
@@ -668,13 +698,13 @@ class Liara:
             collections = pathlib.Path(configuration['collections'])
             if collections.exists():
                 self.__site.create_collections(
-                    load_yaml(collections.open('rb')))
+                    load_yaml(collections.open('rb'))
+                )
 
         if 'indices' in configuration:
             indices = pathlib.Path(configuration['indices'])
             if indices.exists():
-                self.__site.create_indices(
-                    load_yaml(indices.open('rb')))
+                self.__site.create_indices(load_yaml(indices.open('rb')))
 
         self.__site.create_links()
 
@@ -690,14 +720,14 @@ class Liara:
 
     def __clean_output(self):
         import shutil
+
         output_directory = self.__configuration['output_directory']
         self.__log.info(f'Cleaning output directory: "{output_directory}" ...')
         if os.path.exists(output_directory):
             shutil.rmtree(output_directory)
         self.__log.info('Output directory cleaned')
 
-    def __build_resources(self, site: Site, cache: Cache,
-                          parallel_build=True):
+    def __build_resources(self, site: Site, cache: Cache, parallel_build=True):
         self.__log.info('Processing resources ...')
 
         if parallel_build:
@@ -706,23 +736,32 @@ class Liara:
 
             for resource in site.resources:
                 if async_task := resource.process(cache):
-                    async_resource_tasks.append((resource, async_task,))
+                    async_resource_tasks.append(
+                        (
+                            resource,
+                            async_task,
+                        )
+                    )
 
-            self.__log.debug('%d async resource tasks pending ...',
-                             len(async_resource_tasks))
+            self.__log.debug(
+                '%d async resource tasks pending ...', len(async_resource_tasks)
+            )
 
             with multiprocessing.Pool(
-                    initializer=_setup_multiprocessing_worker,
-                    initargs=(logging.root.level,)) as pool:
+                initializer=_setup_multiprocessing_worker,
+                initargs=(logging.root.level,),
+            ) as pool:
                 async_resource_results = pool.map(
-                    _process_resource_task,
-                    [r[1] for r in async_resource_tasks])
+                    _process_resource_task, [r[1] for r in async_resource_tasks]
+                )
 
-            self.__log.debug('Processed %d async resource tasks',
-                             len(async_resource_tasks))
+            self.__log.debug(
+                'Processed %d async resource tasks', len(async_resource_tasks)
+            )
 
-            for ((resource, task), result) in zip(async_resource_tasks,
-                                                  async_resource_results):
+            for (resource, task), result in zip(
+                async_resource_tasks, async_resource_results
+            ):
                 resource.content = result
                 task.update_cache(result, cache)
         else:
@@ -739,6 +778,7 @@ class Liara:
         for example by the 'base_url' when locally serving), data nodes,
         and plugin hashes of loaded plugins."""
         import hashlib
+
         site_data = dict()
         for data_node in self.__site.data:
             site_data.update(data_node.content)
@@ -753,7 +793,8 @@ class Liara:
                 + get_hash_key_for_map(self.__site.metadata)
                 + get_hash_key_for_map(site_data)
                 + get_hash_key_for_map(plugin_hashes)
-                + __version__.encode('utf-8')).digest(16)
+                + __version__.encode('utf-8')
+            ).digest(16)
         )
 
     def check_tools(self, try_install=False):
@@ -776,14 +817,16 @@ class Liara:
 
         return True
 
-    def build(self, discover_content=True, *, disable_cache=False,
-              parallel_build=True):
+    def build(
+        self, discover_content=True, *, disable_cache=False, parallel_build=True
+    ):
         """Build the site.
 
         :param bool discover_content: If `True`, :py:meth:`discover_content`
                                       will be called first.
         """
         from .publish import TemplatePublisher
+
         self.__log.info('Build started')
         start_time = time.time()
         if self.__configuration['build.clean_output']:
@@ -804,15 +847,14 @@ class Liara:
         self.__log.debug(f'Using {cache.__class__.__name__} for caching')
         for document in site.documents:
             try:
-                args = {
-                    '$data': site.merged_data
-                }
+                args = {'$data': site.merged_data}
                 _process_node_sync(document, cache, **args)
             except Exception as e:
-                self.__log.warning('Failed to process document "%s". Document '
-                                   'content will be empty.',
-                                   document.src,
-                                   exc_info=e)
+                self.__log.warning(
+                    'Failed to process document "%s". Document content will be empty.',
+                    document.src,
+                    exc_info=e,
+                )
         self.__log.info(f'Processed {len(site.documents)} documents')
         signals.documents_processed.send(self, site=self.__site)
 
@@ -820,8 +862,9 @@ class Liara:
 
         output_path = pathlib.Path(self.__configuration['output_directory'])
 
-        publisher = TemplatePublisher(output_path, site,
-                                      self.__template_repository)
+        publisher = TemplatePublisher(
+            output_path, site, self.__template_repository
+        )
 
         published_files: List[pathlib.Path | None] = []
 
@@ -832,8 +875,10 @@ class Liara:
 
         for index in site.indices:
             published_files.append(index.publish(publisher))
-        self.__log.info(f'Published {len(site.indices)} '
-                        f'{"indices" if len(site.indices) > 1 else "index"}')
+        self.__log.info(
+            f'Published {len(site.indices)} '
+            f'{"indices" if len(site.indices) > 1 else "index"}'
+        )
 
         for resource in site.resources:
             published_files.append(resource.publish(publisher))
@@ -845,23 +890,26 @@ class Liara:
                 continue
             published_files.append(static.publish(publisher))
         published_static_file_count += 1
-        self.__log.info('Published %d static file(s)', 
-                        published_static_file_count)
+        self.__log.info(
+            'Published %d static file(s)', published_static_file_count
+        )
 
         if site.generated:
             for generated in site.generated:
                 generated.generate()
                 published_files.append(generated.publish(publisher))
-            self.__log.info(f'Published {len(site.generated)} '
-                            'generated file(s)')
+            self.__log.info(
+                f'Published {len(site.generated)} generated file(s)'
+            )
 
         if self.__redirections:
             self.__log.info('Writing redirection file ...')
             with (output_path / '.htaccess').open('w') as output:
                 output.write('RewriteEngine on\n')
                 for node in self.__redirections:
-                    output.write(f'RedirectPermanent {node["src"]} '
-                                 f'{node["dst"]}\n')
+                    output.write(
+                        f'RedirectPermanent {node["src"]} {node["dst"]}\n'
+                    )
             self.__log.info(f'Wrote {len(self.__redirections)} redirections')
 
         # Remove `None` entries
@@ -872,15 +920,23 @@ class Liara:
         if 'build.compression' in self.__configuration:
             import humanfriendly as hf
 
-            self.__log.info(f'Compression enabled, processing '
-                            f'{len(published_files)} file(s)')
+            self.__log.info(
+                f'Compression enabled, processing {len(published_files)} file(s)'
+            )
             compressor = Compressor(self.__configuration['build.compression'])
             compression_result: List[CompressionResult] = []
             if parallel_build:
                 with multiprocessing.Pool() as pool:
                     for result_list in pool.starmap(
-                            _compress,
-                            [(f, compressor,) for f in published_files]):
+                        _compress,
+                        [
+                            (
+                                f,
+                                compressor,
+                            )
+                            for f in published_files
+                        ],
+                    ):
                         compression_result += result_list
             else:
                 for published_file in published_files:
@@ -891,11 +947,14 @@ class Liara:
             self.__log.info('Finished compressing')
 
             for format in _COMPRESSION_FORMATS.keys():
-                filtered = list(filter(lambda x: x.format == format,
-                                       compression_result))
+                filtered = list(
+                    filter(lambda x: x.format == format, compression_result)
+                )
 
                 if not filtered:
-                    self.__log.info(f'  - No files compressed for format {format}')
+                    self.__log.info(
+                        f'  - No files compressed for format {format}'
+                    )
                     continue
 
                 uncompressed_size = sum([cr.input_size for cr in filtered])
@@ -905,7 +964,8 @@ class Liara:
                     f'{len(filtered)} compressed files, '
                     f'{hf.format_size(uncompressed_size, binary=True)}'
                     f' -> {hf.format_size(compressed_size, binary=True)}, '
-                    f'{hf.round_number(compressed_size / uncompressed_size * 100)}%')
+                    f'{hf.round_number(compressed_size / uncompressed_size * 100)}%'
+                )
 
         end_time = time.time()
         self.__log.info(f'Build finished ({end_time - start_time:.2f} sec)')
@@ -914,7 +974,8 @@ class Liara:
     def create_document(self, t):
         """Create a new document using a generator."""
         source_path = pathlib.Path(
-            self.__configuration['generator_directory']) / (t + '.py')
+            self.__configuration['generator_directory']
+        ) / (t + '.py')
         module = self._load_module(source_path, t)
         assert hasattr(module, 'generate')
         # We just checked it has this attribute
@@ -931,11 +992,12 @@ class Liara:
                 module.register()  # type: ignore
                 # Keep it around to prevent garbage collection
                 self.__registered_plugins[plugin] = _LoadedModule(
-                    module,
-                    file_digest(plugin.open('rb')))
+                    module, file_digest(plugin.open('rb'))
+                )
 
     def _load_module(self, path, name=''):
         import importlib.util
+
         self.__log.debug(f'Initializing plugin from module: "{path}"')
         # Prevent modules from being loaded twice
         if module := self.__registered_plugins.get(path):

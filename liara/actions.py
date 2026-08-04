@@ -52,8 +52,9 @@ def _is_internal_link(link: str) -> bool:
         return link[0] == '/'
 
 
-def gather_links(documents: Iterable[DocumentNode], link_type: LinkType) \
-        -> Dict[str, List[pathlib.PurePosixPath]]:
+def gather_links(
+    documents: Iterable[DocumentNode], link_type: LinkType
+) -> Dict[str, List[pathlib.PurePosixPath]]:
     """Gather links across documents.
 
     :return: A dictionary containing a link, and the list of document paths
@@ -74,8 +75,9 @@ def gather_links(documents: Iterable[DocumentNode], link_type: LinkType) \
     return result
 
 
-def validate_internal_links(links: Dict[str, List[pathlib.PurePosixPath]],
-                            site: Site) -> int:
+def validate_internal_links(
+    links: Dict[str, List[pathlib.PurePosixPath]], site: Site
+) -> int:
     """Validate internal links.
 
     For each link, check if it exists inside the provided site. If not, an
@@ -105,17 +107,21 @@ def validate_internal_links(links: Dict[str, List[pathlib.PurePosixPath]],
 
 
 def _check_external_link(url: str):
-    """Issue a request to the external URL and check for a valid response.
-    """
+    """Issue a request to the external URL and check for a valid response."""
     import requests
+
     try:
         ok = False
 
         if url.startswith('mailto'):
-            return (True, url, None,)
+            return (
+                True,
+                url,
+                None,
+            )
 
         error = 'Unknown error'
-        
+
         try:
             r = requests.get(url, timeout=5)
             if r.status_code == 200:
@@ -123,26 +129,35 @@ def _check_external_link(url: str):
             else:
                 error = f'got {r.status_code}, expected 200'
         except requests.exceptions.ConnectTimeout:
-            error = "connection timeout"
+            error = 'connection timeout'
         except requests.exceptions.ConnectionError:
-            error = "connection error"
+            error = 'connection error'
         except requests.exceptions.ReadTimeout:
-            error = "read timeout"
+            error = 'read timeout'
         except requests.exceptions.TooManyRedirects:
-            error = "too many redirects"
+            error = 'too many redirects'
         except Exception as e:
             error = str(e)
 
         if not ok:
-            return (False, url, error,)
+            return (
+                False,
+                url,
+                error,
+            )
         else:
-            return (True, url, None,)
+            return (
+                True,
+                url,
+                None,
+            )
     except (KeyboardInterrupt, SystemExit):
         return None
 
 
-def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]) \
-        -> int:
+def validate_external_links(
+    links: Dict[str, List[pathlib.PurePosixPath]],
+) -> int:
     """Validate external links.
 
     This issues a request for each link, and checks if it connects correctly.
@@ -166,7 +181,8 @@ def validate_external_links(links: Dict[str, List[pathlib.PurePosixPath]]) \
                     for source in links[r[1]]:
                         log.error(
                             f'Link "{r[1]}", referenced in "{source}" '
-                            f'failed with: {r[2]}')
+                            f'failed with: {r[2]}'
+                        )
                         error_count += 1
     except (KeyboardInterrupt, SystemExit):
         return 0

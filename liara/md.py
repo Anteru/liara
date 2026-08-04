@@ -6,9 +6,7 @@ from markdown.treeprocessors import Treeprocessor
 from markdown.preprocessors import Preprocessor
 import re
 import logging
-from typing import (
-    Any, Dict, Optional, Sequence
-)
+from typing import Any, Dict, Optional, Sequence
 
 
 class HeadingLevelFixupProcessor(Treeprocessor):
@@ -18,6 +16,7 @@ class HeadingLevelFixupProcessor(Treeprocessor):
     title will be provided by a template. This processor replaces each heading
     with the next-lower heading, and adds a ``demoted`` class.
     """
+
     def run(self, root):
         return self._demote_header(root)
 
@@ -40,18 +39,18 @@ class HeadingLevelFixupProcessor(Treeprocessor):
 
 
 class ShortcodeException(Exception):
-    def __init__(self, error_message, line_number,
-                 line_offset: Optional[int] = None):
-        super().__init__(self._format_message(error_message, line_number,
-                                              line_offset))
+    def __init__(
+        self, error_message, line_number, line_offset: Optional[int] = None
+    ):
+        super().__init__(
+            self._format_message(error_message, line_number, line_offset)
+        )
         self.__error_message = error_message
         self.__line_number = line_number
 
     def with_line_offset(self, offset):
         return ShortcodeException(
-            self.__error_message,
-            self.__line_number,
-            offset
+            self.__error_message, self.__line_number, offset
         )
 
     def _format_message(self, error_message, line_number, line_offset):
@@ -68,7 +67,7 @@ class _ParseBuffer:
         self.__line_start = 0
 
     def get_current_line(self) -> str:
-        return self.__lines[self.__current_line][self.__line_start:]
+        return self.__lines[self.__current_line][self.__line_start :]
 
     def get_current_line_number(self) -> int:
         return self.__current_line + 1
@@ -79,8 +78,8 @@ class _ParseBuffer:
 
         if self.__current_line >= len(self.__lines):
             raise ShortcodeException(
-                "Unexpected end of shortcode",
-                self.__current_line)
+                'Unexpected end of shortcode', self.__current_line
+            )
 
     def advance(self, offset: int):
         self.__line_start += offset
@@ -102,7 +101,8 @@ class _ParseBuffer:
         else:
             raise ShortcodeException(
                 f'Shortcode parse error: Expected "{what}"',
-                self.get_current_line_number())
+                self.get_current_line_number(),
+            )
 
 
 class _ShortcodeParser:
@@ -143,12 +143,14 @@ class _ShortcodeParser:
 
         self.__consume('/%>')
 
-        return (self.__buffer.get_current_line(),
-                # This is actually the line number + 1, but that's exactly the
-                # line at which parsing should continue, so this works out
-                self.__buffer.get_current_line_number(),
-                self.__function_name,
-                self.__args,)
+        return (
+            self.__buffer.get_current_line(),
+            # This is actually the line number + 1, but that's exactly the
+            # line at which parsing should continue, so this works out
+            self.__buffer.get_current_line_number(),
+            self.__function_name,
+            self.__args,
+        )
 
     def __consume(self, what):
         self.__buffer.consume(what)
@@ -164,14 +166,14 @@ class _ShortcodeParser:
         # character or ``/%>``
         line = self.__buffer.get_current_line()
         if match := self.__arg_re.search(line):
-            arg = line[:match.end()]
+            arg = line[: match.end()]
             self.__buffer.advance(match.end())
 
             return arg
         else:
             raise ShortcodeException(
-                    f'Error while parsing shortcode: Could not parse argument value',
-                    self.__buffer.get_current_line_number()
+                f'Error while parsing shortcode: Could not parse argument value',
+                self.__buffer.get_current_line_number(),
             )
 
     def __consume_whitespace(self):
@@ -198,6 +200,7 @@ class _ShortcodeParser:
 
         This will consume multiple lines if needed.
         """
+
         # Strings can be multi-line while inside "
         # Our strategy is as following: Find the next ", check if it was
         # escaped or not, and continue until we find one
@@ -222,22 +225,22 @@ class _ShortcodeParser:
                     result.append(line)
                     self.__buffer.advance_line()
                     break
-                
+
                 # Odd number means the escape is "active"
                 escapes = count_successive_characters(
-                    reversed(line[:quote_position]), '\\')
+                    reversed(line[:quote_position]), '\\'
+                )
                 is_escaped = quote_position > 0 and escapes % 2 == 1
                 if is_escaped:
                     next_quote = quote_position + 1
                     continue
-                
+
                 # Not escaped, extract the text between the line start and
                 # the quote position
                 result.append(line[:quote_position])
                 self.__buffer.advance(quote_position)
                 self.__buffer.consume('"')
                 return ''.join(result).replace('\\"', '"')
-                
 
     def __consume_key(self, what: str) -> str:
         """Consume a key from the buffer.
@@ -249,15 +252,15 @@ class _ShortcodeParser:
         line = self.__buffer.get_current_line()
         if match := self.__key_re.search(line):
             assert match.start() == 0
-            key = line[:match.end()]
+            key = line[: match.end()]
             self.__buffer.advance(match.end())
 
             return key
         else:
             raise ShortcodeException(
-                    f'Error while parsing shortcode: Could not parse {what}',
-                    self.__buffer.get_current_line_number()
-                    )
+                f'Error while parsing shortcode: Could not parse {what}',
+                self.__buffer.get_current_line_number(),
+            )
 
 
 class ShortcodePreprocessor(Preprocessor):
@@ -289,6 +292,7 @@ class ShortcodePreprocessor(Preprocessor):
 
     def __init__(self, md=None, node=None):
         from .template import Page
+
         super().__init__(md)
         self.__functions = dict()
         self.__page = Page(node)
@@ -316,11 +320,14 @@ class ShortcodePreprocessor(Preprocessor):
         import inspect
 
         signature = inspect.signature(function)
-        if not any([p.kind == p.VAR_KEYWORD
-                    for p in signature.parameters.values()]):
-            raise Exception(f'Cannot register function "{name}" as a '
-                            'shortcode handler as the function signature '
-                            'is missing a **kwargs parameter.')
+        if not any(
+            [p.kind == p.VAR_KEYWORD for p in signature.parameters.values()]
+        ):
+            raise Exception(
+                f'Cannot register function "{name}" as a '
+                'shortcode handler as the function signature '
+                'is missing a **kwargs parameter.'
+            )
 
         assert name and name[0] != '$'
         self.__functions[name] = function
@@ -361,17 +368,18 @@ class ShortcodePreprocessor(Preprocessor):
 
                 # Skip the text processing if logging is disabled
                 if self.__log.isEnabledFor(logging.DEBUG):
-                    self.__log.debug('Calling shortcode handler: "%s" with '
-                                     'arguments: %s',
-                                     func_name,
-                                     ', '.join(pretty_print_args(args)))
+                    self.__log.debug(
+                        'Calling shortcode handler: "%s" with arguments: %s',
+                        func_name,
+                        ', '.join(pretty_print_args(args)),
+                    )
                 yield from self.__functions[func_name](**args).splitlines()
 
                 # Another shortcode in the same line, so we need to resume
                 # parsing there and cannot simply emit the rest
                 if '<%' in rest:
                     assert next_line >= 1
-                    lines[next_line-1] = rest
+                    lines[next_line - 1] = rest
                     continue
 
                 if rest:
@@ -384,8 +392,8 @@ class ShortcodePreprocessor(Preprocessor):
 
 
 class LiaraMarkdownExtensions(Extension):
-    """Register various markdown extensions.
-    """
+    """Register various markdown extensions."""
+
     def __init__(self, node=None):
         super().__init__()
         self.__node = node
@@ -401,13 +409,13 @@ class LiaraMarkdownExtensions(Extension):
         self.__shortcode_preprocessor = ShortcodePreprocessor(md, self.__node)
 
         register_markdown_shortcodes.send(
-            self,
-            preprocessor=self.__shortcode_preprocessor)
+            self, preprocessor=self.__shortcode_preprocessor
+        )
 
-        md.treeprocessors.register(HeadingLevelFixupProcessor(md),
-                                   'heading-level-fixup',
-                                   100)
-        md.preprocessors.register(self.__shortcode_preprocessor,
-                                  'shortcode-preprocessor',
-                                  100)
+        md.treeprocessors.register(
+            HeadingLevelFixupProcessor(md), 'heading-level-fixup', 100
+        )
+        md.preprocessors.register(
+            self.__shortcode_preprocessor, 'shortcode-preprocessor', 100
+        )
         md.registerExtension(self)

@@ -23,9 +23,7 @@ def test_inspect_data(tmp_path):
         assert result.exit_code == 0
 
         # Add a data file to content
-        data = {
-            'root': 'some data'
-        }
+        data = {'root': 'some data'}
 
         liara.yaml.dump_yaml(data, open('content/_data.yaml', 'w'))
 

@@ -34,6 +34,7 @@ from abc import abstractmethod, ABC
 from .tools import SassCompiler
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from .query import Query
 
@@ -42,6 +43,7 @@ class Publisher(ABC):
     """A publisher produces the final output files, applying templates etc. as
     needed.
     """
+
     @abstractmethod
     def publish_document(self, document: 'DocumentNode') -> pathlib.Path:
         """Publish a document node.
@@ -58,8 +60,7 @@ class Publisher(ABC):
         ...
 
     @abstractmethod
-    def publish_resource(self, resource: 'ResourceNode') -> \
-            pathlib.Path | None:
+    def publish_resource(self, resource: 'ResourceNode') -> pathlib.Path | None:
         """Publish a resource node.
 
         :return: The path of the generated file, or ``None`` if no file
@@ -75,8 +76,9 @@ class Publisher(ABC):
         ...
 
     @abstractmethod
-    def publish_generated(self, generated: 'GeneratedNode') -> \
-            pathlib.Path | None:
+    def publish_generated(
+        self, generated: 'GeneratedNode'
+    ) -> pathlib.Path | None:
         """Publish a generated node.
 
         :return: The path of the generated file, or ``None`` if no file
@@ -102,6 +104,7 @@ class _AsyncTask(ABC):
 
     The function must return the new content of the node.
     """
+
     @abstractmethod
     def process(self) -> object | bytes | None:
         """
@@ -173,6 +176,7 @@ class Node(ABC):
         """Select all children of this node and return them as a
         :py:class:`~liara.query.Query`."""
         from .query import Query
+
         return Query(self.children)
 
     def get_child(self, name) -> Optional['Node']:
@@ -260,12 +264,16 @@ def extract_metadata_content(text: str):
         elif meta_end == 0:
             if match.group() == '---\n':
                 if metadata_kind != MetadataKind.Yaml:
-                    raise Exception('Metadata markers mismatch -- started '
-                                    'with "---", but ended with "+++"')
+                    raise Exception(
+                        'Metadata markers mismatch -- started '
+                        'with "---", but ended with "+++"'
+                    )
             elif match.group() == '+++\n':
                 if metadata_kind != MetadataKind.Toml:
-                    raise Exception('Metadata markers mismatch -- started '
-                                    'with "+++", but ended with "---"')
+                    raise Exception(
+                        'Metadata markers mismatch -- started '
+                        'with "+++", but ended with "---"'
+                    )
 
             meta_end = match.span()[0]
             content_start = match.span()[1]
@@ -295,23 +303,25 @@ def fixup_relative_links(document: 'DocumentNode'):
 
     # early out if there's no relative link in here, as the parsing is
     # very expensive
-    if "href=\"." not in document.content:
+    if 'href=".' not in document.content:
         return
 
     from bs4 import BeautifulSoup
     from bs4.element import Tag
+
     soup = BeautifulSoup(document.content, 'lxml')
 
     def is_relative_url(s):
         return s and s[0] == '.'
 
     for link in soup.find_all('a', {'href': is_relative_url}):
-        assert (isinstance(link, Tag))
+        assert isinstance(link, Tag)
         target = link.attrs.get('href')
         if target:
-            assert (isinstance(target, str))
-            link.attrs['href'] = \
-                str(document.path.parent / pathlib.PurePosixPath(target))
+            assert isinstance(target, str)
+            link.attrs['href'] = str(
+                document.path.parent / pathlib.PurePosixPath(target)
+            )
 
     document.content = str(soup)
 
@@ -328,13 +338,15 @@ def fixup_date(document: 'DocumentNode'):
 class FixupDateTimezone:
     """Set the timezone of the ``metadata['date']`` field to the local timezone
     if no timezone has been set."""
+
     def __init__(self):
         import tzlocal
+
         self.__tz = tzlocal.get_localzone()
 
     def __call__(self, document: 'DocumentNode'):
-        '''If the date in the document has no timezone info, set it to the
-        local timezone.'''
+        """If the date in the document has no timezone info, set it to the
+        local timezone."""
         if 'date' in document.metadata:
             date = document.metadata['date']
             if date.tzinfo is None:
@@ -354,8 +366,12 @@ class DocumentNode(Node):
 
     content: str | None
 
-    def __init__(self, src, path: pathlib.PurePosixPath,
-                 metadata_path: Optional[pathlib.Path] = None):
+    def __init__(
+        self,
+        src,
+        path: pathlib.PurePosixPath,
+        metadata_path: Optional[pathlib.Path] = None,
+    ):
         super().__init__()
         self.kind = NodeKind.Document
         self.src = src
@@ -406,8 +422,9 @@ class DocumentNode(Node):
             self._raw_content = self.src.read_text('utf-8')
             self._content_line_start = 1
         else:
-            self.metadata, self._raw_content, self._content_line_start = \
+            self.metadata, self._raw_content, self._content_line_start = (
                 extract_metadata_content(self.src.read_text('utf-8'))
+            )
 
     def reload(self):
         """Reload this node from disk.
@@ -433,6 +450,7 @@ class HtmlDocumentNode(DocumentNode):
 
 class MarkdownDocumentNode(DocumentNode):
     """A node representing a Markdown document."""
+
     def __init__(self, configuration, **kwargs):
         super().__init__(**kwargs)
         self.__md = self._create_markdown_processor(configuration)
@@ -443,16 +461,18 @@ class MarkdownDocumentNode(DocumentNode):
 
         self.__mdext = LiaraMarkdownExtensions(self)
 
-        extensions = [
-            self.__mdext
-        ] + configuration['content.markdown.extensions']
+        extensions = [self.__mdext] + configuration[
+            'content.markdown.extensions'
+        ]
 
         extension_configs = configuration['content.markdown.config']
         output = configuration['content.markdown.output']
 
-        return Markdown(extensions=extensions,
-                        extension_configs=extension_configs,
-                        output_format=output)
+        return Markdown(
+            extensions=extensions,
+            extension_configs=extension_configs,
+            output_format=output,
+        )
 
     def process(self, cache: Cache, **kwargs):
         import hashlib
@@ -489,6 +509,7 @@ class DataNode(Node):
     data as part of a :py:class:`liara.site.Site`, and make it available to
     templates (for instance, a menu structure could go into a data node.)
     """
+
     def __init__(self, src: pathlib.Path, path: pathlib.PurePosixPath):
         super().__init__()
         self.kind = NodeKind.Data
@@ -513,8 +534,9 @@ class IndexNode(Node):
     path of the parent node. The ``references`` list allows to reference nodes
     elsewhere in the site."""
 
-    def __init__(self, path: pathlib.PurePosixPath,
-                 metadata: Optional[Dict] = None):
+    def __init__(
+        self, path: pathlib.PurePosixPath, metadata: Optional[Dict] = None
+    ):
         super().__init__()
         self.kind = NodeKind.Index
         self.src = None
@@ -533,12 +555,14 @@ class IndexNode(Node):
 
 class GeneratedNode(Node):
     """A generated node.
-    
+
     A generated node synthesizes all its content by itself, not referencing
     a single node as an input. For example, redirections or feeds are generated
     based off site-level data."""
-    def __init__(self, path: pathlib.PurePosixPath,
-                 metadata: Optional[Dict] = None):
+
+    def __init__(
+        self, path: pathlib.PurePosixPath, metadata: Optional[Dict] = None
+    ):
         super().__init__()
         self.kind = NodeKind.Generated
         self.src = None
@@ -585,19 +609,21 @@ class RedirectionNode(GeneratedNode):
     ``window.location``.
     """
 
-    def __init__(self,
-                 path: pathlib.PurePosixPath,
-                 dst: pathlib.PurePosixPath,
-                 *,
-                 base_url=''):
+    def __init__(
+        self,
+        path: pathlib.PurePosixPath,
+        dst: pathlib.PurePosixPath,
+        *,
+        base_url='',
+    ):
         super().__init__(path)
         self.dst = dst
         self.__base_url = base_url
 
     def generate(self):
-        text = _REDIRECTION_TEMPLATE.replace('{{NEW_URL}}',
-                                             self.__base_url
-                                             + self.dst.as_posix())
+        text = _REDIRECTION_TEMPLATE.replace(
+            '{{NEW_URL}}', self.__base_url + self.dst.as_posix()
+        )
         self.content = text
 
 
@@ -608,6 +634,7 @@ class ResourceNode(Node):
     and requires some process first before it becomes usable -- for instance,
     ``SASS`` to ``CSS`` compilation.
     """
+
     def __init__(self, src, path: pathlib.PurePosixPath, metadata_path=None):
         super().__init__()
         self.kind = NodeKind.Resource
@@ -633,9 +660,9 @@ _SASS_COMPILER = Literal['cli', 'libsass']
 class _AsyncSassTask(_AsyncTask):
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
-    def __init__(self, cache_key: bytes,
-                 compiler: _SASS_COMPILER,
-                 src: pathlib.Path):
+    def __init__(
+        self, cache_key: bytes, compiler: _SASS_COMPILER, src: pathlib.Path
+    ):
         self.__cache_key = cache_key
         self.__src = src
         self.__compiler = compiler
@@ -650,13 +677,17 @@ class _AsyncSassTask(_AsyncTask):
         try:
             result.check_returncode()
         except FileNotFoundError:
-            self.__log.error('Could not find "sass" binary. Make sure that '
-                             'SASS is installed and available in your PATH.')
+            self.__log.error(
+                'Could not find "sass" binary. Make sure that '
+                'SASS is installed and available in your PATH.'
+            )
             raise
         except Exception:
-            self.__log.error('SASS compilation of file "%s" failed: "%s"',
-                             self.__src,
-                             result.stderr.decode('utf-8'))
+            self.__log.error(
+                'SASS compilation of file "%s" failed: "%s"',
+                self.__src,
+                result.stderr.decode('utf-8'),
+            )
             raise
 
         self.__log.debug('Done processing "%s"', self.__src)
@@ -664,6 +695,7 @@ class _AsyncSassTask(_AsyncTask):
 
     def _compile_using_libsass(self):
         import sass
+
         self.__log.debug(f'Processing "{self.__src}" using "libsass"')
 
         result = sass.compile(filename=str(self.__src)).encode('utf-8')
@@ -679,8 +711,9 @@ class _AsyncSassTask(_AsyncTask):
             elif self.__compiler == 'libsass':
                 return self._compile_using_libsass()
         except Exception as e:
-            self.__log.warning(f'Failed to compile SCSS file "{self.__src}"',
-                               exc_info=e)
+            self.__log.warning(
+                f'Failed to compile SCSS file "{self.__src}"', exc_info=e
+            )
 
     def update_cache(self, content: object, cache: Cache):
         cache.put(self.__cache_key, content)
@@ -690,13 +723,15 @@ class SassResourceNode(ResourceNode):
     """This resource node compiles ``.sass`` and ``.scss`` files to CSS
     when built.
     """
+
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self, src, path: pathlib.PurePosixPath, metadata_path=None):
         super().__init__(src, path, metadata_path)
         if src.suffix not in {'.scss', '.sass'}:
-            raise Exception("SassResource can be only created for a .scss or "
-                            " .sass file")
+            raise Exception(
+                'SassResource can be only created for a .scss or  .sass file'
+            )
 
         self.path = self.path.with_suffix('.css')
         self.__compiler: _SASS_COMPILER = 'cli'
@@ -709,6 +744,7 @@ class SassResourceNode(ResourceNode):
 
     def process(self, cache: Cache, **kwargs):
         import hashlib
+
         if self.content is not None:
             return
 
@@ -716,7 +752,7 @@ class SassResourceNode(ResourceNode):
         cache_key = hashlib.sha256(self.src.open('rb').read()).digest()
 
         if (value := cache.get(cache_key)) is not None:
-            assert (isinstance(value, bytes))
+            assert isinstance(value, bytes)
             self.content = value
             return
 
@@ -729,6 +765,7 @@ NT = TypeVar('NT', bound=Node)
 class NodeFactory(Generic[NT]):
     """A generic factory for nodes, which builds nodes based on the file
     type."""
+
     __known_types: Dict[str, Tuple[Type, Any]]
 
     def __init__(self):
@@ -738,11 +775,13 @@ class NodeFactory(Generic[NT]):
     def known_types(self):
         return self.__known_types.keys()
 
-    def register_type(self,
-                      suffixes: Union[str, Iterable[str]],
-                      node_type: type,
-                      *,
-                      extra_args: Dict[str, Any] | None = None) -> None:
+    def register_type(
+        self,
+        suffixes: Union[str, Iterable[str]],
+        node_type: type,
+        *,
+        extra_args: Dict[str, Any] | None = None,
+    ) -> None:
         """Register a new node type.
 
         :param suffixes: Either one suffix, or a list of suffixes to be
@@ -760,14 +799,17 @@ class NodeFactory(Generic[NT]):
         for suffix in suffixes:
             self.__known_types[suffix] = (
                 node_type,
-                extra_args if extra_args is not None else dict(),)
+                extra_args if extra_args is not None else dict(),
+            )
 
-    def _create_node(self,
-                     cls,
-                     src: pathlib.Path,
-                     path: pathlib.PurePosixPath,
-                     metadata_path: Optional[pathlib.Path] = None,
-                     **kwargs) -> NT:
+    def _create_node(
+        self,
+        cls,
+        src: pathlib.Path,
+        path: pathlib.PurePosixPath,
+        metadata_path: Optional[pathlib.Path] = None,
+        **kwargs,
+    ) -> NT:
         """This is the actual creation function.
 
         :param cls: The class of the node to instantiate.
@@ -785,10 +827,13 @@ class NodeFactory(Generic[NT]):
         # easier to manipulate the argument list/remove arguments
         return cls(src=src, path=path, metadata_path=metadata_path, **kwargs)
 
-    def create_node(self, suffix: str,
-                    src: pathlib.Path,
-                    path: pathlib.PurePosixPath,
-                    metadata_path: Optional[pathlib.Path] = None) -> NT:
+    def create_node(
+        self,
+        suffix: str,
+        src: pathlib.Path,
+        path: pathlib.PurePosixPath,
+        metadata_path: Optional[pathlib.Path] = None,
+    ) -> NT:
         """Create a node using the provided parameters."""
         cls, extra_args = self.__known_types[suffix]
         node = self._create_node(cls, src, path, metadata_path, **extra_args)
@@ -820,7 +865,8 @@ class ResourceNodeFactory(NodeFactory[ResourceNode]):
                 'Support for "libsass" as the compiler for SASS '
                 'files is deprecated and will be removed in a future release. '
                 'Please check the documentation how to use the SASS '
-                'command line compiler.')
+                'command line compiler.'
+            )
 
     def _on_node_created(self, node: ResourceNode):
         if isinstance(node, SassResourceNode):
@@ -830,6 +876,7 @@ class ResourceNodeFactory(NodeFactory[ResourceNode]):
 
 class DocumentNodeFactory(NodeFactory[DocumentNode]):
     """A factory for document nodes."""
+
     def __setup_fixups(self, configuration):
         if configuration['relaxed_date_parsing']:
             # This is tricky, as fixup_date depends on this running
@@ -847,16 +894,16 @@ class DocumentNodeFactory(NodeFactory[DocumentNode]):
         self.__setup_fixups(configuration)
 
         self.register_type(
-            ['.md'], MarkdownDocumentNode,
-            extra_args={
-                'configuration': configuration
-            })
+            ['.md'],
+            MarkdownDocumentNode,
+            extra_args={'configuration': configuration},
+        )
         self.register_type(['.html'], HtmlDocumentNode)
 
     def _on_node_created(self, node):
         node.set_fixups(
-            load_fixups=self.__load_fixups,
-            process_fixups=self.__process_fixups)
+            load_fixups=self.__load_fixups, process_fixups=self.__process_fixups
+        )
         node.load()
         return node
 
@@ -879,8 +926,9 @@ class StaticNode(Node):
 
     .. versionadded:: 2.7.7"""
 
-    def __init__(self, src: pathlib.Path, path: pathlib.PurePosixPath,
-                 metadata_path=None):
+    def __init__(
+        self, src: pathlib.Path, path: pathlib.PurePosixPath, metadata_path=None
+    ):
         super().__init__()
         self.kind = NodeKind.Static
         self.src = src
@@ -906,7 +954,8 @@ class StaticNode(Node):
           was added.
         """
         from PIL import Image
-        assert (self.src)
+
+        assert self.src
         if self.is_image:
             image = Image.open(self.src)
             self.metadata['$image_size'] = image.size
@@ -917,7 +966,7 @@ class StaticNode(Node):
     @property
     def is_image(self):
         """Return ``True`` if this static file is pointing to an image."""
-        assert (self.src)
+        assert self.src
         return self.src.suffix in {'.jpg', '.png', '.webp'}
 
     def publish(self, publisher: Publisher) -> pathlib.Path:
@@ -928,9 +977,13 @@ class StaticNode(Node):
 class _AsyncThumbnailTask(_AsyncTask):
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
-    def __init__(self, cache_key: bytes, src: pathlib.Path,
-                 size: tuple[int, int],
-                 format: Optional[str]):
+    def __init__(
+        self,
+        cache_key: bytes,
+        src: pathlib.Path,
+        size: tuple[int, int],
+        format: Optional[str],
+    ):
         self.__src = src
         self.__size = size
         self.__cache_key = cache_key
@@ -940,23 +993,21 @@ class _AsyncThumbnailTask(_AsyncTask):
     def process(self):
         from PIL import Image
         import io
+
         self.__log.debug(
-            'Generating thumbnail from "%s", with size %dx%d '
-            'and format "%s"',
+            'Generating thumbnail from "%s", with size %dx%d and format "%s"',
             self.__src,
-            self.__size[0], self.__size[1],
-            'original' if self.__format is None else self.__format)
+            self.__size[0],
+            self.__size[1],
+            'original' if self.__format is None else self.__format,
+        )
         image = Image.open(self.__src)
 
         image.thumbnail(self.__size)
         storage = io.BytesIO()
         assert self.__src
 
-        format_from_suffix = {
-            '.jpg': 'JPEG',
-            '.png': 'PNG',
-            '.webp': 'WEBP'
-        }
+        format_from_suffix = {'.jpg': 'JPEG', '.png': 'PNG', '.webp': 'WEBP'}
 
         if self.__format:
             format = self.__format.upper()
@@ -964,7 +1015,7 @@ class _AsyncThumbnailTask(_AsyncTask):
             format = format_from_suffix.get(self.__src.suffix.lower())
 
         if format is None:
-            raise Exception("Unsupported image type for thumbnails")
+            raise Exception('Unsupported image type for thumbnails')
 
         image.save(storage, format)
         result = storage.getvalue()
@@ -981,9 +1032,14 @@ class ThumbnailNode(ResourceNode):
 
     The thumbnail node is a resource node which holds the thumbnail of an
     image."""
-    def __init__(self, src: pathlib.Path,
-                 path: pathlib.PurePosixPath, size: tuple[int, int],
-                 format: str | None = 'original'):
+
+    def __init__(
+        self,
+        src: pathlib.Path,
+        path: pathlib.PurePosixPath,
+        size: tuple[int, int],
+        format: str | None = 'original',
+    ):
         super().__init__(src, path)
         self.__size = size
         self.__format = format
@@ -991,6 +1047,7 @@ class ThumbnailNode(ResourceNode):
 
     def __get_cache_key(self) -> bytes:
         import hashlib
+
         assert self.src
         cache_key = hashlib.sha256(self.src.open('rb').read()).digest()
 
@@ -1007,15 +1064,15 @@ class ThumbnailNode(ResourceNode):
     def process(self, cache: Cache, **kwargs) -> _AsyncThumbnailTask | None:
         cache_key = self.__get_cache_key()
         if content := cache.get(cache_key):
-            assert (isinstance(content, bytes))
+            assert isinstance(content, bytes)
             self.content = content
             return None
 
         assert self.src
 
-        async_task = _AsyncThumbnailTask(cache_key, self.src,
-                                         self.__size,
-                                         self.__format)
+        async_task = _AsyncThumbnailTask(
+            cache_key, self.src, self.__size, self.__format
+        )
 
         return async_task
 
@@ -1028,23 +1085,23 @@ def _parse_node_kind(kind) -> NodeKind:
 
     .. versionadded:: 2.4"""
     kind_map = {
-            'document': NodeKind.Document,
-            'index': NodeKind.Index,
-            'static': NodeKind.Static,
-            'generated': NodeKind.Generated,
-            'resource': NodeKind.Resource,
-            'data': NodeKind.Data,
-
-            # Additional shortcuts
-            'doc': NodeKind.Document,
-            'idx': NodeKind.Index,
+        'document': NodeKind.Document,
+        'index': NodeKind.Index,
+        'static': NodeKind.Static,
+        'generated': NodeKind.Generated,
+        'resource': NodeKind.Resource,
+        'data': NodeKind.Data,
+        # Additional shortcuts
+        'doc': NodeKind.Document,
+        'idx': NodeKind.Index,
     }
 
     return kind_map[kind]
 
 
-def _process_node_sync(node: Union[ResourceNode, DocumentNode],
-                       cache: Cache, **kwargs):
+def _process_node_sync(
+    node: Union[ResourceNode, DocumentNode], cache: Cache, **kwargs
+):
     """
     Process a node synchronously, even if it returned an async result.
     """
@@ -1052,13 +1109,15 @@ def _process_node_sync(node: Union[ResourceNode, DocumentNode],
         content = task.process()
         match node.kind:
             case NodeKind.Document:
-                assert isinstance(content, str), \
+                assert isinstance(content, str), (
                     '`content` must be a `str` document nodes'
+                )
                 assert isinstance(node, DocumentNode)
                 node.content = content
             case NodeKind.Resource:
-                assert isinstance(content, bytes), \
+                assert isinstance(content, bytes), (
                     '`content` must be `bytes` resource nodes'
+                )
                 assert isinstance(node, ResourceNode)
                 node.content = content
             case _:

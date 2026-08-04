@@ -85,7 +85,7 @@ def test_query_sort_by():
         _ = list(root.select_children().sorted_by_metadata('non-existant'))
 
     s3 = list(root.select_children().sorted_by_metadata('title'))
-    
+
     assert isinstance(s3[0], Page)
     assert isinstance(s3[1], Page)
 
@@ -125,7 +125,6 @@ def test_query_limit_offset():
     assert len(result) == 2
     assert result[0].metadata['title'] == 'Page 2'
     assert result[1].metadata['title'] == 'Page 3'
-
 
 
 def test_query_filter_reversed():

@@ -17,9 +17,7 @@ def test_shortcode_with_data(tmp_path):
         assert result.exit_code == 0
 
         # Add a data file to content
-        data = {
-            'root': 'some data'
-        }
+        data = {'root': 'some data'}
 
         open('content/_index.md', 'w').write("""
 ---

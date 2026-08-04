@@ -3,7 +3,6 @@
 
 from liara.util import (
     CaseInsensitiveDictionary,
-
     add_suffix,
     flatten_dictionary,
     pairwise,
@@ -35,6 +34,7 @@ def test_flatten_dictionary_with_ignores_nested():
 
 def test_add_suffix():
     import pathlib
+
     p = pathlib.PurePosixPath('foo.bar')
     p = add_suffix(p, 'baz')
 
@@ -42,7 +42,16 @@ def test_add_suffix():
 
 
 def test_pairwise():
-    assert list(pairwise([1, 2, 3])) == [(1, 2,), (2, 3,)]
+    assert list(pairwise([1, 2, 3])) == [
+        (
+            1,
+            2,
+        ),
+        (
+            2,
+            3,
+        ),
+    ]
 
 
 def test_pairwise_one_element_list():
@@ -54,51 +63,51 @@ def test_pairwise_empty_list():
 
 
 def test_merge_dictionaries():
-    a = {"key0": "value", "key1": {"foo": "bar"}}
-    b = {"key0": "other_value", "key1": {"fiz": "bug"}}
+    a = {'key0': 'value', 'key1': {'foo': 'bar'}}
+    b = {'key0': 'other_value', 'key1': {'fiz': 'bug'}}
 
     m = merge_dictionaries(a, b)
 
-    r = {"key0": "other_value", "key1": {"foo": "bar", "fiz": "bug"}}
+    r = {'key0': 'other_value', 'key1': {'foo': 'bar', 'fiz': 'bug'}}
     assert m == r
     assert m == a
 
 
 def test_merge_dictionaries_fails_with_mismatch():
-    a = {"key1": {"foo": {"bar": "baz"}}}
-    b = {"key1": {"foo": "bug"}}
+    a = {'key1': {'foo': {'bar': 'baz'}}}
+    b = {'key1': {'foo': 'bug'}}
 
     with pytest.raises(RuntimeError):
         merge_dictionaries(a, b)
 
 
 def test_case_insensitive_dictionary():
-    a = CaseInsensitiveDictionary({
-        "Foo": 23,
-        "bAr": 42
-    })
+    a = CaseInsensitiveDictionary({'Foo': 23, 'bAr': 42})
 
-    assert "foo" in a
-    assert "bar" in a
+    assert 'foo' in a
+    assert 'bar' in a
 
-    assert "FOO" in a
-    assert "BAR" in a
+    assert 'FOO' in a
+    assert 'BAR' in a
 
     keys = a.keys()
     assert len(keys) == 2
-    assert sorted(keys) == sorted(["Foo", "bAr"])
+    assert sorted(keys) == sorted(['Foo', 'bAr'])
 
-    assert a["Foo"] == 23
-    assert a["bAr"] == 42
+    assert a['Foo'] == 23
+    assert a['bAr'] == 42
 
-    assert a["FOO"] == 23
-    assert a["bar"] == 42
+    assert a['FOO'] == 23
+    assert a['bar'] == 42
 
     assert len(a) == 2
 
 
 def test_get_thumbnail_size_width_height():
-    s0 = (512, 256,)
+    s0 = (
+        512,
+        256,
+    )
     ts = {'width': 400, 'height': 300}
 
     r = get_thumbnail_size(s0, ts)
@@ -108,7 +117,10 @@ def test_get_thumbnail_size_width_height():
 
 
 def test_get_thumbnail_size_longest_edge():
-    s0 = (512, 256,)
+    s0 = (
+        512,
+        256,
+    )
     ts = {'longest_edge': 400}
 
     r = get_thumbnail_size(s0, ts)
@@ -118,7 +130,10 @@ def test_get_thumbnail_size_longest_edge():
 
 
 def test_get_thumbnail_size_width():
-    s0 = (512, 256,)
+    s0 = (
+        512,
+        256,
+    )
     ts = {'width': 400}
 
     r = get_thumbnail_size(s0, ts)
@@ -128,7 +143,10 @@ def test_get_thumbnail_size_width():
 
 
 def test_get_thumbnail_size_height():
-    s0 = (512, 256,)
+    s0 = (
+        512,
+        256,
+    )
     ts = {'height': 200}
 
     r = get_thumbnail_size(s0, ts)
@@ -138,7 +156,10 @@ def test_get_thumbnail_size_height():
 
 
 def test_get_thumbnail_size_none_if_no_scaling_needed():
-    s0 = (512, 256,)
+    s0 = (
+        512,
+        256,
+    )
 
     assert get_thumbnail_size(s0, {'width': 600, 'height': 400}) is None
     assert get_thumbnail_size(s0, {'width': 600}) is None

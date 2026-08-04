@@ -16,9 +16,12 @@ content
     assert 'a' in metadata
     assert metadata['a'] == 'b'
     assert first_content_line == 4
-    assert content == """
+    assert (
+        content
+        == """
 content
 """
+    )
 
 
 def test_extract_yaml_metadata():
@@ -32,9 +35,12 @@ content
     assert 'a' in metadata
     assert metadata['a'] == 'b'
     assert first_content_line == 4
-    assert content == """
+    assert (
+        content
+        == """
 content
 """
+    )
 
 
 def test_extract_metadata_mismatch_throws():
@@ -55,9 +61,12 @@ content
 """
 
     metadata, content, first_content_line = extract_metadata_content(document)
-    assert content == """
+    assert (
+        content
+        == """
 content
 """
+    )
     assert metadata == {}
     assert first_content_line == 1
 

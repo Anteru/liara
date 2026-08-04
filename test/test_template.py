@@ -51,17 +51,14 @@ def test_match_url_wildcard(default_site):
 
 
 class _MockTemplateRepository(TemplateRepository):
-    def find_template(self, url: pathlib.PurePosixPath, site: liara.site.Site) -> Template:
+    def find_template(
+        self, url: pathlib.PurePosixPath, site: liara.site.Site
+    ) -> Template:
         raise NotImplementedError()
 
 
 def test_match_url_order_independent(default_site):
-    tr0 = _MockTemplateRepository(
-        {
-            '/*': 'default',
-            '/en*': 'en'
-        }
-    )
+    tr0 = _MockTemplateRepository({'/*': 'default', '/en*': 'en'})
 
     t00, _ = tr0._match_template(pathlib.PurePosixPath('/en'), default_site)
     assert t00 == 'en'
@@ -69,12 +66,7 @@ def test_match_url_order_independent(default_site):
     t01, _ = tr0._match_template(pathlib.PurePosixPath('/'), default_site)
     assert t01 == 'default'
 
-    tr1 = _MockTemplateRepository(
-        {
-            '/en*': 'en',
-            '/*': 'default'
-        }
-    )
+    tr1 = _MockTemplateRepository({'/en*': 'en', '/*': 'default'})
 
     t10, _ = tr1._match_template(pathlib.PurePosixPath('/en'), default_site)
     assert t10 == 'en'
@@ -84,22 +76,12 @@ def test_match_url_order_independent(default_site):
 
 
 def test_match_url_same_length(default_site):
-    tr0 = _MockTemplateRepository(
-        {
-            '/e*': 'a',
-            '/*n': 'b'
-        }
-    )
+    tr0 = _MockTemplateRepository({'/e*': 'a', '/*n': 'b'})
 
     t00, _ = tr0._match_template(pathlib.PurePosixPath('/en'), default_site)
     assert t00 == 'a'
 
-    tr1 = _MockTemplateRepository(
-        {
-            '/*n': 'a',
-            '/e*': 'b'
-        }
-    )
+    tr1 = _MockTemplateRepository({'/*n': 'a', '/e*': 'b'})
 
     t10, _ = tr1._match_template(pathlib.PurePosixPath('/en'), default_site)
     assert t10 == 'a'

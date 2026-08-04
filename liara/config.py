@@ -26,7 +26,7 @@ def create_default_configuration() -> Dict[str, Any]:
             'cache.redis.db': 0,
             'cache.redis.expiration_time': 60,
             'cache.type': 'fs',
-            'resource.sass.compiler': 'libsass'
+            'resource.sass.compiler': 'libsass',
         },
         'ignore_files': ['*~'],
         'content': {
@@ -38,28 +38,22 @@ def create_default_configuration() -> Dict[str, Any]:
                     'codehilite',
                     'smarty',
                     'tables',
-                    'admonition'
+                    'admonition',
                 ],
                 'config': {
-                    'codehilite': {
-                        'css_class': 'code'
-                    },
-                    'pymdownx.arithmatex': {
-                        'generic': True
-                    }
+                    'codehilite': {'css_class': 'code'},
+                    'pymdownx.arithmatex': {'generic': True},
                 },
-                'output': 'html5'
-            }
+                'output': 'html5',
+            },
         },
         'template': 'templates/default.yaml',
-        'routes': {
-            'static': 'static_routes.yaml'
-        },
+        'routes': {'static': 'static_routes.yaml'},
         'collections': 'collections.yaml',
         'relaxed_date_parsing': False,
         'allow_relative_links': True,
         'feeds': 'feeds.yaml',
-        'metadata': 'metadata.yaml'
+        'metadata': 'metadata.yaml',
     }
 
 
@@ -68,11 +62,8 @@ def create_default_template_configuration() -> Dict[str, Any]:
     return {
         'backend': 'jinja2',
         'backend_options': {
-            'jinja2': {
-                'trim_blocks': True,
-                'lstrip_blocks': True
-            }
-        }
+            'jinja2': {'trim_blocks': True, 'lstrip_blocks': True}
+        },
     }
 
 
@@ -84,6 +75,6 @@ def create_default_metadata() -> Dict[str, Any]:
         'description': 'Default description',
         'language': 'en-US',
         'copyright': 'Licensed under the '
-                     '<a href="http://creativecommons.org/licenses/by/4.0/"> '
-                     'Creative Commons Attribution 4.0 International License.'
+        '<a href="http://creativecommons.org/licenses/by/4.0/"> '
+        'Creative Commons Attribution 4.0 International License.',
     }

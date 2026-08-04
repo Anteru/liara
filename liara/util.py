@@ -17,6 +17,7 @@ def pairwise(iterable):
 
     See: https://docs.python.org/3/library/itertools.html#recipes."""
     import itertools
+
     a, b = itertools.tee(iterable)
     next(b, None)
     return zip(a, b)
@@ -41,8 +42,9 @@ def readtime(wordcount: int, words_per_minute=300):
     return max(1, round(wordcount / words_per_minute))
 
 
-def flatten_dictionary(d, sep='.', parent_key=None,
-                       *, ignore_keys: Optional[set] = None):
+def flatten_dictionary(
+    d, sep='.', parent_key=None, *, ignore_keys: Optional[set] = None
+):
     """Flatten a nested dictionary. This uses the separator to combine keys
     together, so a dictionary access like ``['a']['b']`` with a separator
     ``'.'`` turns into ``'a.b'``.
@@ -58,13 +60,22 @@ def flatten_dictionary(d, sep='.', parent_key=None,
 
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
-        if isinstance(v, collections.abc.Mapping) \
-           and new_key not in ignore_keys:
-            items.extend(flatten_dictionary(v, sep=sep,
-                                            parent_key=new_key,
-                                            ignore_keys=ignore_keys).items())
+        if (
+            isinstance(v, collections.abc.Mapping)
+            and new_key not in ignore_keys
+        ):
+            items.extend(
+                flatten_dictionary(
+                    v, sep=sep, parent_key=new_key, ignore_keys=ignore_keys
+                ).items()
+            )
         else:
-            items.append((new_key, v,))
+            items.append(
+                (
+                    new_key,
+                    v,
+                )
+            )
     return dict(items)
 
 
@@ -75,6 +86,7 @@ def create_slug(s: str) -> str:
     to this function will return ``a-new-world``.
     """
     import slugify
+
     return slugify.slugify(s)
 
 
@@ -122,8 +134,11 @@ class FilesystemWalker:
                 for filename in fnmatch.filter(filenames, pattern):
                     files_to_ignore.add(filename)
 
-            filenames = [filename for filename in filenames
-                         if filename not in files_to_ignore]
+            filenames = [
+                filename
+                for filename in filenames
+                if filename not in files_to_ignore
+            ]
 
             yield dirpath, filenames
 
@@ -135,6 +150,7 @@ def get_hash_key_for_map(m: collections.abc.Mapping) -> bytes:
     import hashlib
     import pickle
     import io
+
     buffer = io.BytesIO()
     pickle.dump(m, buffer)
     return hashlib.sha1(buffer.getbuffer()).digest()
@@ -159,10 +175,12 @@ def merge_dictionaries(a: dict, b: dict) -> dict:
     This looks a bit like a.update(b), but it actually will merge children,
     too. For example, if ``a[foo]`` exists, and ``b[foo]``, the contents of
     both will be merged, instead of overwriting ``a[foo]`` with ``b[foo]``."""
+
     def _m(a: dict, b: dict, path: List[str]):
         if not isinstance(b, dict):
-            raise RuntimeError("Cannot merge non-dictionary into dictionary "
-                               f"at key: {'.'.join(path)}")
+            raise RuntimeError(
+                f'Cannot merge non-dictionary into dictionary at key: {".".join(path)}'
+            )
 
         for key, value in b.items():
             if isinstance(b, dict) and key in a and isinstance(a[key], dict):
@@ -176,9 +194,7 @@ def merge_dictionaries(a: dict, b: dict) -> dict:
 
 class CaseInsensitiveDictionary:
     def __init__(self, d: Dict[str, Any]):
-        self.__data = {
-            k.lower(): (k, v) for k, v in d.items()
-        }
+        self.__data = {k.lower(): (k, v) for k, v in d.items()}
 
     def __getitem__(self, key):
         return self.__data[key.lower()][1]
@@ -201,17 +217,18 @@ class CaseInsensitiveDictionary:
 class _Node:
     """Helper class for tree printing, as the liara site node tree doesn't
     contain intermediate nodes."""
+
     def __init__(self, name: str, path: pathlib.PurePosixPath, data=None):
         self.__name = name
         self.__children = []
         self.__data = data
         self.__path = path
 
-    def add_child(self, node: "_Node"):
+    def add_child(self, node: '_Node'):
         self.__children.append(node)
 
     @property
-    def children(self) -> list["_Node"]:
+    def children(self) -> list['_Node']:
         return self.__children
 
     @property
@@ -228,9 +245,8 @@ class _Node:
 
 
 def _create_node_tree_for_site(nodes: List) -> _Node:
-    root_node = list(filter(
-        lambda n: n.path.name == '', nodes))
-    assert len(root_node) == 1, "Did not find a root node"
+    root_node = list(filter(lambda n: n.path.name == '', nodes))
+    assert len(root_node) == 1, 'Did not find a root node'
     root = _Node('Site', pathlib.PurePosixPath('/'), root_node[0])
     node_map = {'/': root}
 
@@ -254,8 +270,8 @@ def _create_node_tree_for_site(nodes: List) -> _Node:
 
 
 def get_thumbnail_size(
-        image_size: tuple[int, int],
-        thumbnail_size: Dict[str, int]) -> tuple[int, int] | None:
+    image_size: tuple[int, int], thumbnail_size: Dict[str, int]
+) -> tuple[int, int] | None:
     """Calculate the thumbnail size from a given image size.
 
     The thumbnail size must be a dictionary with either:
@@ -270,14 +286,18 @@ def get_thumbnail_size(
         assert 'width' not in thumbnail_size
         assert 'height' not in thumbnail_size
         longest_edge = max(width, height)
-        thumbnail_longest_edge = thumbnail_size.get('longest_edge',
-                                                    longest_edge)
+        thumbnail_longest_edge = thumbnail_size.get(
+            'longest_edge', longest_edge
+        )
         if longest_edge >= thumbnail_longest_edge:
             scale = thumbnail_longest_edge / longest_edge
             width *= scale
             height *= scale
 
-            return (round(width), round(height), )
+            return (
+                round(width),
+                round(height),
+            )
     else:
         assert 'width' in thumbnail_size or 'height' in thumbnail_size
         thumbnail_width = thumbnail_size.get('width', width)
@@ -294,4 +314,7 @@ def get_thumbnail_size(
         width *= scale
         height *= scale
 
-        return (round(width), round(height),)
+        return (
+            round(width),
+            round(height),
+        )

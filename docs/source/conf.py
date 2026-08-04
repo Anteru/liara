@@ -14,6 +14,7 @@
 #
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('../liara'))
 
 import liara
@@ -45,7 +46,7 @@ extensions = [
 ]
 
 autodoc2_packages = [
-    "../../liara",
+    '../../liara',
 ]
 
 autodoc2_index_template = """Reference
@@ -129,15 +130,12 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
@@ -147,8 +145,13 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'Liara.tex', 'Liara Documentation',
-     'Matthäus G. Chajdas', 'manual'),
+    (
+        master_doc,
+        'Liara.tex',
+        'Liara Documentation',
+        'Matthäus G. Chajdas',
+        'manual',
+    ),
 ]
 
 
@@ -156,10 +159,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'liara', 'Liara Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, 'liara', 'Liara Documentation', [author], 1)]
 
 
 # -- Options for Texinfo output ----------------------------------------------
@@ -168,9 +168,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Liara', 'Liara Documentation',
-     author, 'Liara', 'One line description of project.',
-     'Miscellaneous'),
+    (
+        master_doc,
+        'Liara',
+        'Liara Documentation',
+        author,
+        'Liara',
+        'One line description of project.',
+        'Miscellaneous',
+    ),
 ]
 
 

@@ -1,10 +1,12 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from liara import site, nodes
-from collections import namedtuple
 import pathlib
+from collections import namedtuple
+
 import pytest
+
+from liara import nodes, site
 
 item = namedtuple('item', ['metadata', 'name'])
 

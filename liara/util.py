@@ -1,13 +1,14 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-import pathlib
 import collections.abc
 import datetime
-import tzlocal
-from typing import List, Optional, Dict, Any
-import os
 import fnmatch
+import os
+import pathlib
+from typing import Any
+
+import tzlocal
 
 
 def pairwise(iterable):
@@ -43,7 +44,7 @@ def readtime(wordcount: int, words_per_minute=300):
 
 
 def flatten_dictionary(
-    d, sep='.', parent_key=None, *, ignore_keys: Optional[set] = None
+    d, sep='.', parent_key=None, *, ignore_keys: set | None = None
 ):
     """Flatten a nested dictionary. This uses the separator to combine keys
     together, so a dictionary access like ``['a']['b']`` with a separator
@@ -117,7 +118,7 @@ def local_now() -> datetime.datetime:
 
 
 class FilesystemWalker:
-    def __init__(self, ignore_files: Optional[List[str]] = None):
+    def __init__(self, ignore_files: list[str] | None = None):
         self.__ignore_files = ignore_files if ignore_files else []
 
     def walk(self, path: pathlib.Path):
@@ -148,8 +149,8 @@ def get_hash_key_for_map(m: collections.abc.Mapping) -> bytes:
 
     This method is fairly slow. Use with caution."""
     import hashlib
-    import pickle
     import io
+    import pickle
 
     buffer = io.BytesIO()
     pickle.dump(m, buffer)
@@ -176,7 +177,7 @@ def merge_dictionaries(a: dict, b: dict) -> dict:
     too. For example, if ``a[foo]`` exists, and ``b[foo]``, the contents of
     both will be merged, instead of overwriting ``a[foo]`` with ``b[foo]``."""
 
-    def _m(a: dict, b: dict, path: List[str]):
+    def _m(a: dict, b: dict, path: list[str]):
         if not isinstance(b, dict):
             raise RuntimeError(
                 f'Cannot merge non-dictionary into dictionary at key: {".".join(path)}'
@@ -193,7 +194,7 @@ def merge_dictionaries(a: dict, b: dict) -> dict:
 
 
 class CaseInsensitiveDictionary:
-    def __init__(self, d: Dict[str, Any]):
+    def __init__(self, d: dict[str, Any]):
         self.__data = {k.lower(): (k, v) for k, v in d.items()}
 
     def __getitem__(self, key):
@@ -244,7 +245,7 @@ class _Node:
         return self.__path
 
 
-def _create_node_tree_for_site(nodes: List) -> _Node:
+def _create_node_tree_for_site(nodes: list) -> _Node:
     root_node = list(filter(lambda n: n.path.name == '', nodes))
     assert len(root_node) == 1, 'Did not find a root node'
     root = _Node('Site', pathlib.PurePosixPath('/'), root_node[0])
@@ -270,7 +271,7 @@ def _create_node_tree_for_site(nodes: List) -> _Node:
 
 
 def get_thumbnail_size(
-    image_size: tuple[int, int], thumbnail_size: Dict[str, int]
+    image_size: tuple[int, int], thumbnail_size: dict[str, int]
 ) -> tuple[int, int] | None:
     """Calculate the thumbnail size from a given image size.
 

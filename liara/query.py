@@ -1,14 +1,14 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from typing import Iterable, List, Iterator, Optional
+import logging
+import re
+from abc import ABC, abstractmethod
+from collections.abc import Iterable, Iterator
+from typing import Any
+
 from .nodes import Node, NodeKind, _parse_node_kind
 from .template import Page
-from typing import Union, Any
-from abc import abstractmethod, ABC
-import logging
-
-import re
 
 
 class SelectionFilter(ABC):
@@ -123,7 +123,7 @@ class MetadataSorter(Sorter):
         return key
 
 
-class Query(Iterable[Union[Node, Page]]):
+class Query(Iterable[Node | Page]):
     """A query modifies a list of nodes, by sorting and filtering entries.
 
     Sorting requires the sort key to be present on all nodes that are to be
@@ -135,13 +135,13 @@ class Query(Iterable[Union[Node, Page]]):
     as a :py:class:`~liara.nodes.Node`.
     """
 
-    __filters: List[SelectionFilter]
-    __nodes: List[Node]
-    __sorters: List[Sorter]
+    __filters: list[SelectionFilter]
+    __nodes: list[Node]
+    __sorters: list[Sorter]
     __limit: int
     __offset: int
     __reversed: bool
-    __result: Optional[List[Union[Node, Page]]]
+    __result: list[Node | Page] | None
 
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
@@ -242,7 +242,7 @@ class Query(Iterable[Union[Node, Page]]):
         self.__result = []
         result = self.__nodes
         for f in self.__filters:
-            result: List[Node] = list(filter(lambda x: f.match(x), result))
+            result: list[Node] = list(filter(lambda x: f.match(x), result))
 
         if self.__sorters:
             for s in self.__sorters:
@@ -258,7 +258,7 @@ class Query(Iterable[Union[Node, Page]]):
         if self.__reversed:
             result = list(reversed(result))
 
-        def Wrap(n: Node) -> Union[Node, Page]:
+        def Wrap(n: Node) -> Node | Page:
             if n.kind in {NodeKind.Document, NodeKind.Index}:
                 return Page(n)
 
@@ -268,7 +268,7 @@ class Query(Iterable[Union[Node, Page]]):
         end = self.__offset + self.__limit if self.__limit > 0 else len(result)
         self.__result = [Wrap(e) for e in result[self.__offset : end]]
 
-    def __iter__(self) -> Iterator[Union[Node, Page]]:
+    def __iter__(self) -> Iterator[Node | Page]:
         self.__execute()
         assert self.__result is not None
         return iter(self.__result)

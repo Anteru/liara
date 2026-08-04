@@ -1,47 +1,44 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+import collections
 import datetime
 import logging
+import multiprocessing
 import os
 import pathlib
 import time
-import multiprocessing
+from collections import ChainMap
+from collections.abc import Callable
 from dataclasses import dataclass
-
+from types import MappingProxyType
 from typing import (
-    Any,
-    Callable,
     IO,
-    ChainMap,
-    List,
+    Any,
     Dict,
+    List,
     Optional,
     Text,
     Union,
 )
-from types import MappingProxyType
-
-import collections
 
 from liara.template import TemplateRepository
 
 from . import config, signals
-from .site import Site, ContentFilterFactory
+from .cache import Cache, FilesystemCache, NullCache, RedisCache, Sqlite3Cache
 from .nodes import (
     DocumentNodeFactory,
     RedirectionNode,
     ResourceNodeFactory,
     _process_node_sync,
 )
-
-from .cache import Cache, FilesystemCache, NullCache, Sqlite3Cache, RedisCache
+from .site import ContentFilterFactory, Site
 from .tools import SassCompiler
 from .util import (
     CaseInsensitiveDictionary,
     FilesystemWalker,
-    flatten_dictionary,
     file_digest,
+    flatten_dictionary,
     get_hash_key_for_map,
 )
 from .yaml import load_yaml
@@ -165,7 +162,7 @@ _COMPRESSION_FORMATS = CaseInsensitiveDictionary(
 
 
 class Compressor:
-    def __init__(self, configuration: Dict[str, List[str]]):
+    def __init__(self, configuration: dict[str, list[str]]):
         # The configuration is a mapping from file extensions to compressors to
         # use
         from collections import defaultdict
@@ -180,7 +177,7 @@ class Compressor:
 
     def compress(self, path: pathlib.Path):
         # Match path against the extensions
-        result: List[CompressionResult] = []
+        result: list[CompressionResult] = []
         assert path is not None
         ext = path.suffix.lstrip('.')
         if compressors := self.__map.get(ext):
@@ -201,20 +198,20 @@ class Liara:
     __site: Site
     __resource_node_factory: ResourceNodeFactory
     __document_node_factory: DocumentNodeFactory
-    __redirections: List[Dict[str, str]]
+    __redirections: list[dict[str, str]]
     __log = logging.getLogger('liara')
     __cache: Cache
     # When running using 'serve', this will be set to the local URL
-    __base_url_override: Optional[str] = None
-    __registered_plugins: Dict[object, _LoadedModule] = dict()
+    __base_url_override: str | None = None
+    __registered_plugins: dict[object, _LoadedModule] = dict()
     __filesystem_walker: FilesystemWalker
     __template_repository: TemplateRepository
 
     def __init__(
         self,
-        configuration: Optional[Union[str, IO, IO[bytes], IO[Text]]] = None,
+        configuration: str | IO | IO[bytes] | IO[str] | None = None,
         *,
-        configuration_overrides: Optional[Dict] = None,
+        configuration_overrides: dict | None = None,
     ):
         self.__site = Site()
         self.__redirections = []
@@ -280,10 +277,11 @@ class Liara:
 
     @classmethod
     def setup_plugins(cls) -> None:
-        import liara.plugins
-        import pkgutil
         import importlib
         import inspect
+        import pkgutil
+
+        import liara.plugins
 
         def iter_namespace(ns_pkg):
             return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + '.')
@@ -362,7 +360,7 @@ class Liara:
             case _:
                 self.__log.warning('No cache backend configured')
 
-    def __setup_content_filters(self, filters: List[str]) -> None:
+    def __setup_content_filters(self, filters: list[str]) -> None:
         content_filter_factory = ContentFilterFactory()
         for f in filters:
             self.__site.register_content_filter(
@@ -480,7 +478,7 @@ class Liara:
             # directory
             # Otherwise, we create a new index node
             node: Node
-            indexNode: Optional[Node] = None
+            indexNode: Node | None = None
             for filename in filenames:
                 if filename.startswith('_index'):
                     src = pathlib.Path(os.path.join(dirpath, filename))
@@ -866,7 +864,7 @@ class Liara:
             output_path, site, self.__template_repository
         )
 
-        published_files: List[pathlib.Path | None] = []
+        published_files: list[pathlib.Path | None] = []
 
         self.__log.info('Publishing ...')
         for document in site.documents:
@@ -924,7 +922,7 @@ class Liara:
                 f'Compression enabled, processing {len(published_files)} file(s)'
             )
             compressor = Compressor(self.__configuration['build.compression'])
-            compression_result: List[CompressionResult] = []
+            compression_result: list[CompressionResult] = []
             if parallel_build:
                 with multiprocessing.Pool() as pool:
                     for result_list in pool.starmap(

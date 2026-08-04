@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: 2026 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from typing import List
+import abc
+import logging
 import subprocess
 import sys
-import logging
-import abc
 
 
 class Tool(abc.ABC):
@@ -24,7 +23,7 @@ class Tool(abc.ABC):
 
     @abc.abstractmethod
     def invoke(
-        self, cmd_line_arguments: List[str]
+        self, cmd_line_arguments: list[str]
     ) -> subprocess.CompletedProcess:
         """Invoke the tool, return a ``subprocess.CompletedProcess`` instance.
         `stderr` and `stdout` is redirected to a ``subprocess.PIPE`` by
@@ -49,7 +48,7 @@ class SassCompiler(Tool):
         except Exception:
             return False
 
-    def invoke(self, cmd_line_arguments: List[str]):
+    def invoke(self, cmd_line_arguments: list[str]):
         return subprocess.run(
             ['sass'] + cmd_line_arguments,
             # See above
@@ -88,7 +87,7 @@ class TypescriptCompiler(Tool):
         except Exception:
             return False
 
-    def invoke(self, cmd_line_arguments: List[str]):
+    def invoke(self, cmd_line_arguments: list[str]):
         return subprocess.run(
             ['tsc'] + cmd_line_arguments,
             # See above

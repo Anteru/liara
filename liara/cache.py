@@ -1,9 +1,6 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from dataclasses import dataclass
-from datetime import timedelta
-from typing import Dict, Optional
 import abc
 import hashlib
 import logging
@@ -11,6 +8,8 @@ import os
 import pathlib
 import pickle
 import sqlite3
+from dataclasses import dataclass
+from datetime import timedelta
 
 
 @dataclass
@@ -49,7 +48,7 @@ class Cache(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get(self, key: bytes) -> Optional[object | bytes]:
+    def get(self, key: bytes) -> object | bytes | None:
         """Get a stored object.
 
         :param key: The object key.
@@ -63,7 +62,7 @@ class Cache(abc.ABC):
         the next run, the constructor will then pick up the index and return
         cached data.
         """
-        return None
+        return
 
     @abc.abstractmethod
     def clear(self) -> None:
@@ -86,7 +85,7 @@ class _CacheBase(Cache):
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
     def __init__(self):
-        self.__prefix = bytes()
+        self.__prefix = b''
 
     def set_key_prefix(self, prefix: bytes):
         self.__log.debug('Setting cache key prefix to: "%s"', prefix.hex())
@@ -96,18 +95,16 @@ class _CacheBase(Cache):
     def _put(self, key: bytes, value: object | bytes) -> bool:
         """To be implemented by derived classes, this method will be called
         with the prefix already applied."""
-        pass
 
     @abc.abstractmethod
-    def _get(self, key: bytes) -> Optional[object | bytes]:
+    def _get(self, key: bytes) -> object | bytes | None:
         """To be implemented by derived classes, this method will be called
         with the prefix already applied."""
-        pass
 
     def put(self, key: bytes, value: object | bytes) -> bool:
         return self._put(self.__prefix + key, value)
 
-    def get(self, key: bytes) -> Optional[object | bytes]:
+    def get(self, key: bytes) -> object | bytes | None:
         return self._get(self.__prefix + key)
 
 
@@ -119,7 +116,7 @@ class FilesystemCache(_CacheBase):
     :py:meth:`persist` to write the cache index to disk.
     """
 
-    __index: Dict[bytes, pathlib.Path]
+    __index: dict[bytes, pathlib.Path]
 
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
@@ -157,7 +154,7 @@ class FilesystemCache(_CacheBase):
         self.__index[key] = cache_object_path
         return True
 
-    def _get(self, key: bytes) -> Optional[object | bytes]:
+    def _get(self, key: bytes) -> object | bytes | None:
         if key not in self.__index:
             return None
 
@@ -235,7 +232,7 @@ class Sqlite3Cache(_CacheBase):
 
         return r.lastrowid != 0
 
-    def _get(self, key: bytes) -> Optional[object | bytes]:
+    def _get(self, key: bytes) -> object | bytes | None:
         q = 'SELECT data, object_type FROM cache WHERE key=?'
         self.__cursor.execute(q, (key,))
         r = self.__cursor.fetchone()
@@ -269,7 +266,7 @@ class MemoryCache(_CacheBase):
     This cache stores all objects in-memory.
     """
 
-    __index: Dict[bytes, object | bytes]
+    __index: dict[bytes, object | bytes]
 
     def __init__(self):
         super().__init__()
@@ -282,7 +279,7 @@ class MemoryCache(_CacheBase):
         self.__index[key] = value
         return True
 
-    def _get(self, key: bytes) -> Optional[object | bytes]:
+    def _get(self, key: bytes) -> object | bytes | None:
         return self.__index.get(key, None)
 
     def clear(self):
@@ -337,7 +334,7 @@ class RedisCache(_CacheBase):
 
         return all(pipeline.execute())
 
-    def _get(self, key) -> Optional[object | bytes]:
+    def _get(self, key) -> object | bytes | None:
         pipeline = self.__redis.pipeline()
 
         pipeline.get(self.__make_key(key, 'type'))
@@ -376,7 +373,7 @@ class NullCache(_CacheBase):
     def _put(self, key: bytes, value: object | bytes) -> bool:
         return True
 
-    def _get(self, key: bytes) -> Optional[object | bytes]:
+    def _get(self, key: bytes) -> object | bytes | None:
         return None
 
     def clear(self) -> None:

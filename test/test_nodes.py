@@ -1,8 +1,9 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from liara.nodes import extract_metadata_content
 import pytest
+
+from liara.nodes import extract_metadata_content
 
 
 def test_extract_toml_metadata():

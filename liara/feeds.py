@@ -1,12 +1,12 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from .nodes import GeneratedNode, NodeKind, DocumentNode
-from .site import Site
-from . import __version__
-from .util import local_now
-import datetime
 import email.utils
+
+from . import __version__
+from .nodes import DocumentNode, GeneratedNode, NodeKind
+from .site import Site
+from .util import local_now
 
 
 class FeedNode(GeneratedNode):
@@ -26,8 +26,8 @@ class RSSFeedNode(FeedNode):
         self.__site = site
 
     def generate(self):
-        from lxml.builder import ElementMaker
         from lxml import etree
+        from lxml.builder import ElementMaker
 
         items = reversed(
             list(self.__site.get_collection(self.__collection).nodes)[
@@ -129,8 +129,8 @@ class SitemapXmlFeedNode(FeedNode):
         self.__site = site
 
     def generate(self):
-        from lxml.builder import ElementMaker
         from lxml import etree
+        from lxml.builder import ElementMaker
 
         E = ElementMaker(
             namespace='http://www.sitemaps.org/schemas/sitemap/0.9',

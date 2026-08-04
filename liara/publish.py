@@ -1,23 +1,23 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+import datetime
+import logging
+import pathlib
+
+from . import __version__ as liara_version
 from .nodes import (
-    Node,
     DocumentNode,
+    GeneratedNode,
     IndexNode,
+    Node,
     Publisher,
     ResourceNode,
     StaticNode,
-    GeneratedNode,
 )
-from .template import Page, SiteTemplateProxy, TemplateRepository
 from .site import Site
-import pathlib
-from typing import Union
-import logging
+from .template import Page, SiteTemplateProxy, TemplateRepository
 from .util import local_now
-from . import __version__ as liara_version
-import datetime
 
 
 class BuildContext:
@@ -29,7 +29,7 @@ class BuildContext:
     timestamp: datetime.datetime
     """The current time when this node was processed"""
 
-    def __init__(self, node: Union[DocumentNode, IndexNode]):
+    def __init__(self, node: DocumentNode | IndexNode):
         self.timestamp = local_now()
         self.version = liara_version
         self.__node = node
@@ -51,7 +51,7 @@ class BuildContext:
 
 def _publish_with_template(
     output_path: pathlib.Path,
-    node: Union[DocumentNode, IndexNode],
+    node: DocumentNode | IndexNode,
     site: Site,
     site_template_proxy: SiteTemplateProxy,
     template_repository,
@@ -126,8 +126,8 @@ class DefaultPublisher(Publisher):
         return file_path
 
     def publish_static(self, static: StaticNode):
-        import shutil
         import os
+        import shutil
         from contextlib import suppress
 
         assert static is not None

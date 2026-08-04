@@ -9,8 +9,9 @@ def register():
 
 
 def _register_cli(sender, cli):
-    from liara.cmdline import pass_environment
     import sys
+
+    from liara.cmdline import pass_environment
 
     @cli.command()
     @pass_environment

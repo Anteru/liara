@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 from typing import (
-    Dict,
     Any,
 )
 
 
-def create_default_configuration() -> Dict[str, Any]:
+def create_default_configuration() -> dict[str, Any]:
     """Creates a dictionary with the default configuration."""
     # When changing this, make sure to update the docs as well
     return {
@@ -57,7 +56,7 @@ def create_default_configuration() -> Dict[str, Any]:
     }
 
 
-def create_default_template_configuration() -> Dict[str, Any]:
+def create_default_template_configuration() -> dict[str, Any]:
     """Creates the default template configuration."""
     return {
         'backend': 'jinja2',
@@ -67,7 +66,7 @@ def create_default_template_configuration() -> Dict[str, Any]:
     }
 
 
-def create_default_metadata() -> Dict[str, Any]:
+def create_default_metadata() -> dict[str, Any]:
     """Creates a dictionary with the default metadata."""
     return {
         'title': 'Default title',

@@ -1,6 +1,21 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+import http.server
+import logging
+import mimetypes
+import pathlib
+import threading
+import traceback
+import webbrowser
+from urllib.parse import unquote
+
+import pygments
+import pygments.formatters
+import pygments.lexers
+
+from . import Liara
+from .cache import Cache
 from .nodes import (
     DataNode,
     DocumentNode,
@@ -12,21 +27,8 @@ from .nodes import (
     StaticNode,
     _process_node_sync,
 )
-import pathlib
-from . import Liara
 from .publish import TemplatePublisher
-from .cache import Cache
 from .site import Site
-import logging
-import webbrowser
-import mimetypes
-import http.server
-import threading
-from urllib.parse import unquote
-import traceback
-import pygments
-import pygments.lexers
-import pygments.formatters
 
 
 class _ServerState:
@@ -228,7 +230,9 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
 
     def __render_nodes(self):
         from importlib.resources import files
+
         from jinja2 import Template
+
         from .util import _create_node_tree_for_site
 
         assert isinstance(self.server, _HttpServer)

@@ -1,12 +1,14 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from markdown.extensions import Extension
-from markdown.treeprocessors import Treeprocessor
-from markdown.preprocessors import Preprocessor
-import re
 import logging
-from typing import Any, Dict, Optional, Sequence
+import re
+from collections.abc import Sequence
+from typing import Any
+
+from markdown.extensions import Extension
+from markdown.preprocessors import Preprocessor
+from markdown.treeprocessors import Treeprocessor
 
 
 class HeadingLevelFixupProcessor(Treeprocessor):
@@ -40,7 +42,7 @@ class HeadingLevelFixupProcessor(Treeprocessor):
 
 class ShortcodeException(Exception):
     def __init__(
-        self, error_message, line_number, line_offset: Optional[int] = None
+        self, error_message, line_number, line_offset: int | None = None
     ):
         super().__init__(
             self._format_message(error_message, line_number, line_offset)
@@ -172,7 +174,7 @@ class _ShortcodeParser:
             return arg
         else:
             raise ShortcodeException(
-                f'Error while parsing shortcode: Could not parse argument value',
+                'Error while parsing shortcode: Could not parse argument value',
                 self.__buffer.get_current_line_number(),
             )
 
@@ -298,7 +300,7 @@ class ShortcodePreprocessor(Preprocessor):
         self.__page = Page(node)
         self.__data = None
 
-    def set_data(self, data: Dict[str, Any]):
+    def set_data(self, data: dict[str, Any]):
         """
         Set the data context.
 
@@ -364,7 +366,7 @@ class ShortcodePreprocessor(Preprocessor):
                         # pretty-printed anyways
                         if k[0] == '$':
                             continue
-                        yield f'{k}={repr(v)}'
+                        yield f'{k}={v!r}'
 
                 # Skip the text processing if logging is disabled
                 if self.__log.isEnabledFor(logging.DEBUG):
@@ -399,7 +401,7 @@ class LiaraMarkdownExtensions(Extension):
         self.__node = node
         self.__shortcode_preprocessor = None
 
-    def set_data(self, data: Dict[str, Any]):
+    def set_data(self, data: dict[str, Any]):
         assert self.__shortcode_preprocessor
         self.__shortcode_preprocessor.set_data(data)
 

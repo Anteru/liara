@@ -3,7 +3,6 @@
 
 from blinker import signal
 
-
 content_filtered = signal('content-filtered')
 """Raised when content has been removed due to a filter.
 

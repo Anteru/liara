@@ -1,8 +1,9 @@
 # SPDX-FileCopyrightText: 2021 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from liara import signals
 import click
+
+from liara import signals
 
 
 def register():
@@ -10,8 +11,9 @@ def register():
 
 
 def _register_cli(sender, cli):
-    from liara.cmdline import pass_environment
     import sys
+
+    from liara.cmdline import pass_environment
 
     @cli.command()
     @click.argument('series')

@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import pathlib
-from liara.template import Template, _match_url, TemplateRepository
+
 import pytest
+
 import liara.site
+from liara.template import Template, TemplateRepository, _match_url
 
 
 @pytest.fixture

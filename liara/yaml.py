@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from typing import IO, Optional, Text, Union
+from typing import IO
 
 
-def load_yaml(s: Union[bytes, IO, IO[bytes], Text, IO[Text]]):
+def load_yaml(s: bytes | IO | IO[bytes] | str | IO[str]):
     """Load a Yaml document.
 
     This is a helper function which tries to use the fast ``CLoader``
@@ -19,7 +19,7 @@ def load_yaml(s: Union[bytes, IO, IO[bytes], Text, IO[Text]]):
     return yaml.load(s, Loader=Loader)
 
 
-def dump_yaml(data, stream: Optional[IO] = None):
+def dump_yaml(data, stream: IO | None = None):
     """Dump an object to Yaml.
 
     This is a helper function which tries to use the fast ``CDumper``

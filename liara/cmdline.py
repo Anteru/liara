@@ -2,18 +2,21 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import cProfile
-from . import Liara
-from .config import create_default_configuration
-from .yaml import dump_yaml
 import logging
 import os
-import click
-from typing import Literal, IO, Callable, Optional, Union
-from .site import Site
-from .util import _Node, _create_node_tree_for_site
-from .nodes import Node, NodeKind, _parse_node_kind
 import pathlib
+from collections.abc import Callable
+from typing import IO, Literal
+
+import click
+
+from . import Liara
 from .cache import NullCache
+from .config import create_default_configuration
+from .nodes import Node, NodeKind, _parse_node_kind
+from .site import Site
+from .util import _create_node_tree_for_site, _Node
+from .yaml import dump_yaml
 
 
 class Environment:
@@ -62,7 +65,8 @@ def _setup_logging(*, debug: bool, verbose: bool):
         )
     else:
         logging.basicConfig(
-            level=logging.WARN, format='%(asctime)s %(levelname)-7s %(message)s'
+            level=logging.WARNING,
+            format='%(asctime)s %(levelname)-7s %(message)s',
         )
 
 
@@ -83,8 +87,9 @@ def cli(env: Environment, debug: bool, verbose: bool, config, date: str):
     _setup_logging(debug=debug, verbose=verbose)
 
     if date:
-        from .util import set_local_now
         import dateparser
+
+        from .util import set_local_now
 
         now = dateparser.parse(date)
         if now:
@@ -161,13 +166,13 @@ def validate_links(env: Environment, link_type):
     a check is performed if the link target exists. For external links,
     a web request is made to the link target. If the request returns an
     error code, the link is considered invalid."""
-    from .cache import MemoryCache
     from .actions import (
-        validate_internal_links,
-        validate_external_links,
-        gather_links,
         LinkType,
+        gather_links,
+        validate_external_links,
+        validate_internal_links,
     )
+    from .cache import MemoryCache
 
     liara = env.liara
     site = liara.discover_content()
@@ -369,8 +374,8 @@ def list_content(
 
     if format == 'tree':
         root = _create_node_tree_for_site(nodes)
-        import sys
         import io
+        import sys
 
         # This seems to be required to get UTF-8 output redirection to work
         # in powershell. Unclear why
@@ -428,6 +433,7 @@ def serve(
 ):
     """Run a local development server."""
     import watchfiles
+
     from .server import HttpServer
 
     liara = _create_liara(env.config)
@@ -521,7 +527,6 @@ def cache(env: Environment, action: Literal['clear', 'inspect']):
 @cli.group()
 def inspect():
     """Inspect state, for example, site data or template matching."""
-    pass
 
 
 @inspect.command('data')
@@ -566,9 +571,7 @@ class _SiteShim(Site):
     def register_fake_node(self, path: str, kind: NodeKind):
         self.__fakes[pathlib.PurePosixPath(path)] = kind
 
-    def get_node(
-        self, path: Union[str, pathlib.PurePosixPath]
-    ) -> Optional[Node]:
+    def get_node(self, path: str | pathlib.PurePosixPath) -> Node | None:
         if path in self.__fakes:
             assert isinstance(path, pathlib.PurePosixPath)
             n = Node()
@@ -593,7 +596,7 @@ class _SiteShim(Site):
 )
 @pass_environment
 def inspect_template_match(
-    env: Environment, path: str, kind: Optional[Literal['document', 'index']]
+    env: Environment, path: str, kind: Literal['document', 'index'] | None
 ):
     """Match a template pattern."""
     liara = env.liara

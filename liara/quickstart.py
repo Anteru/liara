@@ -1,9 +1,10 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from .yaml import dump_yaml
-from .config import create_default_metadata
 from typing import Literal
+
+from .config import create_default_metadata
+from .yaml import dump_yaml
 
 __TEMPLATES_JINJA2 = {
     'page.jinja2': r"""

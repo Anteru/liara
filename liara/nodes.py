@@ -1,9 +1,10 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from enum import auto, Enum
 import logging
 import pathlib
+from enum import Enum, auto
+
 from .yaml import load_yaml
 
 try:
@@ -11,29 +12,23 @@ try:
 except ImportError:
     import tomli as toml
 
-from .cache import Cache
-from .signals import document_loaded
+import re
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Iterable
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Callable,
-    Dict,
     Generic,
-    Iterable,
-    List,
     Literal,
     Optional,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
 )
-import re
+
 import dateparser
-from abc import abstractmethod, ABC
 
+from .cache import Cache
+from .signals import document_loaded
 from .tools import SassCompiler
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .query import Query
@@ -117,13 +112,12 @@ class _AsyncTask(ABC):
         After processing, an async task may update the cache in a separate
         step.
         """
-        pass
 
 
 class Node(ABC):
     kind: NodeKind
     """The node kind, must be set in the constructor."""
-    src: Optional[pathlib.Path]
+    src: pathlib.Path | None
     """The full path to the source file.
 
     This is an OS specific path object."""
@@ -134,13 +128,13 @@ class Node(ABC):
     All paths *must* start with ``/``.
     """
 
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     """Metadata associated with this node."""
 
     parent: Optional['Node']
     """The parent node, if any."""
 
-    __nodes: Dict[str, 'Node']
+    __nodes: dict[str, 'Node']
     """A dictionary containing all child nodes.
 
     The key is the path to the child node relative to this node. I.e. if the
@@ -200,7 +194,7 @@ class Node(ABC):
             if recursive:
                 yield from child.get_children(recursive=True)
 
-    def process(self, cache: Cache, **kwargs) -> Optional[_AsyncTask]:
+    def process(self, cache: Cache, **kwargs) -> _AsyncTask | None:
         """Some nodes -- resources, documents, etc. need to be processed. As
         this can be a resource-intense process (for instance, it may require
         generating images), processing can cache results and has to be
@@ -219,7 +213,6 @@ class Node(ABC):
         .. versionchanged:: 2.6.2 Added ``**kwargs``
            ``**kwargs`` was added to allow passing in additional context.
         """
-        pass
 
 
 _metadata_marker = re.compile(r'(---|\+\+\+)\n')
@@ -354,13 +347,13 @@ class FixupDateTimezone:
 
 
 class DocumentNode(Node):
-    _load_fixups: List[Callable]
+    _load_fixups: list[Callable]
     """These functions are called right after the document has been loaded,
     and can be used to fixup metadata, content, etc. before it gets processed
     (These should be called before :py:meth:`load`/:py:meth:`reload`
     returns.)"""
 
-    _process_fixups: List[Callable]
+    _process_fixups: list[Callable]
     """These functions are called after a document has been processed
     (These should be called before :py:meth:`process` returns)."""
 
@@ -370,7 +363,7 @@ class DocumentNode(Node):
         self,
         src,
         path: pathlib.PurePosixPath,
-        metadata_path: Optional[pathlib.Path] = None,
+        metadata_path: pathlib.Path | None = None,
     ):
         super().__init__()
         self.kind = NodeKind.Document
@@ -457,6 +450,7 @@ class MarkdownDocumentNode(DocumentNode):
 
     def _create_markdown_processor(self, configuration):
         from markdown import Markdown
+
         from .md import LiaraMarkdownExtensions
 
         self.__mdext = LiaraMarkdownExtensions(self)
@@ -476,6 +470,7 @@ class MarkdownDocumentNode(DocumentNode):
 
     def process(self, cache: Cache, **kwargs):
         import hashlib
+
         from .md import ShortcodeException
 
         if '$data' in kwargs:
@@ -527,7 +522,7 @@ class IndexNode(Node):
     children of this node.
     """
 
-    references: List[Node]
+    references: list[Node]
     """Nodes referenced by this index node.
 
     An index can not rely on using ``children`` as those have to be below the
@@ -535,7 +530,7 @@ class IndexNode(Node):
     elsewhere in the site."""
 
     def __init__(
-        self, path: pathlib.PurePosixPath, metadata: Optional[Dict] = None
+        self, path: pathlib.PurePosixPath, metadata: dict | None = None
     ):
         super().__init__()
         self.kind = NodeKind.Index
@@ -561,14 +556,14 @@ class GeneratedNode(Node):
     based off site-level data."""
 
     def __init__(
-        self, path: pathlib.PurePosixPath, metadata: Optional[Dict] = None
+        self, path: pathlib.PurePosixPath, metadata: dict | None = None
     ):
         super().__init__()
         self.kind = NodeKind.Generated
         self.src = None
         self.path = path
         self.metadata = metadata if metadata else {}
-        self.content: Optional[Union[bytes, str]] = None
+        self.content: bytes | str | None = None
         self.metadata['$type'] = self.__class__.__name__
 
     def generate(self) -> None:
@@ -576,7 +571,6 @@ class GeneratedNode(Node):
 
         After this function has finished, ``self.content`` must be populated
         with the generated content."""
-        pass
 
     def publish(self, publisher: Publisher):
         """Publish this node using the provided publisher."""
@@ -766,7 +760,7 @@ class NodeFactory(Generic[NT]):
     """A generic factory for nodes, which builds nodes based on the file
     type."""
 
-    __known_types: Dict[str, Tuple[Type, Any]]
+    __known_types: dict[str, tuple[type, Any]]
 
     def __init__(self):
         self.__known_types = {}
@@ -777,10 +771,10 @@ class NodeFactory(Generic[NT]):
 
     def register_type(
         self,
-        suffixes: Union[str, Iterable[str]],
+        suffixes: str | Iterable[str],
         node_type: type,
         *,
-        extra_args: Dict[str, Any] | None = None,
+        extra_args: dict[str, Any] | None = None,
     ) -> None:
         """Register a new node type.
 
@@ -807,7 +801,7 @@ class NodeFactory(Generic[NT]):
         cls,
         src: pathlib.Path,
         path: pathlib.PurePosixPath,
-        metadata_path: Optional[pathlib.Path] = None,
+        metadata_path: pathlib.Path | None = None,
         **kwargs,
     ) -> NT:
         """This is the actual creation function.
@@ -832,7 +826,7 @@ class NodeFactory(Generic[NT]):
         suffix: str,
         src: pathlib.Path,
         path: pathlib.PurePosixPath,
-        metadata_path: Optional[pathlib.Path] = None,
+        metadata_path: pathlib.Path | None = None,
     ) -> NT:
         """Create a node using the provided parameters."""
         cls, extra_args = self.__known_types[suffix]
@@ -888,7 +882,7 @@ class DocumentNodeFactory(NodeFactory[DocumentNode]):
 
     def __init__(self, configuration):
         super().__init__()
-        self.__load_fixups: List[Callable] = [FixupDateTimezone()]
+        self.__load_fixups: list[Callable] = [FixupDateTimezone()]
         self.__process_fixups = []
 
         self.__setup_fixups(configuration)
@@ -982,7 +976,7 @@ class _AsyncThumbnailTask(_AsyncTask):
         cache_key: bytes,
         src: pathlib.Path,
         size: tuple[int, int],
-        format: Optional[str],
+        format: str | None,
     ):
         self.__src = src
         self.__size = size
@@ -991,8 +985,9 @@ class _AsyncThumbnailTask(_AsyncTask):
         self.__format = format
 
     def process(self):
-        from PIL import Image
         import io
+
+        from PIL import Image
 
         self.__log.debug(
             'Generating thumbnail from "%s", with size %dx%d and format "%s"',
@@ -1051,13 +1046,13 @@ class ThumbnailNode(ResourceNode):
         assert self.src
         cache_key = hashlib.sha256(self.src.open('rb').read()).digest()
 
-        cache_key += '-thumb-'.encode('utf-8')
-        cache_key += f'{self.__size[0]}x{self.__size[1]}-'.encode('utf-8')
+        cache_key += b'-thumb-'
+        cache_key += f'{self.__size[0]}x{self.__size[1]}-'.encode()
 
         if self.__format:
             cache_key += self.__format.encode('utf-8')
         else:
-            cache_key += '<original>'.encode('utf-8')
+            cache_key += b'<original>'
 
         return cache_key
 
@@ -1100,7 +1095,7 @@ def _parse_node_kind(kind) -> NodeKind:
 
 
 def _process_node_sync(
-    node: Union[ResourceNode, DocumentNode], cache: Cache, **kwargs
+    node: ResourceNode | DocumentNode, cache: Cache, **kwargs
 ):
     """
     Process a node synchronously, even if it returned an async result.

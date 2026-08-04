@@ -1,27 +1,24 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from .cache import Cache
 import pathlib
-from typing import (
-    Any,
-    Dict,
-    Optional,
-)
+from abc import ABC, abstractmethod
 from types import MappingProxyType
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
-from abc import abstractmethod, ABC
-
-from typing import TYPE_CHECKING
+from .cache import Cache
 
 if TYPE_CHECKING:
-    from .query import Query
     from . import Site
+    from .query import Query
 
 
 def _match_url(
     url: str | pathlib.PurePosixPath, pattern: str, site: 'Site'
-) -> Optional[int]:
+) -> int | None:
     """Match an url against a pattern.
 
     :return: An integer indicating the match score, with 0 being a perfect
@@ -30,6 +27,7 @@ def _match_url(
     """
     import fnmatch
     import urllib.parse
+
     from .nodes import _parse_node_kind
 
     if '?' in pattern and site:
@@ -71,10 +69,10 @@ class Template(ABC):
 
 
 class TemplateRepository(ABC):
-    def __init__(self, paths: Dict[str, str]):
+    def __init__(self, paths: dict[str, str]):
         self.__paths = paths
 
-    def update_paths(self, paths: Dict[str, str]):
+    def update_paths(self, paths: dict[str, str]):
         self.__paths = paths
 
     @abstractmethod
@@ -132,7 +130,7 @@ class MakoTemplate(Template):
 
 
 class MakoTemplateRepository(TemplateRepository):
-    def __init__(self, paths: Dict[str, str], path: pathlib.Path):
+    def __init__(self, paths: dict[str, str], path: pathlib.Path):
         super().__init__(paths)
         from mako.lookup import TemplateLookup
 
@@ -159,21 +157,23 @@ class Jinja2TemplateRepository(TemplateRepository):
 
     def __init__(
         self,
-        paths: Dict[str, str],
+        paths: dict[str, str],
         path: pathlib.Path,
-        cache: Optional[Cache] = None,
+        cache: Cache | None = None,
         *,
-        options: Optional[Dict[str, Any]] = None,
+        options: dict[str, Any] | None = None,
     ):
         super().__init__(paths)
         self.__path = path
         self.__cache = cache
         self.__create_environment(options)
 
-    def __create_environment(self, options: Optional[Dict[str, Any]] = None):
-        from jinja2 import FileSystemLoader, Environment, BytecodeCache
-        from .util import readtime
+    def __create_environment(self, options: dict[str, Any] | None = None):
         import io
+
+        from jinja2 import BytecodeCache, Environment, FileSystemLoader
+
+        from .util import readtime
 
         def sanitize_options(options):
             if not options:
@@ -354,7 +354,7 @@ class SiteTemplateProxy:
         .. versionadded:: 2.4"""
         return self.select(query).with_node_kinds('doc', 'idx')
 
-    def get_page_by_url(self, url) -> Optional[Page]:
+    def get_page_by_url(self, url) -> Page | None:
         """Return a page by URL. If the page cannot be found, return
         ``None``."""
         node = self.__site.get_node(pathlib.PurePosixPath(url))
@@ -366,7 +366,7 @@ class SiteTemplateProxy:
 
     def get_previous_in_collection(
         self, collection: str, page: Page
-    ) -> Optional[Page]:
+    ) -> Page | None:
         """Given a collection and a page, return the previous page in this
         collection or ``None`` if this is the first page.
         """
@@ -380,7 +380,7 @@ class SiteTemplateProxy:
 
     def get_next_in_collection(
         self, collection: str, page: Page
-    ) -> Optional[Page]:
+    ) -> Page | None:
         """Given a collection and a page, return the next page in this
         collection or ``None`` if this is the last page.
         """

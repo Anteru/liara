@@ -1,6 +1,18 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+import fnmatch
+import functools
+import logging
+import pathlib
+from abc import ABC, abstractmethod
+from collections.abc import Iterable, KeysView, ValuesView
+from types import MappingProxyType
+from typing import (
+    Any,
+)
+
+from . import signals
 from .nodes import (
     DataNode,
     DocumentNode,
@@ -12,25 +24,7 @@ from .nodes import (
     StaticNode,
     ThumbnailNode,
 )
-import pathlib
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    KeysView,
-    List,
-    Optional,
-    Tuple,
-    Union,
-    ValuesView,
-)
-from .util import pairwise, merge_dictionaries
-from . import signals
-import logging
-import fnmatch
-from abc import abstractmethod, ABC
-from types import MappingProxyType
-import functools
+from .util import merge_dictionaries, pairwise
 
 
 def _create_metadata_accessor(field_name: str):
@@ -68,7 +62,7 @@ def _create_metadata_accessor(field_name: str):
         return metadata_key_fun
 
 
-def _create_metadata_filter(exclude_without: List[Union[str, Tuple[str, Any]]]):
+def _create_metadata_filter(exclude_without: list[str | tuple[str, Any]]):
     """Create a function to filter out nodes based on metadata fields.
 
     The filter function will check if the specified fields are present,
@@ -114,9 +108,9 @@ class Collection:
         name: str,
         pattern: str,
         *,
-        exclude_without: Optional[List[Union[str, Tuple[str, Any]]]] = None,
-        order_by: Optional[Union[str, List[str]]] = None,
-        node_kinds: Optional[List[Union[str, NodeKind]]] = None,
+        exclude_without: list[str | tuple[str, Any]] | None = None,
+        order_by: str | list[str] | None = None,
+        node_kinds: list[str | NodeKind] | None = None,
     ):
         """
         Create a new collection.
@@ -213,7 +207,7 @@ class Collection:
         """Get the (sorted) nodes in this collection."""
         return self.__nodes.values()
 
-    def get_next(self, node: Node) -> Optional[Node]:
+    def get_next(self, node: Node) -> Node | None:
         """Get the next node in this collection with regard to the specified
         order, or ``None`` if this is the last node."""
         if not self.__order_by:
@@ -222,7 +216,7 @@ class Collection:
             )
         return self.__next.get(node.path)
 
-    def get_previous(self, node: Node) -> Optional[Node]:
+    def get_previous(self, node: Node) -> Node | None:
         """Get the previous node in this collection with regard to the
         specified order, or ``None`` if this is the first node."""
         if not self.__order_by:
@@ -232,7 +226,7 @@ class Collection:
         return self.__previous.get(node.path)
 
 
-def _group_recursive(iterable, group_keys: List[str]):
+def _group_recursive(iterable, group_keys: list[str]):
     import collections
     import itertools
 
@@ -281,9 +275,9 @@ class Index:
         self,
         collection: Collection,
         path: str,
-        group_by: List[str],
+        group_by: list[str],
         *,
-        exclude_without: Optional[List[Union[str, Tuple[str, Any]]]] = None,
+        exclude_without: list[str | tuple[str, Any]] | None = None,
         create_top_level_index=False,
     ):
         """
@@ -334,7 +328,7 @@ class Index:
         )
 
     def _create_nodes_recursive(
-        self, site: 'Site', path, d, index, parent: Optional[IndexNode] = None
+        self, site: 'Site', path, d, index, parent: IndexNode | None = None
     ):
         for k, v in d.items():
             url = pathlib.PurePosixPath(path.replace(f'%{index}', str(k)))
@@ -431,37 +425,37 @@ class ContentFilterFactory:
 class Site:
     """This class manages to all site content."""
 
-    data: List[DataNode]
+    data: list[DataNode]
     """The list of all data nodes in this site."""
 
-    indices: List[IndexNode]
+    indices: list[IndexNode]
     """The list of all index nodes in this site."""
 
-    documents: List[DocumentNode]
+    documents: list[DocumentNode]
     """The list of all document nodes in this site."""
 
-    resources: List[ResourceNode]
+    resources: list[ResourceNode]
     """The list of all resources nodes in this site."""
 
-    static: List[StaticNode]
+    static: list[StaticNode]
     """The list of all static nodes in this site."""
 
-    generated: List[GeneratedNode]
+    generated: list[GeneratedNode]
     """The list of all generated nodes in this site."""
 
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     """Metadata describing this site."""
 
-    __nodes: Dict[pathlib.PurePosixPath, Node]
+    __nodes: dict[pathlib.PurePosixPath, Node]
     __root = pathlib.PurePosixPath('/')
-    __collections: Dict[str, Collection]
-    __indices: List[Index]
-    __content_filters: List[ContentFilter]
-    __filtered_content: Dict[pathlib.PurePosixPath, str]
+    __collections: dict[str, Collection]
+    __indices: list[Index]
+    __content_filters: list[ContentFilter]
+    __filtered_content: dict[pathlib.PurePosixPath, str]
 
     __log = logging.getLogger(f'{__name__}.{__qualname__}')
 
-    __merged_data: Dict[str, Any]
+    __merged_data: dict[str, Any]
 
     def __init__(self):
         self.data = []
@@ -486,7 +480,7 @@ class Site:
         """Register a new content filter."""
         self.__content_filters.append(content_filter)
 
-    def set_metadata(self, metadata: Dict[str, Any]) -> None:
+    def set_metadata(self, metadata: dict[str, Any]) -> None:
         """Set the metadata for this site.
 
         This overrides any previously set metadata. Metadata is accessible
@@ -513,7 +507,7 @@ class Site:
         return False
 
     @property
-    def filtered_content(self) -> Dict[pathlib.PurePosixPath, str]:
+    def filtered_content(self) -> dict[pathlib.PurePosixPath, str]:
         """Return which node paths got filtered and due to which filter."""
         return self.__filtered_content
 
@@ -808,14 +802,14 @@ class Site:
 
     def get_next_in_collection(
         self, collection: str, node: Node
-    ) -> Optional[Node]:
+    ) -> Node | None:
         """Get the next node in a collection."""
         next_node = self.__collections[collection].get_next(node)
         return next_node
 
     def get_previous_in_collection(
         self, collection: str, node: Node
-    ) -> Optional[Node]:
+    ) -> Node | None:
         """Get the previous node in a collection."""
         previous_node = self.__collections[collection].get_previous(node)
         return previous_node
@@ -824,9 +818,7 @@ class Site:
         """Get a collection."""
         return self.__collections[collection]
 
-    def get_node(
-        self, path: Union[str, pathlib.PurePosixPath]
-    ) -> Optional[Node]:
+    def get_node(self, path: str | pathlib.PurePosixPath) -> Node | None:
         """Get a node based on the URL, or ``None`` if no such node exists."""
         if isinstance(path, str):
             path = pathlib.PurePosixPath(path)

@@ -1,15 +1,16 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+import pytest
+
 from liara.util import (
     CaseInsensitiveDictionary,
     add_suffix,
     flatten_dictionary,
-    pairwise,
-    merge_dictionaries,
     get_thumbnail_size,
+    merge_dictionaries,
+    pairwise,
 )
-import pytest
 
 
 def test_flatten_dictionary():

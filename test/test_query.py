@@ -1,10 +1,12 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from liara.nodes import DocumentNode, StaticNode, Node
-from liara.template import Page
 import pathlib
+
 import pytest
+
+from liara.nodes import DocumentNode, Node, StaticNode
+from liara.template import Page
 
 
 class MockDocumentNode(DocumentNode):

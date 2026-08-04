@@ -1,10 +1,11 @@
 # SPDX-FileCopyrightText: 2024 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+from click.testing import CliRunner
+
+import liara
 from liara import cmdline
 from liara.signals import register_markdown_shortcodes
-import liara
-from click.testing import CliRunner
 
 _TEST_DATA = {}
 

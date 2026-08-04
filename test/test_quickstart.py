@@ -1,9 +1,10 @@
 # SPDX-FileCopyrightText: 2024 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from liara import cmdline
-import liara
 from click.testing import CliRunner
+
+import liara
+from liara import cmdline
 
 
 def test_quickstart(tmp_path):

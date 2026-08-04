@@ -1,13 +1,14 @@
 # SPDX-FileCopyrightText: 2019 Matthäus G. Chajdas <dev@anteru.net>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+import logging
+import pathlib
+from collections import defaultdict
+from collections.abc import Iterable
+from enum import Enum, auto
+
 from .nodes import DocumentNode
 from .site import Site
-import pathlib
-from typing import Dict, Iterable, List
-from enum import Enum, auto
-from collections import defaultdict
-import logging
 
 
 def _extract_links(document: DocumentNode):
@@ -54,7 +55,7 @@ def _is_internal_link(link: str) -> bool:
 
 def gather_links(
     documents: Iterable[DocumentNode], link_type: LinkType
-) -> Dict[str, List[pathlib.PurePosixPath]]:
+) -> dict[str, list[pathlib.PurePosixPath]]:
     """Gather links across documents.
 
     :return: A dictionary containing a link, and the list of document paths
@@ -65,9 +66,12 @@ def gather_links(
     for document in documents:
         links = _extract_links(document)
         for link in links:
-            if link_type == LinkType.Internal and not _is_internal_link(link):
-                continue
-            elif link_type == LinkType.External and _is_internal_link(link):
+            if (
+                link_type == LinkType.Internal
+                and not _is_internal_link(link)
+                or link_type == LinkType.External
+                and _is_internal_link(link)
+            ):
                 continue
 
             result[link].append(document.path)
@@ -76,7 +80,7 @@ def gather_links(
 
 
 def validate_internal_links(
-    links: Dict[str, List[pathlib.PurePosixPath]], site: Site
+    links: dict[str, list[pathlib.PurePosixPath]], site: Site
 ) -> int:
     """Validate internal links.
 
@@ -156,7 +160,7 @@ def _check_external_link(url: str):
 
 
 def validate_external_links(
-    links: Dict[str, List[pathlib.PurePosixPath]],
+    links: dict[str, list[pathlib.PurePosixPath]],
 ) -> int:
     """Validate external links.
 

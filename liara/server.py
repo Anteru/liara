@@ -31,6 +31,13 @@ from .publish import TemplatePublisher
 from .site import Site
 
 
+_LIVE_RELOAD_ENDPOINT = '$livereload'
+_LIVE_RELOAD_CODE = f"""<script>
+new EventSource('/{_LIVE_RELOAD_ENDPOINT}')
+    .addEventListener('reload', () => location.reload());
+</script>"""
+
+
 class _ServerState:
     __log = logging.getLogger('liara.HttpServer')
 
@@ -45,7 +52,8 @@ class _ServerState:
             liara._get_configuration()['output_directory']
         )
         self.__publisher = TemplatePublisher(
-            output_path, self.__site, liara._get_template_repository()
+            output_path, self.__site, liara._get_template_repository(),
+            live_reload_code=_LIVE_RELOAD_CODE
         )
 
     @property
@@ -126,7 +134,7 @@ class _ServerState:
         return BuildResult(node.publish(self.__publisher), None, cache)
 
 
-class _HttpServer(http.server.HTTPServer):
+class _HttpServer(http.server.ThreadingHTTPServer):
     def __init__(
         self,
         address,
@@ -138,11 +146,16 @@ class _HttpServer(http.server.HTTPServer):
         self.log = log
         self.mutex = threading.Lock()
         self.cache: dict[pathlib.PurePosixPath, pathlib.Path] = {}
+        self.generation = 0
+        self.update_condition = threading.Condition()
         super().__init__(address, request_handler_class)
 
     def update_state(self, new_state: _ServerState):
         with self.mutex:
             self.state = new_state
+        with self.update_condition:
+            self.generation += 1
+            self.update_condition.notify_all()
 
 
 class _ServerThread(threading.Thread):
@@ -162,11 +175,36 @@ class _ServerThread(threading.Thread):
 class _RequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         assert isinstance(self.server, _HttpServer)
-        with self.server.mutex:
-            # Paths with spaces will get encoded as %20 for example,
-            # we need to unquote here first
-            path = pathlib.PurePosixPath(unquote(self.path))
 
+        # Paths with spaces will get encoded as %20 for example,
+        # we need to unquote here first
+        path = pathlib.PurePosixPath(unquote(self.path))
+
+        if path.name == _LIVE_RELOAD_ENDPOINT:
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/event-stream')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+
+            last_generation = self.server.generation
+            try:
+                while True:
+                    with self.server.update_condition:
+                        self.server.update_condition.wait_for(
+                            lambda: self.server.generation != last_generation,
+                            timeout=15
+                        )
+                        current_generation = self.server.generation
+                    if current_generation != last_generation:
+                        last_generation = current_generation
+                        self.wfile.write(b'event: reload\ndata: 1\n\n')
+                    else:
+                        self.wfile.write(b': ping\n\n')  # Keepalive
+                    self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                return
+
+        with self.server.mutex:
             if path.name == '$admin' and self.server.state.enable_admin:
                 self.__render_nodes()
                 return
@@ -217,7 +255,9 @@ class _RequestHandler(http.server.BaseHTTPRequestHandler):
             if content_type:
                 self.send_header('Content-Type', content_type)
             self.end_headers()
-        self.wfile.write(node_path.read_bytes())
+
+            content = node_path.read_bytes()
+        self.wfile.write(content)
 
     def log_message(self, format, *args):
         assert isinstance(self.server, _HttpServer)

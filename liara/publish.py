@@ -5,6 +5,8 @@ import datetime
 import logging
 import pathlib
 
+from markupsafe import Markup
+
 from . import __version__ as liara_version
 from .nodes import (
     DocumentNode,
@@ -29,10 +31,19 @@ class BuildContext:
     timestamp: datetime.datetime
     """The current time when this node was processed"""
 
-    def __init__(self, node: DocumentNode | IndexNode):
+    live_reload_code: Markup
+    """Code snippet to enable live reload.
+
+    .. versionadded:: 2.7.8
+    """
+
+    def __init__(self, node: DocumentNode | IndexNode,
+                 live_reload_code: str | None = None):
         self.timestamp = local_now()
         self.version = liara_version
         self.__node = node
+        # Otherwise, this prints 'None'
+        self.live_reload_code = Markup(live_reload_code or '')
 
     @property
     def last_modified_time(self):
@@ -55,6 +66,8 @@ def _publish_with_template(
     site: Site,
     site_template_proxy: SiteTemplateProxy,
     template_repository,
+    *,
+    live_reload_code: str | None = None
 ) -> pathlib.Path:
     log = logging.getLogger('liara.publish.TemplatePublisher')
 
@@ -76,7 +89,8 @@ def _publish_with_template(
             site=site_template_proxy,
             page=page,
             node=node,
-            build_context=BuildContext(node),
+            build_context=BuildContext(node,
+                                       live_reload_code = live_reload_code),
         ),
         encoding='utf-8',
     )
@@ -156,10 +170,13 @@ class TemplatePublisher(DefaultPublisher):
         output_path: pathlib.Path,
         site: Site,
         template_repository: TemplateRepository,
+        *,
+        live_reload_code: str | None = None
     ):
         super().__init__(output_path, site)
         self.__site_template_proxy = SiteTemplateProxy(self._site)
         self.__template_repository = template_repository
+        self.__live_reload_code = live_reload_code
 
     def publish_document(self, document):
         assert document is not None
@@ -169,6 +186,7 @@ class TemplatePublisher(DefaultPublisher):
             self._site,
             self.__site_template_proxy,
             self.__template_repository,
+            live_reload_code=self.__live_reload_code
         )
 
     def publish_index(self, index: IndexNode):
@@ -179,4 +197,5 @@ class TemplatePublisher(DefaultPublisher):
             self._site,
             self.__site_template_proxy,
             self.__template_repository,
+            live_reload_code=self.__live_reload_code
         )

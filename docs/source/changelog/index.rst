@@ -6,6 +6,7 @@ Changelog
 
 * Add ``--name`` to ``liara serve`` to set the server name. On some systems that avoids a costly DNS lookup.
 * Add :py:meth:`~liara.query.Query.offset` which allows a query to skip elements. Together with :py:meth:`~liara.query.Query.limit` this can be used for pagination.
+* Add support for live reload. See :doc:`live reload <../how-to/live-reload>` for details.
 
 2.7.7
 -----

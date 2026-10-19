@@ -88,7 +88,7 @@ def test_shortcode_parser_1():
     pb = _ParseBuffer(0, lines)
     sp = _ShortcodeParser(pb)
 
-    rest, last_line, func_name, args = sp.parse()
+    rest, _, func_name, args = sp.parse()
     assert func_name == 'foo'
     assert rest == ' remainder'
 
@@ -98,7 +98,7 @@ def test_shortcode_parser_2():
     pb = _ParseBuffer(0, lines)
     sp = _ShortcodeParser(pb)
 
-    rest, last_line, func_name, args = sp.parse()
+    _, _, func_name, args = sp.parse()
     assert func_name == 'foo'
     assert args['bar'] == 'baz\noonga'
     assert args['foo'] == 'bar'
@@ -109,7 +109,7 @@ def test_shortcode_parser_3():
     pb = _ParseBuffer(0, lines)
     sp = _ShortcodeParser(pb)
 
-    rest, last_line, func_name, args = sp.parse()
+    _, _, func_name, args = sp.parse()
     assert func_name == 'foo'
     assert args['bar'] == 'baz'
 
@@ -119,7 +119,7 @@ def test_shortcode_parser_4():
     pb = _ParseBuffer(0, lines)
     sp = _ShortcodeParser(pb)
 
-    rest, last_line, func_name, args = sp.parse()
+    _, _, func_name, args = sp.parse()
     assert func_name == 'foo'
     assert args['bar'] == 'baz'
 
@@ -135,7 +135,7 @@ def test_shortcode_parser_5():
     pb = _ParseBuffer(0, lines)
     sp = _ShortcodeParser(pb)
 
-    rest, last_line, func_name, args = sp.parse()
+    _, _, func_name, args = sp.parse()
     assert func_name == 'figure'
     assert args['arg0'] == 'foo'
     assert len(args) == 3
@@ -152,7 +152,7 @@ def test_shortcode_parser_6():
     pb = _ParseBuffer(0, lines)
     sp = _ShortcodeParser(pb)
 
-    rest, last_line, func_name, args = sp.parse()
+    _, last_line, func_name, args = sp.parse()
     assert func_name == 'figure'
     assert args['arg0'] == 'foo'
     assert args['arg1'] == ''

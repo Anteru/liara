@@ -24,6 +24,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: Content Management System",
 ]
 
@@ -31,24 +32,24 @@ requires-python = ">= 3.10"
 dependencies = [
   "beautifulsoup4~=4.12",
   "blinker~=1.7",
-  "click~=8.1",
-  "dateparser~=1.2",
+  "click~=8.5",
+  "dateparser~=1.4",
   "humanfriendly~=10.0",
   "Jinja2~=3.1",
   "libsass~=0.21",
   "lxml~=6.0",
-  "Mako~=1.3",
+  "Mako~=1.4",
   "Markdown~=3.5",
   "MarkupSafe>=2.0",
-  "Pillow~=12.0",
-  "Pygments~=2.18",
+  "Pillow~=13.0",
+  "Pygments~=2.21",
   "pymdown-extensions~=10.0",
-  "python-slugify~=8.0",
+  "python-slugify~=9.0",
   "PyYAML~=6.0",
   "requests~=2.31",
   "tomli~=2.0; python_version < '3.11'",
   "tzlocal~=5.2",
-  "watchfiles~=1.0",
+  "watchfiles~=1.3",
 ]
 
 [project.optional-dependencies]
